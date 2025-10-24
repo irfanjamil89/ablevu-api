@@ -1,12 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UUID } from "crypto";
 import { first } from "rxjs";
 import { User } from "src/entity/user.entity";
 import { UserDto } from "src/user/user.dto";
 import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt';
-import { UUID } from "typeorm/driver/mongodb/bson.typings.js";
 @Injectable()
 export class UsersService {
   constructor(
