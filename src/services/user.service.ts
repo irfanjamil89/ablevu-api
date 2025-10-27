@@ -4,7 +4,9 @@ import { first } from "rxjs";
 import { User } from "src/entity/user.entity";
 import { UserDto } from "src/user/user.dto";
 import { Repository } from "typeorm";
+import { BadRequestException } from "@nestjs/common";
 import * as bcrypt from 'bcrypt';
+import { UpdatePasswordDto } from "src/user/update-password.dto";
 @Injectable()
 export class UsersService {
   constructor(
@@ -72,6 +74,27 @@ console.log(user);
 
   async remove(id: number): Promise<void> {
     await this.usersRepository.delete(id);
+  }
+  
+   async updatePassword(userId: string, dto: UpdatePasswordDto){
+    const existingUser = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new BadRequestException('User not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(dto.currentPassword, existingUser.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 12);
+    existingUser.password = hashedPassword;
+    existingUser.modified_at = new Date();
+
+    await this.usersRepository.save(existingUser);
   }
 }
 
