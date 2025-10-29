@@ -1,8 +1,9 @@
-import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param } from '@nestjs/common';
 import { AppService } from '../app.service';
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
 import { UserDto } from './user.dto';
+import { UpdateProfileDto } from 'src/user/dto/update-profile.dto';
 import { UpdatePasswordDto } from 'src/user/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -23,6 +24,15 @@ export class UserController {
 async signUp(@Body() dto: UserDto) {
   return await this.userService.signUp(dto);
 }
+
+@Put(':id')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.userService.updateProfile(id, updateProfileDto);
+  }
+
 
 @UseGuards(AuthGuard('local'))
   @Patch('update-password')
