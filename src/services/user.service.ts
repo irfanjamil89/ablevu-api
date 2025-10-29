@@ -7,6 +7,14 @@ import { Repository } from "typeorm";
 import { BadRequestException } from "@nestjs/common";
 import * as bcrypt from 'bcrypt';
 import { UpdatePasswordDto } from "src/user/update-password.dto";
+
+export enum UserRole {
+  ADMIN = 'Admin',
+  USER = 'User',
+  Contributor = 'Contributor',
+  PaidContributor = 'PaidContributor',
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -96,10 +104,13 @@ console.log(user);
 
     await this.usersRepository.save(existingUser);
   }
-    async changeUserRole(userId: string, targetRole: string){
+    async updateUserRole(userId: string, newRole: string){
     const requestingUser = await this.usersRepository.findOne({where: { id: userId }});
     if (!requestingUser) { throw new BadRequestException('user not found'); }
-      requestingUser.user_role = targetRole;
+    if (!Object.values(UserRole).includes(newRole as UserRole)) {
+      throw new BadRequestException('Invalid role');
+    }
+      requestingUser.user_role = newRole;
       await this.usersRepository.save(requestingUser);
   }
 }
