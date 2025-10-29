@@ -101,14 +101,14 @@ debugger;
   }
 
   const user = await this.usersService.findByResetToken(token);
-  if (!user) return { status: 'Error', message: 'Invalid or used token' };
+  if (!user) throw new BadRequestException('Invalid reset token');
 
   // expiry check
   if (!user.resetTokenExpires || user.resetTokenExpires.getTime() < Date.now()) {
     user.resetToken = null;
     user.resetTokenExpires = null;
     await this.usersService.save(user);
-    return { status: 'Error', message: 'Reset link expired' };
+    throw new BadRequestException('Reset token has expired');
   }
 
   // update password
