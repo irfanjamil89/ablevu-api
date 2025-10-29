@@ -96,8 +96,13 @@ console.log(user);
 
     await this.usersRepository.save(existingUser);
   }
+    async changeUserRole(userId: string, targetRole: string){
+    const requestingUser = await this.usersRepository.findOne({where: { id: userId }});
+    if (!requestingUser) { throw new BadRequestException('user not found'); }
+      requestingUser.user_role = targetRole;
+      await this.usersRepository.save(requestingUser);
+  }
 }
-
 function uuidv4(): string | undefined {
   throw new Error("Function not implemented.");
 }

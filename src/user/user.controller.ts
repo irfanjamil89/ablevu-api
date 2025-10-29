@@ -30,9 +30,15 @@ async signUp(@Body() dto: UserDto) {
     if (dto.newPassword !== dto.confirmPassword) {
       throw new Error('New password and confirm password did not match');
     }
-      const userId = req.user.id;
+      const userId = req.user.sub;
     await this.users.updatePassword(userId,dto);
     return { status: 'ok', message: 'Password updated successfully'};
   }
-  
+@UseGuards(AuthGuard('local'))
+  @Patch('change-role')
+  async changeUserRole( @Request() req: any, @Body('targetRole') targetRole: string) {
+      const userId = req.user.sub;
+    await this.users.changeUserRole(userId, targetRole);
+    return { status: 'ok', message: 'User role changed successfully'};
+  }
 }
