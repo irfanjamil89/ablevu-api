@@ -15,7 +15,6 @@ export class UserController {
 
   @Get()
   async findAll(): Promise<User[]> {
-    this.userService.save();
     return await this.userService.findAll();
   }
 
