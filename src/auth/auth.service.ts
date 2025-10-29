@@ -14,12 +14,12 @@ export class AuthService {
 
   private makeFrontendLink(token: string, email: string): string {
     const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').trim();
-    const u = new URL('/reset-password', baseUrl);
-    u.searchParams.set('token', token);
-    u.searchParams.set('email', email);
-    return u.toString();
+    const url = new URL('/reset-password', baseUrl);
+    url.searchParams.set('token', token);
+    url.searchParams.set('email', email);
+    return url.toString();
   }
-  private async issueResetAndEmail(
+  private async processResetPasswordFlow(
     userEmail: string,
     userName: string | null | undefined,
     expiryMs: number,
@@ -28,8 +28,8 @@ export class AuthService {
   ) {
     // You log in by username = email, so reuse the same finder:
     const user = await this.usersService.findByUserName(userEmail);
-    if (!user) return { status: 'Error', message: 'User not found' };
-
+    if (!user) throw new BadRequestException('No user found for the provided email');
+    
     if (!user.email) throw new BadRequestException('User has no email configured');
 
     const token = randomBytes(32).toString('hex');
@@ -55,7 +55,7 @@ export class AuthService {
       user.resetToken = null as any;
       user.resetTokenExpires = null as any;
       await this.usersService.save(user);
-      return { status: 'Error', message: e?.message || 'Failed to send email' };
+      throw new BadRequestException('Failed to send reset email');
     }
   }
 
@@ -86,7 +86,7 @@ debugger;
     if (!user.email) {                          
     throw new BadRequestException('User record has no email');
   }
-    return this.issueResetAndEmail(
+    return this.processResetPasswordFlow(
       user.email,          
       user.first_name,     
       60 * 60 * 1000,
@@ -97,7 +97,7 @@ debugger;
 
   async resetPasswordByToken(token: string, newPassword: string) {
   if (!token || !newPassword) {
-    return { status: 'Error', message: 'token and newPassword are required' };
+    throw new BadRequestException('Token and new password must be provided');
   }
 
   const user = await this.usersService.findByResetToken(token);
@@ -127,7 +127,7 @@ debugger;
     throw new BadRequestException('User record has no email');
   }
 
-    return this.issueResetAndEmail(
+    return this.processResetPasswordFlow(
       user.email,         
       user.first_name,    
       60 * 60 * 1000,

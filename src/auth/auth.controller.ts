@@ -25,20 +25,20 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgot(@Body() dto: ForgotPasswordDto) {
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }
 
- @Post('reset-password')
+  @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async reset(@Body() body: { token: string; newPassword: string }) {
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
     const { token, newPassword } = body;
     return this.authService.resetPasswordByToken(token, newPassword); 
   }
 
   @Post('admin/send-reset')
   @HttpCode(HttpStatus.OK)
-  async adminSendReset(@Body() body: { targetEmail: string }) {
+  async sendresetlink(@Body() body: { targetEmail: string }) {
     return this.authService.sendresetlink(body.targetEmail);
   }
 }
