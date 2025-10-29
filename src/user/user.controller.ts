@@ -36,9 +36,9 @@ async signUp(@Body() dto: UserDto) {
   }
 @UseGuards(AuthGuard('local'))
   @Patch('change-role')
-  async changeUserRole( @Request() req: any, @Body('targetRole') targetRole: string) {
+  async updateUserRole( @Request() req: any, @Body('newRole') newRole: string) {
       const userId = req.user.sub;
-    await this.users.changeUserRole(userId, targetRole);
+    await this.users.updateUserRole(userId, newRole);
     return { status: 'ok', message: 'User role changed successfully'};
   }
 }
