@@ -1,10 +1,9 @@
-import { Injectable, ConflictException, NotFoundException } from "@nestjs/common";
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { first } from "rxjs";
 import { User } from "src/entity/user.entity";
 import { UserDto } from "src/user/user.dto";
 import { Repository } from "typeorm";
-import { BadRequestException } from "@nestjs/common";
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from "src/user/dto/update-profile.dto";
 import { UpdatePasswordDto } from "src/user/update-password.dto";
@@ -14,6 +13,10 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) { }
+
+  async findByResetToken(token: string) {
+  return this.usersRepository.findOne({ where: { resetToken: token } });
+}
 
   findAll(): Promise<User[]> {
     return this.usersRepository.find();
@@ -27,14 +30,10 @@ export class UsersService {
   return this.usersRepository.findOne({ where: { email: username } });
 }
 
-  async save(): Promise<void> {
-    const user = {
-      id: 'dc2be30c-e446-4b63-b48f-9622a80f3e1c',
-      firstName: 'sds',
-      lastName: 'sdsd'
-    };
-    await this.usersRepository.save(user);
-  }
+ async save(user: User): Promise<User> {
+  return this.usersRepository.save(user);
+}
+
 
   async signUp(dto: UserDto) {
     const exists = await this.usersRepository.findOne({ where: { email: dto.emailAddress } });
@@ -107,7 +106,7 @@ console.log(user);
       updatedUser: user,
     };
   }
-  }
+  
   
    async updatePassword(userId: string, dto: UpdatePasswordDto){
     const existingUser = await this.usersRepository.findOne({
@@ -131,6 +130,6 @@ console.log(user);
   }
 }
 
-function uuidv4(): string | undefined {
-  throw new Error("Function not implemented.");
-}
+// function uuidv4(): string | undefined {
+//   throw new Error("Function not implemented.");
+// }

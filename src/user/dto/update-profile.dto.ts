@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Matches } from "class-validator";
+import { IsEmail, IsOptional, IsString } from "class-validator";
 
 
 export class UpdateProfileDto {
