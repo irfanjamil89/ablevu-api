@@ -7,6 +7,14 @@ import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from "src/user/dto/update-profile.dto";
 import { UpdatePasswordDto } from "src/user/update-password.dto";
+
+export enum UserRole {
+  ADMIN = 'Admin',
+  USER = 'User',
+  Contributor = 'Contributor',
+  PaidContributor = 'PaidContributor',
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -128,8 +136,16 @@ console.log(user);
 
     await this.usersRepository.save(existingUser);
   }
+    async updateUserRole(userId: string, newRole: string){
+    const requestingUser = await this.usersRepository.findOne({where: { id: userId }});
+    if (!requestingUser) { throw new BadRequestException('user not found'); }
+    if (!Object.values(UserRole).includes(newRole as UserRole)) {
+      throw new BadRequestException('Invalid role');
+    }
+      requestingUser.user_role = newRole;
+      await this.usersRepository.save(requestingUser);
+  }
 }
-
-// function uuidv4(): string | undefined {
-//   throw new Error("Function not implemented.");
-// }
+function uuidv4(): string | undefined {
+  throw new Error("Function not implemented.");
+}
