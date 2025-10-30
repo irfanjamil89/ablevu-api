@@ -5,31 +5,32 @@ import { Business } from "src/entity/business.entity";
 import { User } from "src/entity/user.entity";
 import { CreateBusinessDto } from "./create-business.dto";
 import { UpdateBusinessDto } from "./update-business.dto";
+import { AccessibilityFeatureDto } from "./accessibility.dto";
 
 @Injectable()
 export class BusinessService {
     constructor(
-    @InjectRepository(Business) private readonly repo: Repository<Business>,
-    @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Business) private readonly businessrepository: Repository<Business>,
+    @InjectRepository(User) private readonly usersRepository: Repository<User>,
     ) {}
 
     async createBusiness(dto: CreateBusinessDto, ownerId: string) {
-        const owner = await this.users.findOneBy({ id: ownerId });
-        const business = this.repo.create({ dto, owner });
-        return this.repo.save(business);
+        const owner = await this.usersRepository.findOneBy({ id: ownerId });
+        const business = this.businessrepository.create({ dto, owner });
+        return this.businessrepository.save(business);
     }
     async updateBusiness(id: string, dto: UpdateBusinessDto, ownerId: string){
-        const business = await this.repo.findOne({ where: { id }, relations: { owner: true } });
+        const business = await this.businessrepository.findOne({ where: { id }, relations: { owner: true } });
         if (!business || business.owner.id !== ownerId) throw new NotFoundException('Business not found');
         Object.assign(business, dto);
-        return this.repo.save(business);
+        return this.businessrepository.save(business);
     }
     async findMine(ownerId: string) {
-    return this.repo.find({ where: { owner: { id: ownerId } } });
+    return this.businessrepository.find({ where: { owner: { id: ownerId } } });
   }
 
   async findOne(id: string) {
-  const business = await this.repo.findOne({
+  const business = await this.businessrepository.findOne({
     where: { id },
   });
   if (!business) {
@@ -37,6 +38,10 @@ export class BusinessService {
   }
   return business;
 }
-
-
+  async AccessbilityFeatures( dto: AccessibilityFeatureDto, businessId: string) {
+    const business = await this.businessrepository.findOne({ where: { id: businessId } });
+    if (!business) throw new NotFoundException('Business not found');
+    business.accessibility_features = dto.AccessibilityFeatureID;
+    await this.businessrepository.save(business);
+  }
 }
