@@ -22,7 +22,7 @@ async updateBusiness(@Param('id') id: string, @Body() dto: UpdateBusinessDto, @R
     return { status: 'ok', business: updated }
 }
 
-@Patch('accessibility-features/:id')
+@Post('accessibility-features/:id')
 async AccessibilityFeatures(@Param('id') id: string, @Body() dto: AccessibilityFeatureDto) {
     const businessId = id
     await this.service.AccessbilityFeatures( dto, businessId);
