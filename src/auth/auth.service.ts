@@ -109,7 +109,7 @@ debugger;
     user.resetTokenExpires = null;
     await this.usersService.save(user);
     throw new BadRequestException('Reset token has expired');
-  }
+  } 
 
   // update password
   user.password = await bcrypt.hash(newPassword, 12);
