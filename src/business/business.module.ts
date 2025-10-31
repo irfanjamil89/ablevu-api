@@ -8,6 +8,7 @@ import { Business } from "src/entity/business.entity";
 @Module({
     imports: [TypeOrmModule.forFeature([Business , User])],
     providers: [BusinessService],
-    controllers: [BusinessController]
+    controllers: [BusinessController],
+    exports: [BusinessService],
 })
 export class BusinessModule {}
