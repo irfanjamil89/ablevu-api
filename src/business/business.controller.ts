@@ -1,24 +1,44 @@
-import { Body, Controller, Patch, Post, Req, Param } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Req, Param, Delete, Get } from "@nestjs/common";
 import { CreateBusinessDto } from "./create-business.dto";
 import { UpdateBusinessDto } from "./update-business.dto";
 import { BusinessService } from "./business.service";
 
 @Controller('business')
 export class BusinessController {
-    constructor( private service: BusinessService ) {}
+    constructor( private businessService: BusinessService ) {}
 
-@Post('create')
-async createBusiness(@Body() dto: CreateBusinessDto, @Req() req: any) {
-    const ownerId = req.user.sub ?? req.user.id;
-    const created = await this.service.createBusiness(dto, ownerId);
-    return { status: 'ok', business: created }
-}    
+  @Post('create/:userId')
+  async createBusinessForUser(
+    @Param('userId') userId: string,
+    @Body() dto: CreateBusinessDto,
+  ) {
+    return this.businessService.createBusinessForUser(userId, dto);
+  }
 
 @Patch('update/:id')
-async updateBusiness(@Param('id') id: string, @Body() dto: UpdateBusinessDto, @Req() req: any) {
-    const ownerId = req.user.sub ?? req.user.id;
-    const updated = await this.service.updateBusiness(id ,dto, ownerId);
-    return { status: 'ok', business: updated }
+async updateBusiness(
+    @Param('id') Id: string, 
+    @Body() dto: UpdateBusinessDto, 
+   ) {
+    return this.businessService.updateBusiness(Id, dto);
 }
+
+@Delete('delete/:id')
+async deleteBusiness(
+    @Param('id') Id: string) {
+    return this.businessService.deleteBusiness(Id);
+  }
+
+@Get('all-businesses/:userId')
+async getAllBusinessesForUser(
+    @Param('userId') userId: string) {
+    return this.businessService.getAllBusinessesForUser(userId);
+  } 
+
+@Get('business-profile/:id')
+async getBusinessProfile(
+    @Param('id') Id: string) {
+    return this.businessService.getBusinessProfile(Id);
+  }
 
 }

@@ -1,42 +1,86 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { Repository } from "typeorm";
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Business } from "src/entity/business.entity";
-import { User } from "src/entity/user.entity";
-import { CreateBusinessDto } from "./create-business.dto";
-import { UpdateBusinessDto } from "./update-business.dto";
+import { Repository } from 'typeorm';
+import { Business } from 'src/entity/business.entity';
+import { User } from 'src/entity/user.entity';
+import { CreateBusinessDto } from './create-business.dto';
+import { UpdateBusinessDto } from './update-business.dto';
 
 @Injectable()
 export class BusinessService {
-    constructor(
-    @InjectRepository(Business) private readonly businessrepository: Repository<Business>, 
-    @InjectRepository(User) private readonly usersRepository: Repository<User>,
-    ) {}
+  constructor(
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
 
-    async createBusiness(dto: CreateBusinessDto, ownerId: string) {
-        const owner = await this.usersRepository.findOneBy({ id: ownerId });
-        const business = this.businessrepository.create({ dto, owner });
-        return this.businessrepository.save(business); 
-    }
-    async updateBusiness(id: string, dto: UpdateBusinessDto, ownerId: string){
-        const business = await this.businessrepository.findOne({ where: { id }, relations: { owner: true } });
-        if (!business || business.owner.id !== ownerId) throw new NotFoundException('Business not found');
-        Object.assign(business, dto);
-        return this.businessrepository.save(business);
-    }
-    async findMine(ownerId: string) {
-    return this.usersRepository.find({ where: { owner: { id: ownerId } } });
+  private makeSlug(name: string) {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
   }
 
-  async findOne(id: string) {
-  const business = await this.businessrepository.findOne({
-    where: { id },
-  });
-  if (!business) {
-    throw new NotFoundException(`Business with ID ${id} not found`);
+  async createBusinessForUser(userId: string, dto: CreateBusinessDto) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (!dto.name || dto.name.trim() === '') {
+    throw new BadRequestException('Business name is missing');
   }
-  return business;
+
+    const slug = this.makeSlug(dto.name);
+
+    const business = this.businessRepo.create({
+      ...dto,
+      slug,
+      ownerUserId: user.id,
+      creatorUserId: user.id,
+      active: true,
+      blocked: false,
+    });
+    return await this.businessRepo.save(business);
+  }
+
+  async updateBusiness(id: string, dto: UpdateBusinessDto) {
+    const business = await this.businessRepo.findOne({ where: { id } });
+    if (!business){ 
+      throw new NotFoundException('Business not found');
+    }
+    if (dto.name && dto.name.trim() !== '') {
+      business.name = dto.name;
+      business.slug = this.makeSlug(dto.name);
+    }
+    Object.assign(business, dto);
+    return await this.businessRepo.save(business);
+  }
+
+  async deleteBusiness(id: string) {
+    const business = await this.businessRepo.findOne({ where: { id } });
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    await this.businessRepo.remove(business);
+    return{ message: 'Business deleted successfully'}
+  }
+
+  async getAllBusinessesForUser(userId: string) {
+    const businesses = await this.businessRepo.find({
+       where: { ownerUserId: userId },
+      select: ['id', 'name'],      
+      });
+    return businesses;
+  }
+  
+  async getBusinessProfile(id: string) {
+    const business = await this.businessRepo.findOne({ where: { id } });  
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    return business;
+  }
 }
 
 
-}

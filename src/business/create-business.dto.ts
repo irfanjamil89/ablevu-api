@@ -1,44 +1,75 @@
-import { ArrayMinSize, IsArray, IsEmail, IsOptional, IsString, IsUrl, Matches, ValidateNested } from "class-validator";
-import { Type } from "class-transformer";
+import { IsOptional, IsString, IsEmail, IsNumber } from 'class-validator';
 
-class SocialLinksDto {
-    @IsString()
-    platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube';
-
-    @IsUrl()
-    url: string;
-}
 export class CreateBusinessDto {
-    @IsString()
-    name: string;
+  @IsString() 
+  name: string;
 
-    @IsArray()
-    @ArrayMinSize(1)
-    @IsString({ each: true })
-    categories: string[];
+  @IsOptional() 
+  @IsString() 
+  description?: string;
 
-    @IsOptional()
-    @IsUrl()
-    website?: string;
+  @IsOptional() 
+  @IsString() 
+  address?: string;
 
-    @IsOptional()
-    @IsEmail()
-    email?: string;
+  @IsOptional() 
+  @IsString() 
+  city?: string;
 
-    @IsOptional()
-    @Matches(/^\+?[1-9]\d{1,14}$/)
-    phoneNumber?: string;
+  @IsOptional() 
+  @IsString() 
+  state?: string;
 
-    @IsOptional()
-    @IsString()
-    address?: string;
+  @IsOptional() 
+  @IsString() 
+  country?: string;
 
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => SocialLinksDto)
-    socialLinks?: SocialLinksDto[];
+  @IsOptional() 
+  @IsString() 
+  zipcode?: string;
 
-    @IsOptional()
-    @IsString()
-    about?: string;
+  @IsOptional() 
+  @IsString() 
+  website?: string;
+
+  @IsOptional() 
+  @IsEmail() 
+  email?: string;
+
+  @IsOptional() 
+  @IsString() 
+  phone_number?: string;
+
+  @IsOptional() 
+  @IsString() 
+  facebook_link?: string;
+
+  @IsOptional() 
+  @IsString() 
+  instagram_link?: string;
+
+  @IsOptional() 
+  @IsString() 
+  logo_url?: string;
+
+  @IsOptional() 
+  @IsString() 
+  marker_image_url?: string;
+
+  @IsOptional() 
+  @IsString() 
+  place_id?: string;
+
+  @IsOptional() 
+  @IsNumber() 
+  latitude?: number;
+
+  @IsOptional() 
+  @IsNumber() 
+  longitude?: number;
+
+  @IsOptional() 
+  @IsString() 
+  promo_code?: string;
+
 }
