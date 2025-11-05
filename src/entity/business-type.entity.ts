@@ -31,7 +31,4 @@ export class BusinessType {
 
     @Column()
     modified_at: Date;
-
-
-
 }

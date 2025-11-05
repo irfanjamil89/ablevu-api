@@ -13,7 +13,7 @@ export class BusinessTypeController {
         @Body() dto: CreateBusinessTypeDto,
       ) {
         return this.businessTypeService.createBusinessType(userId, dto);
-      }
+  }
 
     @Patch('update/:id/:userId')
     async updateBusinessType(
@@ -22,7 +22,7 @@ export class BusinessTypeController {
         @Body() dto: UpdateBusinessTypeDto, 
        ) {
         return this.businessTypeService.updateBusinessType(id, userId, dto);
-    }
+  }
 
     @Delete('delete/:id/:userId')
     async deleteBusinessType(
@@ -30,15 +30,15 @@ export class BusinessTypeController {
         @Param('userId') userId: string
       ) {
         return this.businessTypeService.deleteBusinessType(id, userId);
-      }
-
-     @Get()
-  listActive() {
-    return this.businessTypeService.listActive();
   }
 
-  @Get('list')
-  listPaginated(@Query('page') page = 1, @Query('limit') limit = 10, @Query('search') search?: string, @Query('active') active?: string) {
+    @Get('list')
+    listPaginated(
+    @Query('page') page = 1, 
+    @Query('limit') limit = 10, 
+    @Query('search') search?: string, 
+    @Query('active') active?: string) {
+
     const activeBool =
       active === undefined ? undefined : active === 'true' ? true : false;
 
@@ -48,10 +48,10 @@ export class BusinessTypeController {
     });
   }
   
-    @Get('business-type-profile/:id')
-    async getBusinessTypeProfile(
+    @Get('business-type/:id')
+    async getBusinessType(
     @Param('id') Id: string) {
-    return this.businessTypeService.getBusinessTypeProfile(Id);
+    return this.businessTypeService.getBusinessType(Id);
   }
 
     

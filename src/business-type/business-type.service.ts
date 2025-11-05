@@ -3,8 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessType } from 'src/entity/business-type.entity';
 
-
-
 @Injectable()
 export class BusinessTypeService {
   constructor(
@@ -67,13 +65,6 @@ export class BusinessTypeService {
     return{ message: 'Business Type deleted successfully'}
   }
 
-  async listActive() {
-  return this.businessTypeRepo.find({
-    where: { active: true },
-    order: { display_order: 'ASC', name: 'ASC' },
-  });
-}
-
   async listPaginated(page = 1, limit = 10, opts?: { search?: string; active?: boolean }) {
   const qb = this.businessTypeRepo
     .createQueryBuilder('bt')
@@ -91,8 +82,8 @@ export class BusinessTypeService {
   const data = await qb
     .orderBy('bt.display_order', 'ASC')
     .addOrderBy('bt.name', 'ASC')
-    .skip((page - 1) * limit) // (page-1)*limit rows skip
-    .take(limit)              // limit rows lo
+    .skip((page - 1) * limit) 
+    .take(limit)              
     .getMany();
 
   return {
@@ -104,8 +95,7 @@ export class BusinessTypeService {
   };
 }
 
-
-  async getBusinessTypeProfile(id: string) {
+  async getBusinessType(id: string) {
     const businessType = await this.businessTypeRepo.findOne({ where: { id } });  
     if (!businessType) {
       throw new NotFoundException('Business not found');

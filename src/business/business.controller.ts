@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, Post, Req, Param, Delete, Get } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Param, Delete, Get, Query } from "@nestjs/common";
 import { CreateBusinessDto } from "./create-business.dto";
 import { UpdateBusinessDto } from "./update-business.dto";
 import { BusinessService } from "./business.service";
@@ -7,12 +7,13 @@ import { BusinessService } from "./business.service";
 export class BusinessController {
     constructor( private businessService: BusinessService ) {}
 
-  @Post('create/:userId')
-  async createBusinessForUser(
-    @Param('userId') userId: string,
+  @Post('create/:UserId')
+  async createBusiness(
+    @Param('UserId') UserId: string,
     @Body() dto: CreateBusinessDto,
   ) {
-    return this.businessService.createBusinessForUser(userId, dto);
+    await this.businessService.createBusiness(UserId, dto);
+    return { message: 'Business created successfully' };
   }
 
 @Patch('update/:id')
@@ -20,25 +21,41 @@ async updateBusiness(
     @Param('id') Id: string, 
     @Body() dto: UpdateBusinessDto, 
    ) {
-    return this.businessService.updateBusiness(Id, dto);
+    await this.businessService.updateBusiness(Id, dto);
+    return { message: 'Business updated successfully' };
 }
 
 @Delete('delete/:id')
 async deleteBusiness(
     @Param('id') Id: string) {
-    return this.businessService.deleteBusiness(Id);
+    await this.businessService.deleteBusiness(Id);
+    return{ message: 'Business deleted successfully'}
   }
 
-@Get('all-businesses/:userId')
-async getAllBusinessesForUser(
-    @Param('userId') userId: string) {
-    return this.businessService.getAllBusinessesForUser(userId);
-  } 
+@Get('list')
+  async listPaginated(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('search') search?: string,
+    @Query('city') city?: string,
+    @Query('country') country?: string,
+    @Query('active') active?: string,
+  ) {
+
+    const activeBool =
+      active === undefined ? undefined : active === 'true' ? true : false;
+
+    return this.businessService.listPaginated(Number(page), Number(limit), {
+      search,
+      city,
+      country,
+      active: activeBool,
+    });
+  }
 
 @Get('business-profile/:id')
 async getBusinessProfile(
     @Param('id') Id: string) {
     return this.businessService.getBusinessProfile(Id);
   }
-
 }

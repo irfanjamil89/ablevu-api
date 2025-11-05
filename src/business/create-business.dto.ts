@@ -4,27 +4,21 @@ export class CreateBusinessDto {
   @IsString() 
   name: string;
 
-  @IsOptional() 
   @IsString() 
   description?: string;
 
-  @IsOptional() 
   @IsString() 
   address?: string;
 
-  @IsOptional() 
   @IsString() 
   city?: string;
 
-  @IsOptional() 
   @IsString() 
   state?: string;
 
-  @IsOptional() 
   @IsString() 
   country?: string;
 
-  @IsOptional() 
   @IsString() 
   zipcode?: string;
 
