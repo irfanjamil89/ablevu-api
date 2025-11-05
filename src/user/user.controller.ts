@@ -32,7 +32,6 @@ async signUp(@Body() dto: UserDto) {
     return this.userService.updateProfile(id, updateProfileDto);
   }
 
-
 @UseGuards(AuthGuard('local'))
   @Patch('update-password')
   async updatePassword(@Request() req: any, @Body() dto: UpdatePasswordDto) {
