@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { configService } from './services/config.service';
 import { AuthModule } from './auth/auth.module';
 import { AccessibleFeatureTypeModule } from './accessible feature-type/accessible feature-type.module';
+import { BusinessModule } from './business/business.module';
+import { BusinessTypeModule } from './business-type/business-type.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { AccessibleFeatureTypeModule } from './accessible feature-type/accessibl
     UserModule,
     AuthModule,
     AccessibleFeatureTypeModule,
+    BusinessModule,
+    BusinessTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
