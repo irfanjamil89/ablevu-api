@@ -5,6 +5,7 @@ import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { configService } from './services/config.service';
 import { AuthModule } from './auth/auth.module';
+import { AccessibleFeatureTypeModule } from './accessible feature-type/accessible feature-type.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { AuthModule } from './auth/auth.module';
     // }),
     TypeOrmModule.forRoot(configService.getTypeOrmConfig()),
     UserModule,
-    AuthModule
+    AuthModule,
+    AccessibleFeatureTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
