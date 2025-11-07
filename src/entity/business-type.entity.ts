@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
+import { Business } from './business.entity';
 
 @Entity()
 export class BusinessType {
@@ -7,6 +8,9 @@ export class BusinessType {
 
     @Column()
     name: string;
+
+    @ManyToMany(() => Business, (b) => b.businessTypes)
+    businesses: Business[];
 
     @Column()
     display_order: number;
