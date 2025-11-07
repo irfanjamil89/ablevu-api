@@ -7,6 +7,7 @@ import { configService } from './services/config.service';
 import { AuthModule } from './auth/auth.module';
 import { BusinessModule } from './business/business.module';
 import { BusinessTypeModule } from './business-type/business-type.module';
+import { AccessibleCityModule } from './accessible city/accessible-city.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { BusinessTypeModule } from './business-type/business-type.module';
     AuthModule,
     BusinessModule,
     BusinessTypeModule,
+    AccessibleCityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
