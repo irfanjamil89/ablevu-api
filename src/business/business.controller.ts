@@ -7,7 +7,7 @@ import { BusinessService } from "./business.service";
 export class BusinessController {
     constructor( private businessService: BusinessService ) {}
 
-  @Post('create/:UserId')
+@Post('create/:UserId')
   async createBusiness(
     @Param('UserId') UserId: string,
     @Body() dto: CreateBusinessDto,
@@ -17,16 +17,16 @@ export class BusinessController {
   }
 
 @Patch('update/:id')
-async updateBusiness(
+  async updateBusiness(
     @Param('id') Id: string, 
     @Body() dto: UpdateBusinessDto, 
-   ) {
+  ) {
     await this.businessService.updateBusiness(Id, dto);
     return { message: 'Business updated successfully' };
 }
 
 @Delete('delete/:id')
-async deleteBusiness(
+  async deleteBusiness(
     @Param('id') Id: string) {
     await this.businessService.deleteBusiness(Id);
     return{ message: 'Business deleted successfully'}
@@ -40,6 +40,7 @@ async deleteBusiness(
     @Query('city') city?: string,
     @Query('country') country?: string,
     @Query('active') active?: string,
+    @Query('businessTypeId') businessTypeId?: string,
   ) {
 
     const activeBool =
@@ -50,6 +51,8 @@ async deleteBusiness(
       city,
       country,
       active: activeBool,
+      businessTypeId,
+      
     });
   }
 

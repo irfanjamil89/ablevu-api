@@ -11,6 +11,7 @@ type ListFilters = {
   active?: boolean;
   city?: string;
   country?: string;
+   businessTypeId?: string;
 };
 
 @Injectable()
@@ -97,11 +98,15 @@ constructor(
     limit = 10,
     filters: ListFilters = {},
   ) {
-    const qb = this.businessRepo.createQueryBuilder('b');
+    const qb = this.businessRepo.createQueryBuilder('b').leftJoinAndSelect('b.businessTypes', 'bt');;
 
     qb.take(limit)
       .skip((page - 1) * limit)
       .orderBy('b.created_at', 'DESC');
+
+    if (filters.businessTypeId) {
+  qb.andWhere('bt.id = :btId', { btId: filters.businessTypeId });
+}
 
     if (filters.active !== undefined) {
       qb.andWhere('b.active = :active', { active: filters.active });
