@@ -1,21 +1,22 @@
 import { Controller, Get, Post, Patch, Body, Param, Delete, Query  } from '@nestjs/common';
 import { AccessibleFeatureService } from './accessible feature.service';
+import { AccessibleFeatureDto } from './accessible feature.dto';
 
 @Controller('accessible-feature')
 export class AccessibleFeatureController {
     constructor(private service: AccessibleFeatureService) {}
 
     @Post('create/:userId')
-    async createaccessiblefeature(@Param('userId') userId: string, @Body('title') title : string ) {
-        await this.service.createAccessibleFeature(userId, title);
+    async createaccessiblefeature(@Param('userId') userId: string, @Body() dto: AccessibleFeatureDto ) {
+        await this.service.createAccessibleFeature(userId, dto);
         return { status: 'ok', message: 'accessible feature created successfully' }    
     }
 
     @Patch('update/:id/:userId')
     async updateaccessiblefeature(@Param('id') id: string,
         @Param('userId') userId: string,
-        @Body('title') title : string ) {
-        await this.service.updateAccessibleFeature(id , userId, title);
+        @Body() dto: AccessibleFeatureDto ) {
+        await this.service.updateAccessibleFeature(id , userId, dto);
         return { status: 'ok', message: 'accessible feature updated successfully' }    
     }
 
