@@ -59,7 +59,7 @@ constructor(
       throw new BadRequestException('Zip code is required');
     }
     const slug = this.makeSlug(dto.name);
-
+    
     const business = this.businessRepo.create({
       ...dto,
       slug,
