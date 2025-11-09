@@ -114,7 +114,7 @@ console.log(user);
       updatedUser: user,
     };
   }
-  
+
   
    async updatePassword(userId: string, dto: UpdatePasswordDto){
     const existingUser = await this.usersRepository.findOne({

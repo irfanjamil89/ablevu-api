@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AssociationTables implements MigrationInterface {
-    name = 'AssociationTables1761724084365'
+  name = 'AssociationTables1761724084365'
 
-     public async up(queryRunner: QueryRunner): Promise<void> {
-  // accessible_city
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // accessible_city
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS business_type (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,7 +21,7 @@ export class AssociationTables implements MigrationInterface {
     `);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_business_type_slug ON business_type(slug);`);
 
-       // // accessible_feature
+    // // accessible_feature
     // // Using TEXT columns for category/type to avoid hard-coding long enums; can be normalized later.
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS business_linked_type (
@@ -37,8 +37,8 @@ export class AssociationTables implements MigrationInterface {
     `);
 
     // // business
-    
-     await queryRunner.query(`
+
+    await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS accessible_feature_business_type (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         accessible_feature_id    UUID REFERENCES accessible_feature(id),         
@@ -94,11 +94,11 @@ export class AssociationTables implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    
+
 
     await queryRunner.query(`DROP INDEX IF EXISTS idx_business_type_slug`);
     await queryRunner.query(`DROP INDEX IF EXISTS idx_accessible_feature_type_slug`);
-    
+
     
     await queryRunner.query(`DROP TABLE IF EXISTS business_type`);
     await queryRunner.query(`DROP TABLE IF EXISTS business_linked_type`);
