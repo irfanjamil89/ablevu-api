@@ -1,25 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Business } from './business.entity';
-import { BusinessType } from './business-type.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity()
 export class BusinessLinkedType {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Business, { onDelete: 'CASCADE' })
-business: Business;
+  @Column({ type: 'uuid' })
+  business_id: string;
 
-@ManyToOne(() => BusinessType, { onDelete: 'CASCADE' })
-businessType: BusinessType;
+  @Column({ type: 'uuid' })
+  business_type_id: string;
 
-  @Column({ default: true })
+  @Column()
   active: boolean;
 
-  @Column({ nullable: true })
+  @Column()
   created_by?: string;
 
-  @Column({ nullable: true })
+  @Column()
   modified_by?: string;
 
   @CreateDateColumn()

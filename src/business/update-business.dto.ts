@@ -1,10 +1,15 @@
-import { IsOptional, IsString, IsEmail, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber, IsArray, IsUUID } from 'class-validator';
 
 export class UpdateBusinessDto {
 
   @IsOptional() 
   @IsString() 
   name?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  business_type: string[];
 
   @IsOptional() 
   @IsString() 

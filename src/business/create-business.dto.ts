@@ -1,8 +1,13 @@
-import { IsOptional, IsString, IsEmail, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber,IsArray, ArrayNotEmpty, IsUUID, IsBoolean } from 'class-validator';
 
 export class CreateBusinessDto {
   @IsString() 
   name: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID(undefined, { each: true })
+  business_type: string[];
 
   @IsString() 
   description?: string;
@@ -21,6 +26,9 @@ export class CreateBusinessDto {
 
   @IsString() 
   zipcode?: string;
+
+  @IsBoolean()
+  active: boolean;
 
   @IsOptional() 
   @IsString() 

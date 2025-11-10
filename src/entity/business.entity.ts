@@ -9,22 +9,7 @@ export class Business {
 
   @Column()
   name: string;
-
-  @ManyToMany(() => BusinessType, (bt) => bt.businesses)
-
-  @JoinTable({
-    name: 'business_linked_type', 
-    joinColumn: {
-      name: 'business_id', 
-      referencedColumnName: 'id',
-    },
-    inverseJoinColumn: {
-      name: 'business_type_id', 
-      referencedColumnName: 'id', 
-    },
-  })
-
-  businessTypes: BusinessType[];
+ 
   @Column()
   slug: string;
 
