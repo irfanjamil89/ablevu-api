@@ -5,6 +5,7 @@ import { Business } from 'src/entity/business.entity';
 import { CreateBusinessDto } from './create-business.dto';
 import { UpdateBusinessDto } from './update-business.dto';
 import { User } from 'src/entity/user.entity';
+import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
 
 type ListFilters = {
   search?: string;
@@ -23,6 +24,9 @@ constructor(
   @InjectRepository(User)
   private readonly userRepo: Repository<User>,
 
+  @InjectRepository(BusinessLinkedType)
+  private readonly linkedrepo: Repository<BusinessLinkedType>
+
 ) {}
 
   private makeSlug(name: string) {
@@ -39,6 +43,9 @@ constructor(
 
      if (!dto.name?.trim()) {
       throw new BadRequestException('Business name is required');
+    }
+    if (!dto.business_type){
+      throw new BadRequestException(" Business Type is Missimg")
     }
     if (!dto.description?.trim()) {
       throw new BadRequestException('Business description is required');
@@ -68,9 +75,22 @@ constructor(
       active: true,
       blocked: false,
     });
-    return await this.businessRepo.save(business);
-  }
+    const savedbusiness = await this.businessRepo.save(business);
 
+    if (dto.business_type && dto.business_type.length > 0) {
+      const linkedEntries = dto.business_type.map((typeId) =>
+        this.linkedrepo.create({
+          business_id: savedbusiness.id,
+          business_type_id: typeId,
+          active: dto.active,
+          created_by: UserId,
+          modified_by: UserId,
+        }),
+      );
+      await this.linkedrepo.save(linkedEntries);
+    }
+  }
+  
   async updateBusiness(id: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business){ 
@@ -98,15 +118,11 @@ constructor(
     limit = 10,
     filters: ListFilters = {},
   ) {
-    const qb = this.businessRepo.createQueryBuilder('b').leftJoinAndSelect('b.businessTypes', 'bt');;
+    const qb = this.businessRepo.createQueryBuilder('b');
 
     qb.take(limit)
       .skip((page - 1) * limit)
       .orderBy('b.created_at', 'DESC');
-
-    if (filters.businessTypeId) {
-  qb.andWhere('bt.id = :btId', { btId: filters.businessTypeId });
-}
 
     if (filters.active !== undefined) {
       qb.andWhere('b.active = :active', { active: filters.active });
