@@ -77,12 +77,11 @@ export class AccessibleFeatureService {
     }
   }
 
-  async deleteAccessibleFeature(id: string, userId: string) {
+  async deleteAccessibleFeature(id: string) {
     const accessibleFeature = await this.accessibleFeatureRepo.findOne({ where: { id } });
     if (!accessibleFeature) {
       throw new NotFoundException('Accessible Feature not found');
     }
-    accessibleFeature.modified_by = userId;
     await this.linkedrepo.delete({ accessible_feature_id: id });
     await this.accessibleFeatureRepo.remove(accessibleFeature);
   }
