@@ -6,6 +6,7 @@ import { CreateBusinessDto } from './create-business.dto';
 import { UpdateBusinessDto } from './update-business.dto';
 import { User } from 'src/entity/user.entity';
 import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
+import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entuty';
 
 type ListFilters = {
   search?: string;
@@ -25,7 +26,10 @@ constructor(
   private readonly userRepo: Repository<User>,
 
   @InjectRepository(BusinessLinkedType)
-  private readonly linkedrepo: Repository<BusinessLinkedType>
+  private readonly linkedrepo: Repository<BusinessLinkedType>,
+
+  @InjectRepository(BusinessAccessibleFeature)
+  private readonly businessaccessibilityrepo: Repository<BusinessAccessibleFeature>
 
 ) {}
 
@@ -37,8 +41,8 @@ constructor(
       .replace(/(^-|-$)+/g, '');
   }
 
-  async createBusiness(UserId: string, dto: CreateBusinessDto) {
-    const user = await this.userRepo.findOne({ where: { id: UserId } });
+  async createBusiness(userId: string, dto: CreateBusinessDto) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('user not found');
 
      if (!dto.name?.trim()) {
@@ -83,15 +87,26 @@ constructor(
           business_id: savedbusiness.id,
           business_type_id: typeId,
           active: dto.active,
-          created_by: UserId,
-          modified_by: UserId,
+          created_by: userId,
+          modified_by: userId,
+        }),
+      );
+    if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
+      const linkedFeature = dto.accessible_feature_id.map((typeId) =>
+        this.businessaccessibilityrepo.create({
+          business_id: savedbusiness.id,
+          accessible_feature_id: typeId,
+          active: dto.active,
+          created_by: userId,
+          modified_by: userId,
         }),
       );
       await this.linkedrepo.save(linkedEntries);
+      await this.businessaccessibilityrepo.save(linkedFeature);
     }
   }
-  
-  async updateBusiness(id: string, dto: UpdateBusinessDto) {
+  }
+  async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business){ 
       throw new NotFoundException('Business not found');
@@ -101,14 +116,39 @@ constructor(
       business.slug = this.makeSlug(dto.name);
     }
     Object.assign(business, dto);
-    return await this.businessRepo.save(business);
-  }
+    await this.businessRepo.save(business);
 
+    if (dto.business_type && dto.business_type.length > 0) {
+      const linkedEntries = dto.business_type.map((typeId) =>
+        this.linkedrepo.create({
+          business_id: id,
+          business_type_id: typeId,
+          active: dto.active,
+          created_by: userId,
+          modified_by: userId,
+        }),
+      );
+      if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
+      const linkedFeature = dto.accessible_feature_id.map((typeId) =>
+        this.businessaccessibilityrepo.create({
+          business_id: id,
+          accessible_feature_id: typeId,
+          active: dto.active,
+          created_by: userId,
+          modified_by: userId,
+        }),
+      );
+      await this.linkedrepo.save(linkedEntries);
+      await this.businessaccessibilityrepo.save(linkedFeature);
+    }
+    }
+  }
   async deleteBusiness(id: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business) {
       throw new NotFoundException('Business not found');
     }
+    await this.linkedrepo.delete({ business_id: id });          
     await this.businessRepo.remove(business);
     return{ message: 'Business deleted successfully'}
   }

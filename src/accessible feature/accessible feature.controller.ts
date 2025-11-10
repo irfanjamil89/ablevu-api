@@ -20,9 +20,9 @@ export class AccessibleFeatureController {
         return { status: 'ok', message: 'accessible feature updated successfully' }    
     }
 
-    @Delete('delete/:id/:userId')
-    async deleteaccessiblefeature(@Param('id') id: string, @Param('userId') userId: string ) {
-        await this.service.deleteAccessibleFeature(id, userId);
+    @Delete('delete/:id')
+    async deleteaccessiblefeature(@Param('id') id: string) {
+        await this.service.deleteAccessibleFeature(id);
         return { status: 'ok', message: 'accessible feature deleted successfully' }    
     }
 
