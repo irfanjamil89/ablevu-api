@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToMany } from 'typeorm';
+import { BusinessType } from './business-type.entity';
+
 
 @Entity()
 export class Business {
@@ -7,7 +9,7 @@ export class Business {
 
   @Column()
   name: string;
-
+ 
   @Column()
   slug: string;
 

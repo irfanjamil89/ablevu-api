@@ -1,11 +1,10 @@
 
 // src/config/config.service.ts
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { UserRepository } from 'src/Repository/user.repository';
 
 require('dotenv').config();
 
-class ConfigService {
+export class ConfigService {
 
   constructor(private env: { [k: string]: string | undefined }) { }
 

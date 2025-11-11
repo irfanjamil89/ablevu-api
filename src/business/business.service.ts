@@ -5,12 +5,14 @@ import { Business } from 'src/entity/business.entity';
 import { CreateBusinessDto } from './create-business.dto';
 import { UpdateBusinessDto } from './update-business.dto';
 import { User } from 'src/entity/user.entity';
+import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
 
 type ListFilters = {
   search?: string;
   active?: boolean;
   city?: string;
   country?: string;
+   businessTypeId?: string;
 };
 
 @Injectable()
@@ -21,6 +23,9 @@ constructor(
 
   @InjectRepository(User)
   private readonly userRepo: Repository<User>,
+
+  @InjectRepository(BusinessLinkedType)
+  private readonly linkedrepo: Repository<BusinessLinkedType>
 
 ) {}
 
@@ -38,6 +43,9 @@ constructor(
 
      if (!dto.name?.trim()) {
       throw new BadRequestException('Business name is required');
+    }
+    if (!dto.business_type){
+      throw new BadRequestException(" Business Type is Missimg")
     }
     if (!dto.description?.trim()) {
       throw new BadRequestException('Business description is required');
@@ -58,7 +66,7 @@ constructor(
       throw new BadRequestException('Zip code is required');
     }
     const slug = this.makeSlug(dto.name);
-
+    
     const business = this.businessRepo.create({
       ...dto,
       slug,
@@ -67,9 +75,22 @@ constructor(
       active: true,
       blocked: false,
     });
-    return await this.businessRepo.save(business);
-  }
+    const savedbusiness = await this.businessRepo.save(business);
 
+    if (dto.business_type && dto.business_type.length > 0) {
+      const linkedEntries = dto.business_type.map((typeId) =>
+        this.linkedrepo.create({
+          business_id: savedbusiness.id,
+          business_type_id: typeId,
+          active: dto.active,
+          created_by: UserId,
+          modified_by: UserId,
+        }),
+      );
+      await this.linkedrepo.save(linkedEntries);
+    }
+  }
+  
   async updateBusiness(id: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business){ 
