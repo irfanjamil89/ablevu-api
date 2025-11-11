@@ -5,6 +5,7 @@ import { AccessibleFeature } from 'src/entity/accessible feature.entity';
 import { AccessibleFeatureDto } from './accessible feature.dto';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
+import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entuty';
 
 @Injectable()
 export class AccessibleFeatureService {
@@ -16,8 +17,10 @@ export class AccessibleFeatureService {
     private linkedrepo: Repository<AccessibleFeatureLinkedType>,
 
     @InjectRepository(AccessibleFeatureBusinessType)
-    private accessiblefeaturebusinesstyperepo: Repository<AccessibleFeatureBusinessType>
+    private accessiblefeaturebusinesstyperepo: Repository<AccessibleFeatureBusinessType>,
 
+    @InjectRepository(BusinessAccessibleFeature)
+    private  businessAccessibleFeatureRepo: Repository<BusinessAccessibleFeature>
   ) { }
 
   private makeSlug(name: string) {
@@ -90,17 +93,30 @@ export class AccessibleFeatureService {
           modified_by: userId,
         }),
       );
-      await this.linkedrepo.save(linkedEntries)
+        await this.linkedrepo.save(linkedEntries)
+    }
+    if (dto.business_type && dto.business_type.length > 0) {
+      const linkedbusinesstype = dto.business_type.map((typeId) =>
+        this.accessiblefeaturebusinesstyperepo.create({
+          accessible_feature_id: id,
+          business_type_id: typeId,
+          active: dto.active,
+          created_by: userId,
+          modified_by: userId,
+        }),
+      );
+      await this.accessiblefeaturebusinesstyperepo.save(linkedbusinesstype);
     }
   }
 
-  async deleteAccessibleFeature(id: string, userId: string) {
+  async deleteAccessibleFeature(id: string) {
     const accessibleFeature = await this.accessibleFeatureRepo.findOne({ where: { id } });
     if (!accessibleFeature) {
       throw new NotFoundException('Accessible Feature not found');
     }
-    accessibleFeature.modified_by = userId;
+    await this.businessAccessibleFeatureRepo.delete({ accessible_feature_id: id });
     await this.linkedrepo.delete({ accessible_feature_id: id });
+     await this.accessiblefeaturebusinesstyperepo.delete({ accessible_feature_id: id });
     await this.accessibleFeatureRepo.remove(accessibleFeature);
   }
 

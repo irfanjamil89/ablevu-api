@@ -9,19 +9,20 @@ export class BusinessController {
 
 @Post('create/:UserId')
   async createBusiness(
-    @Param('UserId') UserId: string,
+    @Param('UserId') userId: string,
     @Body() dto: CreateBusinessDto,
   ) {
-    await this.businessService.createBusiness(UserId, dto);
+    await this.businessService.createBusiness(userId, dto);
     return { message: 'Business created successfully' };
   }
 
-@Patch('update/:id')
+@Patch('update/:id/:userId')
   async updateBusiness(
     @Param('id') Id: string, 
+    @Param('userId') userId: string,
     @Body() dto: UpdateBusinessDto, 
   ) {
-    await this.businessService.updateBusiness(Id, dto);
+    await this.businessService.updateBusiness(Id,userId, dto);
     return { message: 'Business updated successfully' };
 }
 
