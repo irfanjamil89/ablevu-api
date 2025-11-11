@@ -9,6 +9,7 @@ import { AccessibleFeatureTypeModule } from './accessible feature-type/accessibl
 import { BusinessModule } from './business/business.module';
 import { BusinessTypeModule } from './business-type/business-type.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
+import { PartnerModule } from './partner/partner.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AccessibleFeatureModule } from './accessible feature/accessible feature
     BusinessModule,
     BusinessTypeModule,
     AccessibleFeatureModule,
+    PartnerModule
   ],
   controllers: [AppController],
   providers: [AppService],
