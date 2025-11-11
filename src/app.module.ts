@@ -10,6 +10,7 @@ import { BusinessModule } from './business/business.module';
 import { BusinessTypeModule } from './business-type/business-type.module';
 import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
+import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 
 
 @Module({
@@ -35,6 +36,7 @@ import { AccessibleFeatureModule } from './accessible feature/accessible feature
     BusinessTypeModule,
     AccessibleCityModule,
     AccessibleFeatureModule,
+    BusinessVirtualTourModule,
   ],
   controllers: [AppController],
   providers: [AppService],

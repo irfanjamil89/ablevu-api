@@ -5,7 +5,7 @@ import { AccessibleFeature } from 'src/entity/accessible feature.entity';
 import { AccessibleFeatureDto } from './accessible feature.dto';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
-import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entuty';
+import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 
 @Injectable()
 export class AccessibleFeatureService {
