@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { configService } from './services/config.service';
+import { ConfigService, configService } from './services/config.service';
 import { AuthModule } from './auth/auth.module';
 import { AccessibleFeatureTypeModule } from './accessible feature-type/accessible feature-type.module';
 import { BusinessModule } from './business/business.module';
@@ -13,6 +13,8 @@ import { AccessibleFeatureModule } from './accessible feature/accessible feature
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
+import { User } from './auth/user.decorator';
+
 
 @Module({
   imports: [
@@ -42,6 +44,6 @@ import { BusinessReviewsModule } from './business reviews/business-reviews.modul
     BusinessReviewsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ConfigService],
 })
 export class AppModule {}

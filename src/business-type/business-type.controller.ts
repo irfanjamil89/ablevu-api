@@ -1,17 +1,22 @@
-import { Body, Controller, Patch, Post, Param, Delete, Get, Query } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Param, Delete, Get, Query, UseGuards } from "@nestjs/common";
 import { CreateBusinessTypeDto } from "./create-business-type.dto";
 import { BusinessTypeService } from "./business-type.service";
 import { UpdateBusinessTypeDto } from "./update-business-type.dto";
+import { User } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
 @Controller('business-type')
 export class BusinessTypeController {
     constructor( private businessTypeService: BusinessTypeService ) {}
 
     @Post('create/:userId')
+  @UseGuards(JwtAuthGuard)
     async createBusinessType(
+        @User() user : any,
         @Param('userId') userId: string,
         @Body() dto: CreateBusinessTypeDto,
       ) {
+        console.log(user);
         return this.businessTypeService.createBusinessType(userId, dto);
   }
 
