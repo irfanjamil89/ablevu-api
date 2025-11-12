@@ -12,7 +12,10 @@ import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
 import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
+import { ReviewTypeModule } from './review type/review-type.module';
+import { BusinessReviewsModule } from './business reviews/business-reviews.module';
 import { User } from './auth/user.decorator';
+
 
 @Module({
   imports: [
@@ -39,6 +42,8 @@ import { User } from './auth/user.decorator';
     AccessibleFeatureModule,
     PartnerModule
     BusinessVirtualTourModule,
+    ReviewTypeModule,
+    BusinessReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
