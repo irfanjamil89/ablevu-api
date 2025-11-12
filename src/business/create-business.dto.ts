@@ -9,6 +9,11 @@ export class CreateBusinessDto {
   @IsUUID(undefined, { each: true })
   business_type: string[];
 
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID(undefined, { each: true })
+  accessible_feature_id: string[];
+
   @IsString() 
   description?: string;
 

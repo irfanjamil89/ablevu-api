@@ -1,19 +1,18 @@
 import { Controller, Get, Post, Patch, Body, Param, Delete, Query  } from '@nestjs/common';
 import { AccessibleFeatureService } from './accessible feature.service';
 import { AccessibleFeatureDto } from './accessible feature.dto';
-
 @Controller('accessible-feature')
 export class AccessibleFeatureController {
     constructor(private service: AccessibleFeatureService) {}
 
     @Post('create/:userId')
-    async createaccessiblefeature(@Param('userId') userId: string, @Body() dto: AccessibleFeatureDto ) {
+    async createAccessibleFeature(@Param('userId') userId: string, @Body() dto: AccessibleFeatureDto ) {
         await this.service.createAccessibleFeature(userId, dto);
         return { status: 'ok', message: 'accessible feature created successfully' }    
     }
 
     @Patch('update/:id/:userId')
-    async updateaccessiblefeature(@Param('id') id: string,
+    async updateAccessibleFeature(@Param('id') id: string,
         @Param('userId') userId: string,
         @Body() dto: AccessibleFeatureDto ) {
         await this.service.updateAccessibleFeature(id , userId, dto);
@@ -21,13 +20,13 @@ export class AccessibleFeatureController {
     }
 
     @Delete('delete/:id')
-    async deleteaccessiblefeature(@Param('id') id: string  ) {
+    async deleteAccessibleFeature(@Param('id') id: string) {
         await this.service.deleteAccessibleFeature(id);
         return { status: 'ok', message: 'accessible feature deleted successfully' }    
     }
 
     @Get('accessiblefeature/:id')
-    async getaccessiblefeature(@Param('id') id: string ) {
+    async getAccessibleFeature(@Param('id') id: string ) {
         return this.service.getAccessibleFeature(id);
     }
 

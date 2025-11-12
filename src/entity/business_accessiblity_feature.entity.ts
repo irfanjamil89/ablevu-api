@@ -1,15 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
-export class AccessibleFeatureLinkedType {
+export class BusinessAccessibleFeature {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @Column({ type: 'uuid' })
-    accessible_feature_id: string;
+    business_id: string;
 
     @Column({ type: 'uuid' })
-    accessible_feature_type_id: string;
+    accessible_feature_id: string;
+
+    @Column()
+    optional_answer: string;
 
     @Column()
     active: boolean;
