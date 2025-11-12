@@ -6,7 +6,8 @@ import { CreateBusinessDto } from './create-business.dto';
 import { UpdateBusinessDto } from './update-business.dto';
 import { User } from 'src/entity/user.entity';
 import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
-import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entuty';
+import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
+import { BusinessVirtualTour } from 'src/entity/business_virtual_tours.entity';
 
 type ListFilters = {
   search?: string;
@@ -29,8 +30,11 @@ constructor(
   private readonly linkedrepo: Repository<BusinessLinkedType>,
 
   @InjectRepository(BusinessAccessibleFeature)
-  private readonly businessaccessibilityrepo: Repository<BusinessAccessibleFeature>
+  private readonly businessaccessibilityrepo: Repository<BusinessAccessibleFeature>,
 
+  @InjectRepository(BusinessVirtualTour)
+  private readonly virtualTourRepo: Repository<BusinessVirtualTour>,
+  
 ) {}
 
   private makeSlug(name: string) {
@@ -154,56 +158,110 @@ constructor(
   }
 
   async listPaginated(
-    page = 1,
-    limit = 10,
-    filters: ListFilters = {},
-  ) {
-    const qb = this.businessRepo.createQueryBuilder('b');
+  page = 1,
+  limit = 10,
+  filters: ListFilters = {},
+) {
+  const qb = this.businessRepo.createQueryBuilder('b');
 
-    qb.take(limit)
-      .skip((page - 1) * limit)
-      .orderBy('b.created_at', 'DESC');
+  qb.take(limit)
+    .skip((page - 1) * limit)
+    .orderBy('b.created_at', 'DESC');
 
-    if (filters.active !== undefined) {
-      qb.andWhere('b.active = :active', { active: filters.active });
-    }
-
-    if (filters.city) {
-      const city = `%${filters.city.toLowerCase()}%`;
-      qb.andWhere('LOWER(b.city) LIKE :city', { city });
-    }
-
-    if (filters.country) {
-      const country = `%${filters.country.toLowerCase()}%`;
-      qb.andWhere('LOWER(b.country) LIKE :country', { country });
-    }
-
-    if (filters.search) {
-      const search = `%${filters.search.toLowerCase()}%`;
-      qb.andWhere(
-        '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
-        { search },
-      );
-    }
-
-    const [data, total] = await qb.getManyAndCount();
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+  if (filters.active !== undefined) {
+    qb.andWhere('b.active = :active', { active: filters.active });
   }
 
+  if (filters.city) {
+    const city = `%${filters.city.toLowerCase()}%`;
+    qb.andWhere('LOWER(b.city) LIKE :city', { city });
+  }
+
+  if (filters.country) {
+    const country = `%${filters.country.toLowerCase()}%`;
+    qb.andWhere('LOWER(b.country) LIKE :country', { country });
+  }
+
+  if (filters.search) {
+    const search = `%${filters.search.toLowerCase()}%`;
+    qb.andWhere(
+      '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
+      { search },
+    );
+  }
+
+  if (filters.businessTypeId) {
+    qb.andWhere(
+      `EXISTS (
+        SELECT 1
+        FROM business_linked_type blt
+        WHERE blt.business_id = b.id
+          AND blt.business_type_id = :btId
+      )`,
+      { btId: filters.businessTypeId },
+    );
+  }
+
+  const [items, total] = await qb.getManyAndCount();
+
+  const data = await Promise.all(
+    items.map(async (business) => {
+    
+      const [linkedTypes, accessibilityFeatures, virtualTours] = await Promise.all([
+        this.linkedrepo.find({
+          where: { business_id: business.id },
+        }),
+        this.businessaccessibilityrepo.find({
+          where: { business_id: business.id },
+        }),
+        this.virtualTourRepo.find({
+          where: { business_id:  business.id  },
+          order: { display_order: 'ASC' },
+        }),
+      ]);
+
+      return {
+        ...business,
+        linkedTypes,            
+        accessibilityFeatures,  
+        virtualTours,           
+      };
+    }),
+  );
+
+  return {
+    data, 
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
   async getBusinessProfile(id: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });  
+    const business = await this.businessRepo.findOne({ where: { id } });
     if (!business) {
       throw new NotFoundException('Business not found');
     }
-    return business;
+
+    const [linkedTypes, accessibilityFeatures, virtualTours] = await Promise.all([
+        this.linkedrepo.find({
+          where: { business_id: business.id },
+        }),
+        this.businessaccessibilityrepo.find({
+          where: { business_id: business.id },
+        }),
+        this.virtualTourRepo.find({
+          where: { business_id:  business.id  },
+          order: { display_order: 'ASC' },
+        }),
+      ]);
+
+    return {
+      ...business,
+      linkedTypes,          
+      accessibilityFeatures,
+      virtualTours,         
+    };
   }
 }
-
-

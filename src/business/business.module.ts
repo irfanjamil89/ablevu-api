@@ -5,10 +5,11 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Business } from "src/entity/business.entity";
 import { User } from "src/entity/user.entity";
 import { BusinessLinkedType } from "src/entity/business_linked_type.entity";
-import { BusinessAccessibleFeature } from "src/entity/business_accessiblity_feature.entuty";
+import { BusinessAccessibleFeature } from "src/entity/business_accessiblity_feature.entity";
+import { BusinessVirtualTour } from "src/entity/business_virtual_tours.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature])],
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour])],
     providers: [BusinessService],
     controllers: [BusinessController],
     exports: [BusinessService],
