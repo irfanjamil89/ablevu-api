@@ -32,20 +32,20 @@ async signUp(@Body() dto: UserDto) {
     return this.userService.updateProfile(id, updateProfileDto);
   }
 
-@UseGuards(AuthGuard('local'))
-  @Patch('update-password')
-  async updatePassword(@Request() req: any, @Body() dto: UpdatePasswordDto) {
+
+  @Patch('update-password/:id')
+  async updatePassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto) {
     if (dto.newPassword !== dto.confirmPassword) {
       throw new Error('New password and confirm password did not match');
     }
-      const userId = req.user.sub;
+      const userId = id;
     await this.users.updatePassword(userId,dto);
     return { status: 'ok', message: 'Password updated successfully'};
   }
-@UseGuards(AuthGuard('local'))
-  @Patch('change-role')
-  async updateUserRole( @Request() req: any, @Body('newRole') newRole: string) {
-      const userId = req.user.sub;
+
+  @Patch('change-role/:id')
+  async updateUserRole( @Param('id') id: string, @Body('newRole') newRole: string) {
+      const userId = id;
     await this.users.updateUserRole(userId, newRole);
     return { status: 'ok', message: 'User role changed successfully'};
   }
