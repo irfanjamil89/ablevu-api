@@ -8,6 +8,7 @@ import { User } from 'src/entity/user.entity';
 import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 import { BusinessVirtualTour } from 'src/entity/business_virtual_tours.entity';
+import { BusinessReviews } from 'src/entity/business_reviews.entity';
 
 type ListFilters = {
   search?: string;
@@ -34,7 +35,9 @@ constructor(
 
   @InjectRepository(BusinessVirtualTour)
   private readonly virtualTourRepo: Repository<BusinessVirtualTour>,
-  
+
+  @InjectRepository(BusinessReviews)
+  private readonly businessreviews: Repository<BusinessReviews>  
 ) {}
 
   private makeSlug(name: string) {
@@ -207,7 +210,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -218,13 +221,17 @@ constructor(
           where: { business_id:  business.id  },
           order: { display_order: 'ASC' },
         }),
+        this.businessreviews.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
       return {
         ...business,
         linkedTypes,            
         accessibilityFeatures,  
-        virtualTours,           
+        virtualTours,  
+        businessreviews         
       };
     }),
   );
@@ -244,7 +251,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -255,6 +262,9 @@ constructor(
           where: { business_id:  business.id  },
           order: { display_order: 'ASC' },
         }),
+        this.businessreviews.find({
+          where: {business_id: business.id},
+        })
       ]);
 
     return {
@@ -262,6 +272,7 @@ constructor(
       linkedTypes,          
       accessibilityFeatures,
       virtualTours,         
+      businessreviews,
     };
   }
 }

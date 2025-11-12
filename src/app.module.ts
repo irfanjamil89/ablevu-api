@@ -11,7 +11,8 @@ import { BusinessTypeModule } from './business-type/business-type.module';
 import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
-
+import { ReviewTypeModule } from './review type/review-type.module';
+import { BusinessReviewsModule } from './business reviews/business-reviews.module';
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { BusinessVirtualTourModule } from 'src/business virtual tour/business-vi
     AccessibleCityModule,
     AccessibleFeatureModule,
     BusinessVirtualTourModule,
+    ReviewTypeModule,
+    BusinessReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
