@@ -14,7 +14,7 @@ import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
-import { User } from './auth/user.decorator';
+import { UserSession } from './auth/user.decorator';
 
 
 @Module({
@@ -40,7 +40,7 @@ import { User } from './auth/user.decorator';
     BusinessTypeModule,
     AccessibleCityModule,
     AccessibleFeatureModule,
-    PartnerModule
+    PartnerModule,
     BusinessVirtualTourModule,
     ReviewTypeModule,
     BusinessReviewsModule,
