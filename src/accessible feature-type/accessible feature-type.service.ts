@@ -54,12 +54,11 @@ export class AccessibleFeatureTypeService {
     await this.accessibleFeatureTypeRepo.save(AccessibleFeatureType);
   }
 
-   async deleteAccessibleFeatureType(id: string, userId: string) {
+   async deleteAccessibleFeatureType(id: string) {
     const AccessibleFeatureType = await this.accessibleFeatureTypeRepo.findOne({ where: { id } });
     if (!AccessibleFeatureType) { 
       throw new NotFoundException('Accessible Feature Type not found');
     }   
-    AccessibleFeatureType.modified_by = userId;
     await this.accessibleFeatureTypeRepo.remove(AccessibleFeatureType);
    }
 

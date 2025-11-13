@@ -20,9 +20,9 @@ async updateaccessiblefeaturetype(@Param('id') id: string,
     return { status: 'ok', message: 'accessible feature-type updated successfully' }    
 }
 
-@Delete('delete/:id/:userId')
-async deleteaccessiblefeaturetype(@Param('id') id: string, @Param('userId') userId: string ) {
-    await this.service.deleteAccessibleFeatureType(id, userId);
+@Delete('delete/:id')
+async deleteaccessiblefeaturetype(@Param('id') id: string ) {
+    await this.service.deleteAccessibleFeatureType(id);
     return { status: 'ok', message: 'accessible feature-type deleted successfully' }    
 }
 
