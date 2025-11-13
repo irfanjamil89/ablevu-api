@@ -77,6 +77,13 @@ MODE=DEV
 RUN_MIGRATIONS=false
 DATABASE_URL=postgres://postgres:irfan@51.75.68.69/ablevu
 ```
+## Mail Enviroment
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=levelupsolution911@gmail.com
+SMTP_PASS=yhbkowglaxmcrrvx
+APP_URL=http://localhost:3006/auth/reset-password
 
 ## Deployment
 

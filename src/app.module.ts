@@ -15,6 +15,7 @@ import { BusinessVirtualTourModule } from 'src/business virtual tour/business-vi
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
 import { User } from './auth/user.decorator';
+import { BusinessQuestionsModule } from './business questions/business-question.module';
 
 
 @Module({
@@ -40,10 +41,11 @@ import { User } from './auth/user.decorator';
     BusinessTypeModule,
     AccessibleCityModule,
     AccessibleFeatureModule,
-    PartnerModule
+    PartnerModule,
     BusinessVirtualTourModule,
     ReviewTypeModule,
     BusinessReviewsModule,
+    BusinessQuestionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

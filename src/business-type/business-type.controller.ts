@@ -9,7 +9,7 @@ import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 export class BusinessTypeController {
     constructor( private businessTypeService: BusinessTypeService ) {}
 
-    @Post('create/:userId')
+  @Post('create/:userId')
   @UseGuards(JwtAuthGuard)
     async createBusinessType(
         @User() user : any,
