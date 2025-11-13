@@ -14,6 +14,8 @@ import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 import { User } from './auth/user.decorator';
 
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
+
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -37,8 +39,10 @@ import { User } from './auth/user.decorator';
     BusinessTypeModule,
     AccessibleCityModule,
     AccessibleFeatureModule,
-    PartnerModule
+    PartnerModule,
     BusinessVirtualTourModule,
+
+    AdditionalResourceModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
