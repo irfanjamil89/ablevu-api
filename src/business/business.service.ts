@@ -12,6 +12,7 @@ import { BusinessReviews } from 'src/entity/business_reviews.entity';
 import { BusinessQuestions } from 'src/entity/business-questions.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { BusinessPartners } from 'src/entity/business_partners.entity';
+import { BusinessCustomSections } from 'src/entity/business_custom_sections.entity';
 
 
 type ListFilters = {
@@ -48,6 +49,9 @@ constructor(
 
   @InjectRepository(BusinessPartners)
   private readonly businessPartnerrepo: Repository<BusinessPartners>,
+
+  @InjectRepository(BusinessCustomSections)
+  private readonly customSectionsrepo: Repository<BusinessCustomSections>
 ) {}
 
   private makeSlug(name: string) {
@@ -220,7 +224,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -240,6 +244,9 @@ constructor(
         this.businessPartnerrepo.find({
           where: {business_id: business.id,}
         }),
+        this.customSectionsrepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
       return {
@@ -250,6 +257,7 @@ constructor(
         businessreviews,
         businessQuestions,
         businessPartners,
+        businessCustomSections,
       };
     }),
   );
@@ -269,7 +277,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -289,6 +297,9 @@ constructor(
         this.businessPartnerrepo.find({
           where: {business_id: business.id,}
         }),
+        this.customSectionsrepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
     return {
@@ -299,6 +310,7 @@ constructor(
       businessreviews,
       businessQuestions,
       businessPartners,
+      businessCustomSections,
     };
   }
 }
