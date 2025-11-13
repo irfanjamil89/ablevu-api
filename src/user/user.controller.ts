@@ -1,30 +1,38 @@
 import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param } from '@nestjs/common';
-import { AppService } from '../app.service';
+import { UserSession } from "src/auth/user.decorator";
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
 import { UserDto } from './user.dto';
 import { UpdateProfileDto } from 'src/user/dto/update-profile.dto';
 import { UpdatePasswordDto } from 'src/user/update-password.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UsersService,
     private readonly users: UsersService
-  ) {}
+  ) { }
 
   @Get()
   async findAll(): Promise<User[]> {
     return await this.userService.findAll();
   }
 
-@Post('signup')
-@HttpCode(HttpStatus.CREATED)
-async signUp(@Body() dto: UserDto) {
-  return await this.userService.signUp(dto);
-}
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async find(@Param('id') id: string, @UserSession() user : any): Promise<User> {
 
-@Put(':id')
+    return await this.userService.findOne(id) || new User();
+  }
+
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signUp(@Body() dto: UserDto) {
+    return await this.userService.signUp(dto);
+  }
+
+  @Put(':id')
   async updateProfile(
     @Param('id') id: string,
     @Body() updateProfileDto: UpdateProfileDto,
@@ -47,6 +55,6 @@ async signUp(@Body() dto: UserDto) {
   async updateUserRole( @Param('id') id: string, @Body('newRole') newRole: string) {
       const userId = id;
     await this.users.updateUserRole(userId, newRole);
-    return { status: 'ok', message: 'User role changed successfully'};
+    return { status: 'ok', message: 'User role changed successfully' };
   }
 }

@@ -76,6 +76,7 @@ PORT=3006
 MODE=DEV
 RUN_MIGRATIONS=false
 DATABASE_URL=postgres://postgres:irfan@51.75.68.69/ablevu
+Jwt_Secret=ABC123!@#secretKey
 ```
 ## Mail Enviroment
 

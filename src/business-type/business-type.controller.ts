@@ -2,7 +2,7 @@ import { Body, Controller, Patch, Post, Param, Delete, Get, Query, UseGuards } f
 import { CreateBusinessTypeDto } from "./create-business-type.dto";
 import { BusinessTypeService } from "./business-type.service";
 import { UpdateBusinessTypeDto } from "./update-business-type.dto";
-import { User } from "src/auth/user.decorator";
+import { UserSession } from "src/auth/user.decorator";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
 @Controller('business-type')
@@ -12,7 +12,7 @@ export class BusinessTypeController {
   @Post('create/:userId')
   @UseGuards(JwtAuthGuard)
     async createBusinessType(
-        @User() user : any,
+        @UserSession() user : any,
         @Param('userId') userId: string,
         @Body() dto: CreateBusinessTypeDto,
       ) {
