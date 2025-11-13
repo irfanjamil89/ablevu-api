@@ -12,7 +12,10 @@ import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
 import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
-import { User } from './auth/user.decorator';
+import { ReviewTypeModule } from './review type/review-type.module';
+import { BusinessReviewsModule } from './business reviews/business-reviews.module';
+import { UserSession } from './auth/user.decorator';
+
 
 import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
@@ -41,8 +44,9 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
-
     AdditionalResourceModule,
+    ReviewTypeModule,
+    BusinessReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
