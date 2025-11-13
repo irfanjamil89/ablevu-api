@@ -145,7 +145,7 @@ export class AccessibleFeatureService {
 
     const total = await qb.getCount();
     const items = await qb
-      .orderBy('af.title', 'ASC')
+      .orderBy('af.created_at', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();

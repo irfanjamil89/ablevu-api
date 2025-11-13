@@ -17,6 +17,8 @@ import { BusinessReviewsModule } from './business reviews/business-reviews.modul
 import { UserSession } from './auth/user.decorator';
 
 
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
+
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -42,6 +44,7 @@ import { UserSession } from './auth/user.decorator';
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
+    AdditionalResourceModule,
     ReviewTypeModule,
     BusinessReviewsModule,
   ],
