@@ -17,6 +17,7 @@ import { BusinessReviewsModule } from './business reviews/business-reviews.modul
 import { BusinessQuestionsModule } from './business questions/business-question.module';
 import { UserSession } from './auth/user.decorator';
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+import { BusinessMediaModule } from './business media/business-media.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { BusinessCustomSectionsModule } from './business custom sections/busines
     BusinessReviewsModule,
     BusinessQuestionsModule,
     BusinessCustomSectionsModule,
+    BusinessMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
