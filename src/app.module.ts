@@ -14,8 +14,10 @@ import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
+import { BusinessQuestionsModule } from './business questions/business-question.module';
 import { UserSession } from './auth/user.decorator';
-
+import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+import { BusinessMediaModule } from './business media/business-media.module';
 
 @Module({
   imports: [
@@ -44,6 +46,9 @@ import { UserSession } from './auth/user.decorator';
     BusinessVirtualTourModule,
     ReviewTypeModule,
     BusinessReviewsModule,
+    BusinessQuestionsModule,
+    BusinessCustomSectionsModule,
+    BusinessMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
