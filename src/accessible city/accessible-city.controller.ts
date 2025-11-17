@@ -1,38 +1,44 @@
-import { Controller, Post, Param, Body, Patch, Delete, Get, Query } from "@nestjs/common";
+import { Controller, Post, Param, Body, Patch, Delete, Get, Query, UseGuards } from "@nestjs/common";
 import { CreateAccessibleCityDto } from "./create-accessible-city.dto";
 import { AccessibleCityService } from "./accessible-city.service";
 import { UpdateAccessibleCityDto } from "./update-accessible-city";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+
 
 
 @Controller('accessible-city')
 export class AccessibleCityController{
     constructor(private readonly accessiblecityservice: AccessibleCityService){}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
       async createAccessibleCity(
-        @Param('UserId') UserId: string,
+        @UserSession() user : any,
         @Body() dto: CreateAccessibleCityDto,
       ) {
-        await this.accessiblecityservice.createAccessibleCity(UserId, dto);
+        await this.accessiblecityservice.createAccessibleCity(user.id, dto);
         return { message: 'Accessible City created successfully' };
       }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
       async updateAccessibleCity(
         @Param('id') id: string, 
-        @Param('userId') userId: string,
+        @UserSession() user : any,
         @Body() dto: UpdateAccessibleCityDto, 
       ) {
-        await this.accessiblecityservice.updateAccessibleCity(id, userId, dto);
+        await this.accessiblecityservice.updateAccessibleCity(id, user.id, dto);
         return { message: 'Accessible City updated successfully' };
     }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
         async deleteAccessibleCity(
             @Param('id') id: string,
-            @Param('userId') userId: string
+            @UserSession() user : any,
           ) {
-            return this.accessiblecityservice.deleteAccessibleCity(id, userId);
+            return this.accessiblecityservice.deleteAccessibleCity(id, user.id);
       }
 
     @Get('list')

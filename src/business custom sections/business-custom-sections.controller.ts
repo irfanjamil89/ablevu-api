@@ -1,7 +1,10 @@
-import { Controller, Param, Post, Body, Patch, Delete, Get, Query } from "@nestjs/common";
+import { Controller, Param, Post, Body, Patch, Delete, Get, Query, UseGuards } from "@nestjs/common";
 import { UpdateBusinessCustomSectionsDto } from "./update-business-custom-sections.dto";
 import { CreateBusinessCustomSectionsDto } from "./create-business-custom-section.dto";
 import { BusinessCustomSectionsService } from "./business-custom-sections.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+
 
 
 @Controller('business-custom-sections')
@@ -10,31 +13,34 @@ export class BusinessCustomSectionsController{
         private readonly customSectionsservice: BusinessCustomSectionsService,
     ) {}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
         async createBusinessCustomSection(
-            @Param('UserId') userId: string,
+            @UserSession() user : any,
             @Body() dto: CreateBusinessCustomSectionsDto,
         ) {
-              await this.customSectionsservice.createBusinessCustomSection(userId, dto);
+              await this.customSectionsservice.createBusinessCustomSection(user.id, dto);
               return { message: 'Business Custom Section created successfully' };
         }
     
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
             async updateBusinessCustomSection(
               @Param('id') Id: string, 
-              @Param('userId') userId: string,
+              @UserSession() user : any,
               @Body() dto: UpdateBusinessCustomSectionsDto, 
             ) {
-              await this.customSectionsservice.updateBusinessCustomSection(Id,userId, dto);
+              await this.customSectionsservice.updateBusinessCustomSection(Id,user.id, dto);
               return { message: 'Business Custom Section updated successfully' };
           }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
             async deleteBusinessCustomSection(
              @Param('id') Id: string,
-             @Param('userId') userId: string,
+             @UserSession() user : any,
         ) {
-                await this.customSectionsservice.deleteBusinessCustomSection(Id,userId);
+                await this.customSectionsservice.deleteBusinessCustomSection(Id,user.id);
                 return{ message: 'Business Custom Section deleted successfully'}
         }
     

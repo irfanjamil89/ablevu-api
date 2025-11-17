@@ -1,7 +1,10 @@
-import { Controller, Param, Post, Body, Patch, Delete, Get, Query } from "@nestjs/common";
+import { Controller, Param, Post, Body, Patch, Delete, Get, Query, UseGuards} from "@nestjs/common";
 import { CreateBusinessMedia } from "./create-business-media.dto";
 import { UpdateBusinessMedia } from "./update-business-media.dto";
 import { BusinessMediaService } from "./business-media.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+
 
 
 @Controller('business-media')
@@ -10,31 +13,34 @@ export class BusinessMediaController{
         private readonly mediaService: BusinessMediaService,
     ) {}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
         async createBusinessMedia(
-            @Param('UserId') userId: string,
+            @UserSession() user : any,
             @Body() dto: CreateBusinessMedia,
         ) {
-              await this.mediaService.createBusinessMedia(userId, dto);
+              await this.mediaService.createBusinessMedia(user.id, dto);
               return { message: 'Business Media created successfully' };
         }
     
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
             async updateBusinessMedia(
               @Param('id') Id: string, 
-              @Param('userId') userId: string,
+              @UserSession() user : any,
               @Body() dto: UpdateBusinessMedia, 
             ) {
-              await this.mediaService.updateBusinessMedia(Id,userId, dto);
+              await this.mediaService.updateBusinessMedia(Id,user.id, dto);
               return { message: 'Business Media updated successfully' };
           }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
             async deleteBusinessMedia(
              @Param('id') Id: string,
-             @Param('userId') userId: string,
+             @UserSession() user : any,
         ) {
-                await this.mediaService.deleteBusinessMedia(Id,userId);
+                await this.mediaService.deleteBusinessMedia(Id,user.id);
                 return{ message: 'Business Media deleted successfully'}
         }
     

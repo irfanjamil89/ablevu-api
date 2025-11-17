@@ -32,21 +32,22 @@ export class UserController {
     return await this.userService.signUp(dto);
   }
 
-  @Put(':id')
+  
+  @Put('update-profile')
+  @UseGuards(JwtAuthGuard)
   async updateProfile(
-    @Param('id') id: string,
-    @Body() updateProfileDto: UpdateProfileDto,
+    @Body() dto: UpdateProfileDto,
+    @UserSession() user : any,
   ) {
-    return this.userService.updateProfile(id, updateProfileDto);
+    return this.userService.updateProfile( user.id, dto);
   }
-
 
   @Patch('update-password/:id')
   async updatePassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto) {
     if (dto.newPassword !== dto.confirmPassword) {
       throw new Error('New password and confirm password did not match');
     }
-      const userId = id;
+    const userId = id;
     await this.users.updatePassword(userId,dto);
     return { status: 'ok', message: 'Password updated successfully'};
   }

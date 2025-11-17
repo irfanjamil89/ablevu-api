@@ -1,7 +1,9 @@
-import { Controller,Post, Param, Body, Patch, Delete, Query, Get } from "@nestjs/common";
+import { Controller,Post, Param, Body, Patch, Delete, Query, Get, UseGuards } from "@nestjs/common";
 import { CreateReviewTypeDto } from "./create-review-type.dto";
 import { UpdateReviewTypeDto } from "./update-review-type.dto";
 import { ReviewTypeService } from "./review-type.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
 @Controller('review-type')
 export class ReviewTypeController{
@@ -9,31 +11,34 @@ export class ReviewTypeController{
         private readonly reviewTypeService: ReviewTypeService,
     ){}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
         async createReviewType(
-          @Param('UserId') userId: string,
+          @UserSession() user : any,
           @Body() dto: CreateReviewTypeDto,
         ) {
-          await this.reviewTypeService.createReviewType(userId, dto);
+          await this.reviewTypeService.createReviewType(user.id, dto);
           return { message: 'Review Type created successfully' };
         }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
         async updateReviewType(
           @Param('id') Id: string, 
-          @Param('userId') userId: string,
+          @UserSession() user : any,
           @Body() dto: UpdateReviewTypeDto, 
         ) {
-          await this.reviewTypeService.updateReviewType(Id,userId, dto);
+          await this.reviewTypeService.updateReviewType(Id, user.id, dto);
           return { message: 'Review Type updated successfully' };
       }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
       async deleteReviewType(
         @Param('id') Id: string,
-        @Param('userId') userId: string,
+        @UserSession() user : any,
     ) {
-        await this.reviewTypeService.deleteReviewType(Id,userId);
+        await this.reviewTypeService.deleteReviewType(Id, user.id);
         return{ message: 'Review Type deleted successfully'}
       }
 

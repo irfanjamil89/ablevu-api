@@ -99,8 +99,8 @@ constructor(
     const business = this.businessRepo.create({
       ...dto,
       slug,
-      ownerUserId: user.id,
-      creatorUserId: user.id,
+      owner: user,
+      creator: user,
       active: true,
       blocked: false,
     });
@@ -116,6 +116,8 @@ constructor(
           modified_by: userId,
         }),
       );
+      await this.linkedrepo.save(linkedEntries);
+    }
     if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
       const linkedFeature = dto.accessible_feature_id.map((typeId) =>
         this.businessaccessibilityrepo.create({
@@ -126,10 +128,8 @@ constructor(
           modified_by: userId,
         }),
       );
-      await this.linkedrepo.save(linkedEntries);
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
-  }
   }
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });
@@ -153,6 +153,8 @@ constructor(
           modified_by: userId,
         }),
       );
+      await this.linkedrepo.save(linkedEntries);
+    }
       if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
       const linkedFeature = dto.accessible_feature_id.map((typeId) =>
         this.businessaccessibilityrepo.create({
@@ -163,19 +165,17 @@ constructor(
           modified_by: userId,
         }),
       );
-      await this.linkedrepo.save(linkedEntries);
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
-    }
   }
-  async deleteBusiness(id: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
+  async deleteBusiness(id: string, userId: string) {
+    const business = await this.businessRepo.findOne({ where: { id },relations: { owner: true },
+    });
+    if (!business || business.owner.id !== userId) {
       throw new NotFoundException('Business not found');
     }
     await this.linkedrepo.delete({ business_id: id });          
     await this.businessRepo.remove(business);
-    return{ message: 'Business deleted successfully'}
   }
 
   async listPaginated(
@@ -236,7 +236,7 @@ constructor(
           where: { business_id: business.id },
         }),
         this.virtualTourRepo.find({
-          where: { business_id:  business.id  },
+          where: { business: {id: business.id}},
           order: { display_order: 'ASC' },
         }),
         this.businessreviews.find({
@@ -293,7 +293,7 @@ constructor(
           where: { business_id: business.id },
         }),
         this.virtualTourRepo.find({
-          where: { business_id:  business.id  },
+          where: { business: {id: business.id}},
           order: { display_order: 'ASC' },
         }),
         this.businessreviews.find({

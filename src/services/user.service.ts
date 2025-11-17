@@ -82,38 +82,38 @@ console.log(user);
     await this.usersRepository.delete(id);
   }
 
-   async updateProfile(userId: number | string, dto: UpdateProfileDto) {
-    const user = await this.usersRepository.findOne({ where: { id: String(userId) } });
-    if (!user) throw new NotFoundException('User not found');
+   async updateProfile(userId: string, dto: UpdateProfileDto) {
+  const user = await this.usersRepository.findOne({ where: { id: userId } });
+  if (!user) throw new NotFoundException('User not found');
 
-    if (dto.firstName !== undefined) {
-      user.first_name = dto.firstName.trim();
-    }
-
-    if (dto.lastName !== undefined) {
-      user.last_name = dto.lastName.trim();
-    }
-
-    if (dto.email !== undefined) {
-      const newEmail = dto.email.toLowerCase().trim();
-      if (newEmail !== user.email) {
-        const exists = await this.usersRepository.exists({ where: { email: newEmail } });
-        if (exists) throw new ConflictException('Email already in use');
-        user.email = newEmail;
-      }
-    }
-
-    if (dto.phoneNumber !== undefined) {
-      user.phone_number = dto.phoneNumber.trim();
-    }
-
-    await this.usersRepository.save(user);
-
-    return {
-      message: 'Profile updated successfully',
-      updatedUser: user,
-    };
+  if (dto.firstName !== undefined) {
+    user.first_name = dto.firstName.trim();
   }
+
+  if (dto.lastName !== undefined) {
+    user.last_name = dto.lastName.trim();
+  }
+
+  if (dto.email !== undefined) {
+    const newEmail = dto.email.toLowerCase().trim();
+    if (newEmail !== user.email) {
+      const exists = await this.usersRepository.exists({ where: { email: newEmail } });
+      if (exists) throw new ConflictException('Email already in use');
+      user.email = newEmail;
+    }
+  }
+
+  if (dto.phoneNumber !== undefined) {
+    user.phone_number = dto.phoneNumber.trim();
+  }
+
+  await this.usersRepository.save(user);
+
+  return {
+    message: 'Profile updated successfully',
+      updatedUser: user,
+  };
+}
 
   
    async updatePassword(userId: string, dto: UpdatePasswordDto){

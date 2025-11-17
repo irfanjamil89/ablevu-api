@@ -1,35 +1,41 @@
-import { Body, Controller, Patch, Post, Param, Delete, Get, Query } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Param, Delete, Get, Query, UseGuards } from "@nestjs/common";
 import { CreateBusinessDto } from "./create-business.dto";
 import { UpdateBusinessDto } from "./update-business.dto";
 import { BusinessService } from "./business.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
 @Controller('business')
 export class BusinessController {
     constructor( private businessService: BusinessService ) {}
 
-@Post('create/:UserId')
+@Post('create')
+@UseGuards(JwtAuthGuard)
   async createBusiness(
-    @Param('UserId') userId: string,
+    @UserSession() user : any,
     @Body() dto: CreateBusinessDto,
   ) {
-    await this.businessService.createBusiness(userId, dto);
+    await this.businessService.createBusiness(user.id, dto);
     return { message: 'Business created successfully' };
   }
 
-@Patch('update/:id/:userId')
+@Patch('update/:id')
+@UseGuards(JwtAuthGuard)
   async updateBusiness(
     @Param('id') Id: string, 
-    @Param('userId') userId: string,
+    @UserSession() user : any,
     @Body() dto: UpdateBusinessDto, 
   ) {
-    await this.businessService.updateBusiness(Id,userId, dto);
+    await this.businessService.updateBusiness(Id, user.id, dto);
     return { message: 'Business updated successfully' };
 }
 
 @Delete('delete/:id')
-  async deleteBusiness(
-    @Param('id') Id: string) {
-    await this.businessService.deleteBusiness(Id);
+@UseGuards(JwtAuthGuard)
+async deleteBusiness(
+    @Param('id') id: string,
+    @UserSession() user : any){
+    await this.businessService.deleteBusiness(id, user.id);
     return{ message: 'Business deleted successfully'}
   }
 

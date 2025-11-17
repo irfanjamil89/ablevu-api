@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { BusinessVirtualTourService } from './business-virtual-tour.service';
 import { CreateBusinessVirtualTour } from './create-business-virtual-tour.dto';
 import { UpdateBusinessVirtualTour } from './update-business-virtual-tour.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UserSession } from 'src/auth/user.decorator';
 
 @Controller('business-virtual-tours')
 export class BusinessVirtualTourController {
@@ -9,29 +11,33 @@ export class BusinessVirtualTourController {
     private readonly toursService: BusinessVirtualTourService,
   ) {}
 
-  @Post('create/:UserId')
+  @Post('create')
+  @UseGuards(JwtAuthGuard)
     async createBusinessVirtualTour(
-      @Param('UserId') userId: string,
+      @UserSession() user : any,
       @Body() dto: CreateBusinessVirtualTour,
     ) {
-      await this.toursService.createBusinessVirtualTour(userId, dto);
+      await this.toursService.createBusinessVirtualTour(user.id, dto);
       return { message: 'Business Virtual Tour created successfully' };
     }
 
-  @Patch('update/:id/:userId')
+  @Patch('update/:id')
+  @UseGuards(JwtAuthGuard)
     async updateBusinessVirtualTour(
       @Param('id') Id: string, 
-      @Param('userId') userId: string,
+      @UserSession() user : any,
       @Body() dto: UpdateBusinessVirtualTour, 
     ) {
-      await this.toursService.updateBusinessVirtualTour(Id,userId, dto);
+      await this.toursService.updateBusinessVirtualTour(Id,user.id, dto);
       return { message: 'Business Virtual Tour updated successfully' };
   }
 
   @Delete('delete/:id')
+  @UseGuards(JwtAuthGuard)
   async deleteBusinessVirtualTour(
-    @Param('id') Id: string) {
-    await this.toursService.deleteBusinessVirtualTour(Id);
+    @UserSession() user : any,
+    @Param('id') id: string) {
+    await this.toursService.deleteBusinessVirtualTour(user.id, id);
     return{ message: 'Business Virtual Tour  deleted successfully'}
   }
 
