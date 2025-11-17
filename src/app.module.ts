@@ -18,6 +18,7 @@ import { BusinessQuestionsModule } from './business questions/business-question.
 import { UserSession } from './auth/user.decorator';
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
 import { BusinessMediaModule } from './business media/business-media.module';
+import { BusinessScheduleModule } from './business schedule/business-schedule.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { BusinessMediaModule } from './business media/business-media.module';
     BusinessQuestionsModule,
     BusinessCustomSectionsModule,
     BusinessMediaModule,
+    BusinessScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
