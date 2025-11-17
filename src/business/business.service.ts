@@ -9,6 +9,10 @@ import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 import { BusinessVirtualTour } from 'src/entity/business_virtual_tours.entity';
 import { BusinessReviews } from 'src/entity/business_reviews.entity';
+import { BusinessQuestions } from 'src/entity/business-questions.entity';
+import { Partner } from 'src/entity/partner.entity';
+import { BusinessPartners } from 'src/entity/business_partners.entity';
+
 
 type ListFilters = {
   search?: string;
@@ -37,7 +41,13 @@ constructor(
   private readonly virtualTourRepo: Repository<BusinessVirtualTour>,
 
   @InjectRepository(BusinessReviews)
-  private readonly businessreviews: Repository<BusinessReviews>  
+  private readonly businessreviews: Repository<BusinessReviews>,
+
+  @InjectRepository(BusinessQuestions)
+  private readonly businessquestionrepo: Repository<BusinessQuestions>,
+
+  @InjectRepository(BusinessPartners)
+  private readonly businessPartnerrepo: Repository<BusinessPartners>,
 ) {}
 
   private makeSlug(name: string) {
@@ -210,7 +220,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -224,6 +234,12 @@ constructor(
         this.businessreviews.find({
           where: {business_id: business.id,}
         }),
+        this.businessquestionrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.businessPartnerrepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
       return {
@@ -231,7 +247,9 @@ constructor(
         linkedTypes,            
         accessibilityFeatures,  
         virtualTours,  
-        businessreviews         
+        businessreviews,
+        businessQuestions,
+        businessPartners,
       };
     }),
   );
@@ -251,7 +269,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -264,7 +282,13 @@ constructor(
         }),
         this.businessreviews.find({
           where: {business_id: business.id},
-        })
+        }),
+        this.businessquestionrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.businessPartnerrepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
     return {
@@ -273,6 +297,8 @@ constructor(
       accessibilityFeatures,
       virtualTours,         
       businessreviews,
+      businessQuestions,
+      businessPartners,
     };
   }
 }
