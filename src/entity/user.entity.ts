@@ -50,6 +50,9 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true, name: 'reset_token_expires' })
   resetTokenExpires: Date | null;
 
+  @Column()
+  consent: boolean;
+
  @Column({ type: 'uuid', nullable: true })
   created_by?: string | null;;
 //   @Column({ default: true })

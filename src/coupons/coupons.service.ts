@@ -49,6 +49,7 @@ export class CouponsService{
         if(!coupon){
             throw new NotFoundException('Coupon Not Found')
         }
+        coupon.modified_by=userid;
         return await this.couponsRepo.remove(coupon);
     }
 
