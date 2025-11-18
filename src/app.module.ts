@@ -18,6 +18,7 @@ import { BusinessQuestionsModule } from './business questions/business-question.
 import { UserSession } from './auth/user.decorator';
 
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+import { BusinessMediaModule } from './business media/business-media.module';
 
 import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
@@ -52,6 +53,7 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
     BusinessReviewsModule,
     BusinessQuestionsModule,
     BusinessCustomSectionsModule,
+    BusinessMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

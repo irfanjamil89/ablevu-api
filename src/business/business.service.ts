@@ -13,6 +13,7 @@ import { BusinessQuestions } from 'src/entity/business-questions.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { BusinessPartners } from 'src/entity/business_partners.entity';
 import { BusinessCustomSections } from 'src/entity/business_custom_sections.entity';
+import { BusinessMedia } from 'src/entity/business_media.entity';
 
 
 type ListFilters = {
@@ -51,7 +52,10 @@ constructor(
   private readonly businessPartnerrepo: Repository<BusinessPartners>,
 
   @InjectRepository(BusinessCustomSections)
-  private readonly customSectionsrepo: Repository<BusinessCustomSections>
+  private readonly customSectionsrepo: Repository<BusinessCustomSections>,
+
+  @InjectRepository(BusinessMedia)
+  private readonly mediaRepo: Repository<BusinessMedia>
 ) {}
 
   private makeSlug(name: string) {
@@ -224,7 +228,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -247,6 +251,9 @@ constructor(
         this.customSectionsrepo.find({
           where: {business_id: business.id,}
         }),
+        this.mediaRepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
       return {
@@ -258,6 +265,7 @@ constructor(
         businessQuestions,
         businessPartners,
         businessCustomSections,
+        businessMedia,
       };
     }),
   );
@@ -277,7 +285,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -300,6 +308,9 @@ constructor(
         this.customSectionsrepo.find({
           where: {business_id: business.id,}
         }),
+        this.mediaRepo.find({
+          where: {business_id: business.id,}
+        }),
       ]);
 
     return {
@@ -311,6 +322,7 @@ constructor(
       businessQuestions,
       businessPartners,
       businessCustomSections,
+      businessMedia,
     };
   }
 }

@@ -95,9 +95,9 @@ export class BusinessCustomSectionsService{
   }
 
   async getBusinessCustomSectionProfile(id: string) {
-    const question = await this.customSectionrepo.findOne({ where: { id } });
-    if (!question) throw new NotFoundException('Business Custom Section not found');
-    return question;
+    const customSection = await this.customSectionrepo.findOne({ where: { id } });
+    if (!customSection) throw new NotFoundException('Business Custom Section not found');
+    return customSection;
   }
 
 }
