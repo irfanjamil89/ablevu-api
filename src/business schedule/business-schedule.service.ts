@@ -32,17 +32,19 @@ export class BusinessScheduleService {
     if (!business) {
       throw new ForbiddenException('You cannot modify this business');
     }
-    const schedule = this.scheduleRepo.create({
+    const schedule = dto.schedules.map(items=>
+     this.scheduleRepo.create({
       business,
-      day: dto.day,
-      opening_time: dto.opening_time ?? null,
-      closing_time: dto.closing_time ?? null,
-      opening_time_text: dto.opening_time_text ?? null,
-      closing_time_text: dto.closing_time_text ?? null,
-      active: dto.active ?? true,
+      day: items.day,
+      opening_time: items.opening_time ?? null,
+      closing_time: items.closing_time ?? null,
+      opening_time_text: items.opening_time_text ?? null,
+      closing_time_text: items.closing_time_text ?? null,
+      active: items.active ?? true,
       created_by: userId,
       modified_by: userId,
-    });
+    })
+  );
 
     return this.scheduleRepo.save(schedule);
   }

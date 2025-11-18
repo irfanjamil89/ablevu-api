@@ -1,11 +1,17 @@
-import { IsNotEmpty, IsOptional, IsString, IsBoolean } from "class-validator";
-
+import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsArray, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 export class CreateScheduleDto {
     
     @IsString()
     @IsNotEmpty()
     businessId: string;
 
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ScheduleItem)
+    schedules: ScheduleItem[];
+}
+class ScheduleItem{
    @IsString()
    @IsNotEmpty()
    day: string;
