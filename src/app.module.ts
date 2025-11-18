@@ -17,6 +17,7 @@ import { BusinessReviewsModule } from './business reviews/business-reviews.modul
 import { User } from './auth/user.decorator';
 import { BusinessQuestionsModule } from './business questions/business-question.module';
 import { UserSession } from './auth/user.decorator';
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { UserSession } from './auth/user.decorator';
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
+    AdditionalResourceModule,
     ReviewTypeModule,
     BusinessReviewsModule,
     BusinessQuestionsModule,
