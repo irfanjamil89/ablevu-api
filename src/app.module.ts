@@ -19,6 +19,7 @@ import { UserSession } from './auth/user.decorator';
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
 import { BusinessMediaModule } from './business media/business-media.module';
 import { BusinessScheduleModule } from './business schedule/business-schedule.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { BusinessScheduleModule } from './business schedule/business-schedule.mo
     BusinessCustomSectionsModule,
     BusinessMediaModule,
     BusinessScheduleModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
