@@ -84,7 +84,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=levelupsolution911@gmail.com
 SMTP_PASS=yhbkowglaxmcrrvx
-APP_URL=http://localhost:3006/auth/reset-password
+APP_URL=http://localhost:3000/reset-password
 
 ## Deployment
 
