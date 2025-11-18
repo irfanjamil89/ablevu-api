@@ -1,7 +1,10 @@
-import { Controller, Post, Param, Body, Patch, Delete, Query, Get} from "@nestjs/common";
+import { Controller, Post, Param, Body, Patch, Delete, Query, Get, UseGuards} from "@nestjs/common";
 import { CreateBusinessReviewsDto } from "./create-business-reviews.dto";
 import { UpdateBusinessReviewsDto } from "./update-business-reviews.dto";
 import { BusinessReviewsService } from "./business-reviews.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+
 
 @Controller('business-reviews')
 export class BusinessReviewsController{
@@ -9,31 +12,33 @@ export class BusinessReviewsController{
         private readonly businessReviewsService: BusinessReviewsService,
     ){}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
         async createBusinessReviews(
-          @Param('UserId') userId: string,
+          @UserSession() user : any,
           @Body() dto: CreateBusinessReviewsDto,
         ) {
-          await this.businessReviewsService.createBusinessReviews(userId, dto);
+          await this.businessReviewsService.createBusinessReviews(user.id, dto);
           return { message: 'Business Review created successfully' };
         }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
         async updateBusinessReviews(
           @Param('id') Id: string, 
-          @Param('userId') userId: string,
+          @UserSession() user : any,
           @Body() dto: UpdateBusinessReviewsDto, 
         ) {
-          await this.businessReviewsService.updateBusinessReviews(Id,userId, dto);
+          await this.businessReviewsService.updateBusinessReviews(Id,user.id, dto);
           return { message: 'Business Review updated successfully' };
       }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
           async deleteBusinessReviews(
             @Param('id') Id: string,
-            @Param('userId') userId: string,
+            @UserSession() user : any,
         ) {
-            await this.businessReviewsService.deleteBusinessReviews(Id,userId);
+            await this.businessReviewsService.deleteBusinessReviews(Id,user.id);
             return{ message: 'Business Review deleted successfully'}
           }
 

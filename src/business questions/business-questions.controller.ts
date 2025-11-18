@@ -1,7 +1,9 @@
-import { Controller, Param, Post, Body, Patch, Delete, Get, Query } from "@nestjs/common";
+import { Controller, Param, Post, Body, Patch, Delete, Get, Query, UseGuards } from "@nestjs/common";
 import { CreateBusinessQuestionsDto } from "./create-business-questions.dto";
 import { UpdateBusinessQuestionsDto } from "./update-business-questions.dto";
 import { BusinessQuestionsService } from "./business-question.service";
+import { UserSession } from "src/auth/user.decorator";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 
 @Controller('business-questions')
 export class BusinessQuestionsController{
@@ -9,31 +11,34 @@ export class BusinessQuestionsController{
         private readonly questionsservice: BusinessQuestionsService,
     ) {}
 
-    @Post('create/:UserId')
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
         async createBusinessQuestions(
-            @Param('UserId') userId: string,
+            @UserSession() user : any,
             @Body() dto: CreateBusinessQuestionsDto,
         ) {
-              await this.questionsservice.createBusinessQuestions(userId, dto);
+              await this.questionsservice.createBusinessQuestions(user.id, dto);
               return { message: 'Business Question created successfully' };
         }
     
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
             async updateBusinessQuestions(
               @Param('id') Id: string, 
-              @Param('userId') userId: string,
+              @UserSession() user : any,
               @Body() dto: UpdateBusinessQuestionsDto, 
             ) {
-              await this.questionsservice.updateBusinessQuestions(Id,userId, dto);
+              await this.questionsservice.updateBusinessQuestions(Id,user.id, dto);
               return { message: 'Business Question updated successfully' };
           }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
             async deleteBusinessQuestions(
              @Param('id') Id: string,
-             @Param('userId') userId: string,
+             @UserSession() user : any,
         ) {
-                await this.questionsservice.deleteBusinessQuestions(Id,userId);
+                await this.questionsservice.deleteBusinessQuestions(Id,user.id);
                 return{ message: 'Business Questions deleted successfully'}
         }
     
