@@ -40,8 +40,7 @@ export class BusinessScheduleController{
         await this.scheduleService.deleteBusinessSchedule(user.id, id);
         return{ message: 'Business Schedule  deleted successfully'}
       }
-    
-      @Get('list')
+    @Get('list')
     listPaginated(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -62,7 +61,6 @@ export class BusinessScheduleController{
       },
     );
 }
-    
       @Get('business-schedule-profile/:id')
         async getBusinessScheduleProfile(
         @Param('id') Id: string) {

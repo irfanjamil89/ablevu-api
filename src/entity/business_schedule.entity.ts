@@ -14,10 +14,10 @@ export class BusinessSchedule {
   day: string; 
 
   @Column({ type: 'timestamptz' })
-opening_time: Date;
+  opening_time: Date;
 
-@Column({ type: 'timestamptz' })
-closing_time: Date;
+  @Column({ type: 'timestamptz' })
+  closing_time: Date;
 
   @Column()
   opening_time_text: string;

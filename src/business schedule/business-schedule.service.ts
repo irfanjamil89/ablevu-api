@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessSchedule } from 'src/entity/business_schedule.entity';
@@ -33,14 +29,12 @@ export class BusinessScheduleService {
       },
       relations: { owner: true },
     });
-
     if (!business) {
       throw new ForbiddenException('You cannot modify this business');
     }
-
     const schedule = this.scheduleRepo.create({
       business,
-      day: dto.day.toLowerCase(),
+      day: dto.day,
       opening_time: dto.opening_time ?? null,
       closing_time: dto.closing_time ?? null,
       opening_time_text: dto.opening_time_text ?? null,
@@ -130,7 +124,6 @@ export class BusinessScheduleService {
     return { deleted: true };
   }
 
-
   async listPaginated(
     page = 1,
     limit = 10,
@@ -168,13 +161,11 @@ export class BusinessScheduleService {
     };
   }
 
-  
   async getBusinessScheduleProfile(id: string) {
     const schedule = await this.scheduleRepo.findOne({
       where: { id },
       relations: { business: true },
     });
-
     if (!schedule) {
       throw new NotFoundException('Business Schedule not found');
     }
