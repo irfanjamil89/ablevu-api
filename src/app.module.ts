@@ -19,6 +19,7 @@ import { UserSession } from './auth/user.decorator';
 
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
 import { BusinessMediaModule } from './business media/business-media.module';
+import { BusinessScheduleModule } from './business schedule/business-schedule.module';
 
 import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
@@ -54,6 +55,7 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
     BusinessQuestionsModule,
     BusinessCustomSectionsModule,
     BusinessMediaModule,
+    BusinessScheduleModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

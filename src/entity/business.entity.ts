@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
+import { BusinessSchedule } from './business_schedule.entity';
 
 @Entity()
 export class Business {
@@ -98,4 +99,6 @@ export class Business {
   @OneToMany(() => BusinessVirtualTour, (tour) => tour.business)
   virtualTours: BusinessVirtualTour[];
 
+  @OneToMany(() => BusinessSchedule, (s) => s.business)
+  schedules: BusinessSchedule[];
 }

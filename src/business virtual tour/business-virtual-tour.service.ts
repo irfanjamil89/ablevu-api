@@ -11,6 +11,7 @@ type ListFilters = {
   active?: boolean;
   search?: string;
 };
+
 @Injectable()
 export class BusinessVirtualTourService {
   constructor(
