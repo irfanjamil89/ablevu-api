@@ -16,7 +16,11 @@ import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
 import { BusinessQuestionsModule } from './business questions/business-question.module';
 import { UserSession } from './auth/user.decorator';
+
 import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
+
 
 @Module({
   imports: [
@@ -43,6 +47,7 @@ import { BusinessCustomSectionsModule } from './business custom sections/busines
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
+    AdditionalResourceModule,
     ReviewTypeModule,
     BusinessReviewsModule,
     BusinessQuestionsModule,

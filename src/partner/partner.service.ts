@@ -91,8 +91,7 @@ export class PartnerService {
 
     const total = await qb.getCount();
     const items = await qb
-      .orderBy('pt.description', 'ASC')
-      .addOrderBy('pt.name', 'ASC')
+      .orderBy('pt.created_at', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
