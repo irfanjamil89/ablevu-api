@@ -14,7 +14,10 @@ import { Partner } from 'src/entity/partner.entity';
 import { BusinessPartners } from 'src/entity/business_partners.entity';
 import { BusinessCustomSections } from 'src/entity/business_custom_sections.entity';
 import { BusinessMedia } from 'src/entity/business_media.entity';
+import { AccessibleCity } from 'src/entity/accessible_city.entity';
 import { BusinessSchedule } from 'src/entity/business_schedule.entity';
+import { privateDecrypt } from 'crypto';
+
 
 
 type ListFilters = {
@@ -22,7 +25,7 @@ type ListFilters = {
   active?: boolean;
   city?: string;
   country?: string;
-   businessTypeId?: string;
+  businessTypeId?: string;
 };
 
 @Injectable()
@@ -58,8 +61,12 @@ constructor(
   @InjectRepository(BusinessMedia)
   private readonly mediaRepo: Repository<BusinessMedia>,
 
+  @InjectRepository(AccessibleCity)
+  private readonly accessibleCityRepo: Repository<AccessibleCity>,
+
   @InjectRepository(BusinessSchedule)
-  private readonly schedulerepo: Repository<BusinessSchedule>
+  private readonly scheduleRepo: Repository<BusinessSchedule>,
+
 ) {}
 
   private makeSlug(name: string) {
@@ -98,6 +105,16 @@ constructor(
     if (!dto.zipcode?.trim()) {
       throw new BadRequestException('Zip code is required');
     }
+
+     let accessibleCity: AccessibleCity | null = null;
+  if (dto.accessible_city_id) {
+    accessibleCity = await this.accessibleCityRepo.findOne({
+      where: { id: dto.accessible_city_id},
+    });
+    if (!accessibleCity) {
+      throw new BadRequestException('Invalid accessible city id');
+    }
+  }
     const slug = this.makeSlug(dto.name);
     
     const business = this.businessRepo.create({
@@ -107,6 +124,9 @@ constructor(
       creator: user,
       active: true,
       blocked: false,
+      accessibleCity: dto.accessible_city_id
+      ? ({ id: dto.accessible_city_id } as any)
+      : null,
     });
     const savedbusiness = await this.businessRepo.save(business);
 
@@ -178,6 +198,8 @@ constructor(
     if (!business || business.owner.id !== userId) {
       throw new NotFoundException('Business not found');
     }
+    await this.scheduleRepo.delete({business: { id: business.id }});
+    await this.customSectionsrepo.delete({ business_id: id });          
     await this.linkedrepo.delete({ business_id: id });          
     await this.businessRepo.remove(business);
   }
@@ -258,7 +280,7 @@ constructor(
         this.mediaRepo.find({
           where: {business_id: business.id,}
         }),
-        this.schedulerepo.find({
+        this.scheduleRepo.find({
           where: {business: {id: business.id,}}
         })
       ]);
@@ -319,7 +341,7 @@ constructor(
         this.mediaRepo.find({
           where: {business_id: business.id,}
         }),
-        this.schedulerepo.find({
+        this.scheduleRepo.find({
           where: {business: {id : business.id,}}
         })
       ]);

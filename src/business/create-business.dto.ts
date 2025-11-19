@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, IsNumber,IsArray, ArrayNotEmpty, IsUUID, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber,IsArray, ArrayNotEmpty, IsUUID, IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class CreateBusinessDto {
   @IsString() 
@@ -13,6 +13,11 @@ export class CreateBusinessDto {
   @ArrayNotEmpty()
   @IsUUID(undefined, { each: true })
   accessible_feature_id: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  @IsUUID(undefined, { each: true })
+  accessible_city_id: string;
 
   @IsString() 
   description?: string;

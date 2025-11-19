@@ -1,7 +1,6 @@
 import { IsEmail, IsOptional, IsString, MinLength, IsEnum, IsBoolean } from 'class-validator';
 import { UserType } from './user-type.enum';
 
-
 export class UserDto {
   @IsEmail()
   emailAddress: string;

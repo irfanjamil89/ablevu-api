@@ -85,40 +85,58 @@ export class AccessibleCityService {
   }
 
   async listPaginated(
-    page = 1,
-    limit = 10,
-    opts?: { search?: string; featured?: boolean },
-  ) {
-    const qb = this.accessiblecityrepo.createQueryBuilder('c');
+  page = 1,
+  limit = 10,
+  opts?: { search?: string; featured?: boolean },
+) {
+  const qb = this.accessiblecityrepo
+    .createQueryBuilder('c')
+    .leftJoinAndSelect('c.businesses', 'b', 'b.active = :active', {
+      active: true,
+    })
+    .loadRelationCountAndMap(
+      'c.businessCount',      
+      'c.businesses',
+      'bc',
+      (q) => q.where('bc.active = :active', { active: true }),
+    );
 
-    if (opts?.search) {
-      qb.andWhere('c.cityName LIKE :search', {
-        search: `%${opts.search}%`,
-      });
-    }
-    if (opts?.featured !== undefined) {
-      qb.andWhere('c.featured = :featured', { featured: opts.featured });
-    }
-
-    qb.orderBy('c.display_order', 'ASC')
-  .addOrderBy('c.city_name', 'ASC');
-
-qb.skip((page - 1) * limit).take(limit);
-
-const [items, total] = await qb.getManyAndCount();
-return {
-  items,
-  total,
-  page,
-  limit,
-  pageCount: Math.ceil(total / limit),
-};
+  if (opts?.search && opts.search.trim()) {
+    const search = `%${opts.search.trim().toLowerCase()}%`;
+    qb.andWhere('LOWER(c.city_name) LIKE :search', { search });
   }
+  if (opts?.featured !== undefined) {
+    qb.andWhere('c.featured = :featured', { featured: opts.featured });
+  }
+
+  qb.orderBy('c.display_order', 'ASC')
+    .addOrderBy('c.city_name', 'ASC')
+    .skip((page - 1) * limit)
+    .take(limit);
+
+  const [items, total] = await qb.getManyAndCount();
+
+  return {
+    items,          
+    total,
+    page,
+    limit,
+    pageCount: Math.ceil(total / limit),
+  };
+}
   async getAccessibleCity(id: string) {
-    const accessiblecity = await this.accessiblecityrepo.findOne({ where: { id } });
-    if (!accessiblecity){ 
-      throw new NotFoundException('Accessible City not found');
-  }   
-    return accessiblecity;
-  } 
+  const accessiblecity = await this.accessiblecityrepo.findOne({
+    where: { id },
+    relations: {
+      businesses: true,   
+    },
+  });
+  if (!accessiblecity) {
+    throw new NotFoundException('Accessible City not found');
+  }
+  (accessiblecity as any).businessCount = accessiblecity.businesses.length;
+
+  return accessiblecity;
+}
+
 }
