@@ -12,8 +12,11 @@ import { BusinessQuestions } from "src/entity/business-questions.entity";
 import { BusinessPartners } from "src/entity/business_partners.entity";
 import { BusinessCustomSections } from "src/entity/business_custom_sections.entity";
 import { BusinessMedia } from "src/entity/business_media.entity";
+import { BusinessSchedule } from "src/entity/business_schedule.entity";
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia])],
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature,
+         BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners,
+          BusinessCustomSections, BusinessMedia, BusinessSchedule])],
     providers: [BusinessService],
     controllers: [BusinessController],
     exports: [BusinessService],
