@@ -1,5 +1,5 @@
-import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn ,UpdateDateColumn} from 'typeorm';
-
+import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn ,UpdateDateColumn, OneToMany} from 'typeorm';
+import { Business } from './business.entity';
 @Entity()
 export class AccessibleCity {
   @PrimaryGeneratedColumn('uuid')
@@ -37,4 +37,7 @@ export class AccessibleCity {
 
   @UpdateDateColumn()
   modified_at: Date;
+
+  @OneToMany(() => Business, (b) => b.accessibleCity)
+  businesses: Business[];
 }

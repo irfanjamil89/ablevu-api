@@ -93,10 +93,7 @@ export class BusinessScheduleService {
     dto.closing_time
     ? new Date(dto.closing_time)
     : schedule.closing_time;
-    schedule.opening_time_text =
-      dto.opening_time_text !== undefined
-        ? dto.opening_time_text
-        : schedule.opening_time_text;
+    schedule.opening_time_text = dto.opening_time_text !== undefined? dto.opening_time_text: schedule.opening_time_text;
     schedule.closing_time_text =
       dto.closing_time_text !== undefined
         ? dto.closing_time_text

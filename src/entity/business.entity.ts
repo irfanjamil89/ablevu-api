@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
 import { BusinessSchedule } from './business_schedule.entity';
-
+import { AccessibleCity } from './accessible_city.entity';
 @Entity()
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -101,4 +101,8 @@ export class Business {
 
   @OneToMany(() => BusinessSchedule, (s) => s.business)
   schedules: BusinessSchedule[];
+
+  @ManyToOne(() => AccessibleCity, (c) => c.businesses, { nullable: true })
+  @JoinColumn({ name: 'accessible_city_id' })
+  accessibleCity: AccessibleCity;
 }

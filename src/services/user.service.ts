@@ -49,7 +49,10 @@ export class UsersService {
     if (exists) {
       throw new DOMException('Email already in use');
     }
-
+    if (!dto.consent){
+      throw new BadRequestException("You must accept the Terms and Privacy Policy")
+    }
+    
     const passwordHash = await bcrypt.hash(dto.password, 12);
 console.log(dto);
      var userData = {
@@ -61,6 +64,7 @@ console.log(dto);
       created_at: new Date(),
       modified_at: new Date(),
       user_role: dto.userType || 'User',
+      consent: dto.consent,
     }
     console.log(userData);
     const user = this.usersRepository.create(userData);
@@ -75,6 +79,7 @@ console.log(user);
       firstName: saved.first_name,
       lastName: saved.last_name,
       createdAt: saved.created_at,
+      consent: saved.consent,
     };
   }
   
