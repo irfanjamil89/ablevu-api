@@ -28,7 +28,7 @@ export class BusinessScheduleController{
           @UserSession() user : any,
           @Body() dto: UpdateScheduleDto, 
         ) {
-          await this.scheduleService.updateBusinessVirtualTour(Id,user.id, dto);
+          await this.scheduleService.updateBusinessSchedule(Id,user.id, dto);
           return { message: 'Business Schedule updated successfully' };
       }
     

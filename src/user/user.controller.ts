@@ -42,19 +42,25 @@ export class UserController {
     return this.userService.updateProfile( user.id, dto);
   }
 
-  @Patch('update-password/:id')
-  async updatePassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto) {
+  @Patch('update-password')
+  @UseGuards(JwtAuthGuard)
+  async updatePassword(
+    @UserSession() user : any,
+    @Body() dto: UpdatePasswordDto) {
     if (dto.newPassword !== dto.confirmPassword) {
       throw new Error('New password and confirm password did not match');
     }
-    const userId = id;
+    const userId = user.id;
     await this.users.updatePassword(userId,dto);
     return { status: 'ok', message: 'Password updated successfully'};
   }
 
-  @Patch('change-role/:id')
-  async updateUserRole( @Param('id') id: string, @Body('newRole') newRole: string) {
-      const userId = id;
+  @Patch('change-role')
+  @UseGuards(JwtAuthGuard)
+  async updateUserRole( 
+    @UserSession() user : any,
+    @Body('newRole') newRole: string) {
+    const userId = user.id;
     await this.users.updateUserRole(userId, newRole);
     return { status: 'ok', message: 'User role changed successfully' };
   }

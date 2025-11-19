@@ -49,7 +49,7 @@ export class BusinessScheduleService {
     return this.scheduleRepo.save(schedule);
   }
 
-  async updateBusinessVirtualTour(
+  async updateBusinessSchedule(
     id: string,
     userId: string,
     dto: UpdateScheduleDto,
