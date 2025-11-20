@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param, NotFoundException } from '@nestjs/common';
 import { UserSession } from "src/auth/user.decorator";
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
@@ -19,12 +19,22 @@ export class UserController {
     return await this.userService.findAll();
   }
 
+  @Get('me')
+@UseGuards(JwtAuthGuard)
+async getMe(@UserSession() user: any): Promise<User> {
+  const found = await this.userService.findOne(user.id);
+  if (!found) throw new NotFoundException("User not found");
+  return found;
+}
+  
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async find(@Param('id') id: string, @UserSession() user : any): Promise<User> {
 
     return await this.userService.findOne(id) || new User();
   }
+
+  
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
