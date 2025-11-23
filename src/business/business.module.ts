@@ -8,8 +8,15 @@ import { BusinessLinkedType } from "src/entity/business_linked_type.entity";
 import { BusinessAccessibleFeature } from "src/entity/business_accessiblity_feature.entity";
 import { BusinessVirtualTour } from "src/entity/business_virtual_tours.entity";
 import { BusinessReviews } from "src/entity/business_reviews.entity";
+import { BusinessQuestions } from "src/entity/business-questions.entity";
+import { BusinessPartners } from "src/entity/business_partners.entity";
+import { BusinessCustomSections } from "src/entity/business_custom_sections.entity";
+import { BusinessMedia } from "src/entity/business_media.entity";
+import { BusinessSchedule } from "src/entity/business_schedule.entity";
+import { AccessibleCity } from "src/entity/accessible_city.entity";
+
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews])],
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule])],
     providers: [BusinessService],
     controllers: [BusinessController],
     exports: [BusinessService],

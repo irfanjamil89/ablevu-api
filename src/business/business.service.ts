@@ -9,13 +9,23 @@ import { BusinessLinkedType } from 'src/entity/business_linked_type.entity';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 import { BusinessVirtualTour } from 'src/entity/business_virtual_tours.entity';
 import { BusinessReviews } from 'src/entity/business_reviews.entity';
+import { BusinessQuestions } from 'src/entity/business-questions.entity';
+import { Partner } from 'src/entity/partner.entity';
+import { BusinessPartners } from 'src/entity/business_partners.entity';
+import { BusinessCustomSections } from 'src/entity/business_custom_sections.entity';
+import { BusinessMedia } from 'src/entity/business_media.entity';
+import { AccessibleCity } from 'src/entity/accessible_city.entity';
+import { BusinessSchedule } from 'src/entity/business_schedule.entity';
+import { privateDecrypt } from 'crypto';
+
+
 
 type ListFilters = {
   search?: string;
   active?: boolean;
   city?: string;
   country?: string;
-   businessTypeId?: string;
+  businessTypeId?: string;
 };
 
 @Injectable()
@@ -37,7 +47,26 @@ constructor(
   private readonly virtualTourRepo: Repository<BusinessVirtualTour>,
 
   @InjectRepository(BusinessReviews)
-  private readonly businessreviews: Repository<BusinessReviews>  
+  private readonly businessreviews: Repository<BusinessReviews>,
+
+  @InjectRepository(BusinessQuestions)
+  private readonly businessquestionrepo: Repository<BusinessQuestions>,
+
+  @InjectRepository(BusinessPartners)
+  private readonly businessPartnerrepo: Repository<BusinessPartners>,
+
+  @InjectRepository(BusinessCustomSections)
+  private readonly customSectionsrepo: Repository<BusinessCustomSections>,
+
+  @InjectRepository(BusinessMedia)
+  private readonly mediaRepo: Repository<BusinessMedia>,
+
+  @InjectRepository(AccessibleCity)
+  private readonly accessibleCityRepo: Repository<AccessibleCity>,
+
+  @InjectRepository(BusinessSchedule)
+  private readonly scheduleRepo: Repository<BusinessSchedule>,
+
 ) {}
 
   private makeSlug(name: string) {
@@ -76,15 +105,28 @@ constructor(
     if (!dto.zipcode?.trim()) {
       throw new BadRequestException('Zip code is required');
     }
+
+     let accessibleCity: AccessibleCity | null = null;
+  if (dto.accessible_city_id) {
+    accessibleCity = await this.accessibleCityRepo.findOne({
+      where: { id: dto.accessible_city_id},
+    });
+    if (!accessibleCity) {
+      throw new BadRequestException('Invalid accessible city id');
+    }
+  }
     const slug = this.makeSlug(dto.name);
     
     const business = this.businessRepo.create({
       ...dto,
       slug,
-      ownerUserId: user.id,
-      creatorUserId: user.id,
+      owner: user,
+      creator: user,
       active: true,
       blocked: false,
+      accessibleCity: dto.accessible_city_id
+      ? ({ id: dto.accessible_city_id } as any)
+      : null,
     });
     const savedbusiness = await this.businessRepo.save(business);
 
@@ -98,6 +140,8 @@ constructor(
           modified_by: userId,
         }),
       );
+      await this.linkedrepo.save(linkedEntries);
+    }
     if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
       const linkedFeature = dto.accessible_feature_id.map((typeId) =>
         this.businessaccessibilityrepo.create({
@@ -108,10 +152,8 @@ constructor(
           modified_by: userId,
         }),
       );
-      await this.linkedrepo.save(linkedEntries);
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
-  }
   }
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });
@@ -135,6 +177,8 @@ constructor(
           modified_by: userId,
         }),
       );
+      await this.linkedrepo.save(linkedEntries);
+    }
       if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
       const linkedFeature = dto.accessible_feature_id.map((typeId) =>
         this.businessaccessibilityrepo.create({
@@ -145,19 +189,19 @@ constructor(
           modified_by: userId,
         }),
       );
-      await this.linkedrepo.save(linkedEntries);
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
-    }
   }
-  async deleteBusiness(id: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
+  async deleteBusiness(id: string, userId: string) {
+    const business = await this.businessRepo.findOne({ where: { id },relations: { owner: true },
+    });
+    if (!business || business.owner.id !== userId) {
       throw new NotFoundException('Business not found');
     }
+    await this.scheduleRepo.delete({business: { id: business.id }});
+    await this.customSectionsrepo.delete({ business_id: id });          
     await this.linkedrepo.delete({ business_id: id });          
     await this.businessRepo.remove(business);
-    return{ message: 'Business deleted successfully'}
   }
 
   async listPaginated(
@@ -210,7 +254,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -218,12 +262,27 @@ constructor(
           where: { business_id: business.id },
         }),
         this.virtualTourRepo.find({
-          where: { business_id:  business.id  },
+          where: { business: {id: business.id}},
           order: { display_order: 'ASC' },
         }),
         this.businessreviews.find({
           where: {business_id: business.id,}
         }),
+        this.businessquestionrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.businessPartnerrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.customSectionsrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.mediaRepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.scheduleRepo.find({
+          where: {business: {id: business.id,}}
+        })
       ]);
 
       return {
@@ -231,7 +290,12 @@ constructor(
         linkedTypes,            
         accessibilityFeatures,  
         virtualTours,  
-        businessreviews         
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
       };
     }),
   );
@@ -251,7 +315,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -259,11 +323,26 @@ constructor(
           where: { business_id: business.id },
         }),
         this.virtualTourRepo.find({
-          where: { business_id:  business.id  },
+          where: { business: {id: business.id}},
           order: { display_order: 'ASC' },
         }),
         this.businessreviews.find({
           where: {business_id: business.id},
+        }),
+        this.businessquestionrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.businessPartnerrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.customSectionsrepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.mediaRepo.find({
+          where: {business_id: business.id,}
+        }),
+        this.scheduleRepo.find({
+          where: {business: {id : business.id,}}
         })
       ]);
 
@@ -273,6 +352,11 @@ constructor(
       accessibilityFeatures,
       virtualTours,         
       businessreviews,
+      businessQuestions,
+      businessPartners,
+      businessCustomSections,
+      businessMedia,
+      businessSchedule,
     };
   }
 }

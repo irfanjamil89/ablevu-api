@@ -11,6 +11,7 @@ type ListFilters = {
   active?: boolean;
   search?: string;
 };
+
 @Injectable()
 export class BusinessVirtualTourService {
   constructor(
@@ -44,7 +45,7 @@ export class BusinessVirtualTourService {
     name: dto.name,
     display_order: dto.displayOrder,
     link_url: dto.linkUrl,
-    business_id: dto.businessId,  
+    business,
     active: dto.active ?? true,
     created_by: userId,
     modified_by: userId,
@@ -69,13 +70,19 @@ export class BusinessVirtualTourService {
     return this.repo.save(tour);
   }
 
-  async deleteBusinessVirtualTour(id: string) {
-    const result = await this.repo.delete(id);
-    if (!result.affected) {
-      throw new NotFoundException('Business Virtual Tour not found');
-    }
-    return { success: true };
+  async deleteBusinessVirtualTour(id: string, userId: string) {
+  const tour = await this.repo.findOne({
+    where: { id },
+    relations: { business: { owner: true } }, 
+  });
+
+  if (!tour || tour.business.owner.id !== userId) {
+    throw new NotFoundException('Business Virtual Tour not found');
   }
+
+  await this.repo.remove(tour);
+  return { success: true };
+}
 
   async listPaginated(
     page = 1,

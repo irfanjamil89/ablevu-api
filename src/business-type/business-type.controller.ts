@@ -9,32 +9,33 @@ import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 export class BusinessTypeController {
     constructor( private businessTypeService: BusinessTypeService ) {}
 
-    @Post('create/:userId')
+  @Post('create')
   @UseGuards(JwtAuthGuard)
     async createBusinessType(
         @UserSession() user : any,
-        @Param('userId') userId: string,
         @Body() dto: CreateBusinessTypeDto,
       ) {
         console.log(user);
-        return this.businessTypeService.createBusinessType(userId, dto);
+        return this.businessTypeService.createBusinessType(user.id, dto);
   }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
     async updateBusinessType(
         @Param('id') id: string,
-        @Param('userId') userId: string, 
+        @UserSession() user : any,
         @Body() dto: UpdateBusinessTypeDto, 
        ) {
-        return this.businessTypeService.updateBusinessType(id, userId, dto);
+        return this.businessTypeService.updateBusinessType(id, user.id, dto);
   }
 
-    @Delete('delete/:id/:userId')
+    @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
     async deleteBusinessType(
         @Param('id') id: string,
-        @Param('userId') userId: string
+        @UserSession() user : any,
       ) {
-        return this.businessTypeService.deleteBusinessType(id, userId);
+        return this.businessTypeService.deleteBusinessType(id, user.id);
   }
 
     @Get('list')

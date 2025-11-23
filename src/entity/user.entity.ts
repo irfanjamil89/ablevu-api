@@ -44,13 +44,16 @@ export class User {
   @Column()
   modified_at?: Date;
 
-    @Column({ type: 'varchar', length: 128, nullable: true, name: 'reset_token' })
+  @Column({ type: 'varchar', length: 128, nullable: true, name: 'reset_token' })
   resetToken: string | null;
 
   @Column({ type: 'timestamptz', nullable: true, name: 'reset_token_expires' })
   resetTokenExpires: Date | null;
 
- @Column({ type: 'uuid', nullable: true })
+  @Column()
+  consent: boolean;
+
+  @Column({ type: 'uuid', nullable: true })
   created_by?: string | null;;
 //   @Column({ default: true })
 //   isActive: boolean;

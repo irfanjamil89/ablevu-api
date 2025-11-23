@@ -1,5 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { User } from './user.entity';
+import { BusinessVirtualTour } from './business_virtual_tours.entity';
+import { BusinessSchedule } from './business_schedule.entity';
+import { AccessibleCity } from './accessible_city.entity';
 @Entity()
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -73,11 +76,13 @@ export class Business {
   @Column() 
   longitude?: number;
 
-  @Column({ name: 'creator_user_id', type: 'uuid' })
-  creatorUserId: string;
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'creator_user_id' })
+  creator: User;
 
-  @Column({ name: 'owner_user_id', type: 'uuid' })
-  ownerUserId: string;
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: 'owner_user_id' })
+  owner: User;
 
   @Column() 
   claimed_fee?: string;
@@ -91,4 +96,13 @@ export class Business {
   @Column()
   modified_at?: Date;
 
+  @OneToMany(() => BusinessVirtualTour, (tour) => tour.business)
+  virtualTours: BusinessVirtualTour[];
+
+  @OneToMany(() => BusinessSchedule, (s) => s.business)
+  schedules: BusinessSchedule[];
+
+  @ManyToOne(() => AccessibleCity, (c) => c.businesses, { nullable: true })
+  @JoinColumn({ name: 'accessible_city_id' })
+  accessibleCity: AccessibleCity;
 }

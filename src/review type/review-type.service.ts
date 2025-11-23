@@ -1,11 +1,10 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ReviewType } from 'src/entity/review_type.entity';
 import { CreateReviewTypeDto } from './create-review-type.dto';
 import { UpdateReviewTypeDto } from './update-review-type.dto';

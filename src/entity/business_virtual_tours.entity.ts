@@ -1,5 +1,5 @@
-import { IsUUID } from 'class-validator';
-import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,} from 'typeorm';
+import { Business } from './business.entity';
+import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn} from 'typeorm';
 
 @Entity('business_virtual_tours')
 export class BusinessVirtualTour {
@@ -15,9 +15,12 @@ export class BusinessVirtualTour {
   @Column()
   link_url: string;
 
-  @Column()
-  @IsUUID()
-  business_id: string; 
+  @ManyToOne(() => Business, (business) => business.virtualTours, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'business_id' })
+  business: Business;
 
   @Column()
   active: boolean;

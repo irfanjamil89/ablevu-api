@@ -14,7 +14,15 @@ import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
+import { BusinessQuestionsModule } from './business questions/business-question.module';
 import { UserSession } from './auth/user.decorator';
+
+import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+import { BusinessMediaModule } from './business media/business-media.module';
+import { BusinessScheduleModule } from './business schedule/business-schedule.module';
+import { CouponsModule } from './coupons/coupons.module';
+
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
 
 @Module({
@@ -42,8 +50,14 @@ import { UserSession } from './auth/user.decorator';
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
+    AdditionalResourceModule,
     ReviewTypeModule,
     BusinessReviewsModule,
+    BusinessQuestionsModule,
+    BusinessCustomSectionsModule,
+    BusinessMediaModule,
+    BusinessScheduleModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
