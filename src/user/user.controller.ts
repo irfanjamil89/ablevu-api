@@ -23,7 +23,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async find(@Param('id') id: string, @UserSession() user : any): Promise<User> {
 
-    return await this.userService.findOne(id) || new User();
+    return await this.userService.findOne(user.id) || new User();
   }
 
   @Post('signup')
