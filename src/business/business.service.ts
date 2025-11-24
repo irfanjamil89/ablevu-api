@@ -198,6 +198,7 @@ constructor(
     if (!business || business.owner.id !== userId) {
       throw new NotFoundException('Business not found');
     }
+    await this.businessaccessibilityrepo.delete({business_id: id});
     await this.scheduleRepo.delete({business: { id: business.id }});
     await this.customSectionsrepo.delete({ business_id: id });          
     await this.linkedrepo.delete({ business_id: id });          
