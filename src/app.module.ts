@@ -23,6 +23,7 @@ import { BusinessScheduleModule } from './business schedule/business-schedule.mo
 import { CouponsModule } from './coupons/coupons.module';
 
 import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
+import { SyncModule } from './sync/sync.module';
 
 
 @Module({
@@ -58,6 +59,7 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
     BusinessMediaModule,
     BusinessScheduleModule,
     CouponsModule,
+    SyncModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
