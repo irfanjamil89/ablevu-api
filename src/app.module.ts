@@ -21,8 +21,9 @@ import { BusinessMediaModule } from './business media/business-media.module';
 import { BusinessScheduleModule } from './business schedule/business-schedule.module';
 import { CouponsModule } from './coupons/coupons.module';
 import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
-import { BusinessRecomendationsModule } from './business recomendations/business-recomendations.module';
 
+import { BusinessRecomendationsModule } from './business recomendations/business-recomendations.module';
+import { SyncModule } from './sync/sync.module';
 
 @Module({
   imports: [
@@ -58,6 +59,8 @@ import { BusinessRecomendationsModule } from './business recomendations/business
     BusinessScheduleModule,
     CouponsModule,
     BusinessRecomendationsModule,
+    SyncModule,
+
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

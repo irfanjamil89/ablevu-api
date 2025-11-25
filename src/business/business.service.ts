@@ -158,6 +158,7 @@ constructor(
       );
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
+    return savedbusiness;
   }
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
     const business = await this.businessRepo.findOne({ where: { id } });

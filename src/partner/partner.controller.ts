@@ -1,20 +1,23 @@
-import { Body, Controller, Patch, Post, Get, Param, Delete, Query } from "@nestjs/common";
+import { Body, Controller, Patch, Post, Get, Param, Delete, Query, UseGuards } from "@nestjs/common";
 import { PartnerService } from "./partner.service";
 import { PartnerDto } from "./partner.dto";
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UserSession } from "src/auth/user.decorator";
 
 @Controller('partner')
 export class PartnerController {
     constructor(private service: PartnerService) { }
 
-    @Post('create/:userId')
-    async createPartner(@Param('userId') userId: string, @Body() dto: PartnerDto) {
-        await this.service.createPartner(dto, userId);
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
+    async createPartner(@UserSession() user: any, @Body() dto: PartnerDto) {
+        await this.service.createPartner(dto, user.id);
         return { status: 'ok', message: 'Partner created successfully' }
     }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
     async updatePartner(@Param('id') id: string,
-        @Param('userId') userId: string,
+        @UserSession() userId: any,
         @Body() dto: PartnerDto) {
         await this.service.updatePartner(id, userId, dto);
         return { status: 'ok', message: 'Partner updated successfully' }

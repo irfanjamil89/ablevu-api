@@ -31,10 +31,15 @@ export class UsersService {
   }
 
   findOne(id: string): Promise<User | null> {
+    console.log('Finding user with id:', id);
     return this.usersRepository.findOneBy({ id : id });
   }
-
+ findOneByExternalId(externalid: string): Promise<User | null> {
+    console.log('Finding user with id:', externalid);
+    return this.usersRepository.findOneBy({ external_id : externalid });
+  }
   async findByUserName(username: string): Promise<User | null> {
+    console.log('Finding user with username:', username);
   return this.usersRepository.findOne({ where: { email: username } });
 }
 

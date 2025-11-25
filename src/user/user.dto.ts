@@ -23,4 +23,12 @@ export class UserDto {
 
   @IsBoolean()
   consent: boolean;
+
+   @IsOptional()
+  @IsString()
+  external_id: string;
+
+  @IsOptional()
+ @IsBoolean()
+  archived: boolean;
 }

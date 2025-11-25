@@ -1,20 +1,24 @@
-import { Controller, Get, Post, Patch, Body, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { AdditionalResourceService } from './additional resource.service';
 import { AdditionalResourceDto } from './additional resource.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UserSession } from 'src/auth/user.decorator';
 
 @Controller('additional-resource')
 export class AdditionalResourceController {
     constructor(private service: AdditionalResourceService) { }
 
-    @Post('create/:userId')
-    async createAdditionalResource(@Param('userId') userId: string, @Body() dto: AdditionalResourceDto) {
-        await this.service.createAdditionalResource(userId, dto);
+    @Post('create')
+    @UseGuards(JwtAuthGuard)
+    async createAdditionalResource(@UserSession() user: any, @Body() dto: AdditionalResourceDto) {
+        await this.service.createAdditionalResource(user.id, dto);
         return { status: 'ok', message: 'additional resource created successfully' }
     }
 
-    @Patch('update/:id/:userId')
+    @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
     async updateAdditionalResource(@Param('id') id: string,
-        @Param('userId') userId: string,
+        @UserSession() userId: any,
         @Body() dto: AdditionalResourceDto) {
         await this.service.updateAdditionalResource(id, userId, dto);
         return { status: 'ok', message: 'additional resource updated successfully' }
