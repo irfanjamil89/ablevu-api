@@ -14,9 +14,10 @@ import { BusinessCustomSections } from "src/entity/business_custom_sections.enti
 import { BusinessMedia } from "src/entity/business_media.entity";
 import { BusinessSchedule } from "src/entity/business_schedule.entity";
 import { AccessibleCity } from "src/entity/accessible_city.entity";
+import { BusinessRecomendations } from "src/entity/business_recomendations.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule])],
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations])],
     providers: [BusinessService],
     controllers: [BusinessController],
     exports: [BusinessService],
