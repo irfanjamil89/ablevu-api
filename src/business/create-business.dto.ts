@@ -96,4 +96,13 @@ export class CreateBusinessDto {
   @IsString()
   creatorId?: string;
 
+  @IsOptional()
+  @IsString()
+  owner_user_id?: string;
+
+  @IsOptional()
+  @IsNumber()
+  views?: number;
+
+
 }

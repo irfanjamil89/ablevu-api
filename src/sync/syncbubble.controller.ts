@@ -13,4 +13,9 @@ export class SyncbubbleController {
     async getUseres() {
         return this.bubbleService.syncUsers();
     }
+
+    @Get('af')
+    async getAf() {
+        return this.bubbleService.syncAF();
+    }
 }

@@ -9,6 +9,9 @@ export class AccessibleFeature {
     title: string;
 
     @Column()
+    external_id: string;
+
+    @Column()
     slug: string;
 
     @Column()

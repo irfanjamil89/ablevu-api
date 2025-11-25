@@ -39,6 +39,7 @@ export class AccessibleFeatureService {
     const accessibleFeature = this.accessibleFeatureRepo.create({
       title: dto.title,
       slug,
+      external_id: dto.external_id,
       created_by: userId,
       modified_by: userId,
     });
