@@ -10,12 +10,12 @@ export class CreateBusinessDto {
   business_type: string[];
 
   @IsArray()
-  @ArrayNotEmpty()
+  @IsOptional()
   @IsUUID(undefined, { each: true })
   accessible_feature_id: string[];
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID(undefined, { each: true })
   accessible_city_id: string;
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param, NotFoundException } from '@nestjs/common';
 import { UserSession } from "src/auth/user.decorator";
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
@@ -18,12 +18,12 @@ export class UserController {
   async findAll(): Promise<User[]> {
     return await this.userService.findAll();
   }
-
+  
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async find(@Param('id') id: string, @UserSession() user : any): Promise<User> {
-
-    return await this.userService.findOne(user.id) || new User();
+    
+    return await this.userService.findOne(id) || new User();
   }
 
   @Post('signup')
@@ -32,7 +32,6 @@ export class UserController {
     return await this.userService.signUp(dto);
   }
 
-  
   @Put('update-profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(
@@ -42,19 +41,25 @@ export class UserController {
     return this.userService.updateProfile( user.id, dto);
   }
 
-  @Patch('update-password/:id')
-  async updatePassword(@Param('id') id: string, @Body() dto: UpdatePasswordDto) {
+  @Patch('update-password')
+  @UseGuards(JwtAuthGuard)
+  async updatePassword(
+    @UserSession() user : any,
+    @Body() dto: UpdatePasswordDto) {
     if (dto.newPassword !== dto.confirmPassword) {
       throw new Error('New password and confirm password did not match');
     }
-    const userId = id;
+    const userId = user.id;
     await this.users.updatePassword(userId,dto);
     return { status: 'ok', message: 'Password updated successfully'};
   }
 
-  @Patch('change-role/:id')
-  async updateUserRole( @Param('id') id: string, @Body('newRole') newRole: string) {
-      const userId = id;
+  @Patch('change-role')
+  @UseGuards(JwtAuthGuard)
+  async updateUserRole( 
+    @UserSession() user : any,
+    @Body('newRole') newRole: string) {
+    const userId = user.id;
     await this.users.updateUserRole(userId, newRole);
     return { status: 'ok', message: 'User role changed successfully' };
   }

@@ -3,6 +3,7 @@ import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
 import { BusinessSchedule } from './business_schedule.entity';
 import { AccessibleCity } from './accessible_city.entity';
+import { BusinessRecomendations } from './business_recomendations.entity';
 @Entity()
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -91,10 +92,10 @@ export class Business {
   promo_code?: string;
 
   @Column()
-  created_at?: Date;
+  created_at: Date;
 
   @Column()
-  modified_at?: Date;
+  modified_at: Date;
 
   @OneToMany(() => BusinessVirtualTour, (tour) => tour.business)
   virtualTours: BusinessVirtualTour[];
@@ -105,4 +106,7 @@ export class Business {
   @ManyToOne(() => AccessibleCity, (c) => c.businesses, { nullable: true })
   @JoinColumn({ name: 'accessible_city_id' })
   accessibleCity: AccessibleCity;
+
+  @OneToMany(() => BusinessRecomendations, (r) => r.business)
+  recomendations: BusinessRecomendations[];
 }

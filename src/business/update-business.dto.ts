@@ -16,6 +16,11 @@ export class UpdateBusinessDto {
   @IsUUID(undefined, { each: true })
   accessible_feature_id: string[];
   
+  @IsString()
+  @IsOptional()
+  @IsUUID(undefined, { each: true })
+  accessible_city_id: string;
+
   @IsOptional() 
   @IsString() 
   description?: string;

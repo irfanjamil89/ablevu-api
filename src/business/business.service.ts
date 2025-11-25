@@ -17,6 +17,7 @@ import { BusinessMedia } from 'src/entity/business_media.entity';
 import { AccessibleCity } from 'src/entity/accessible_city.entity';
 import { BusinessSchedule } from 'src/entity/business_schedule.entity';
 import { privateDecrypt } from 'crypto';
+import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
 
 
 
@@ -66,6 +67,9 @@ constructor(
 
   @InjectRepository(BusinessSchedule)
   private readonly scheduleRepo: Repository<BusinessSchedule>,
+
+  @InjectRepository(BusinessRecomendations)
+  private readonly recomendationRepo: Repository<BusinessRecomendations>,
 
 ) {}
 
@@ -194,11 +198,12 @@ constructor(
     }
   }
   async deleteBusiness(id: string, userId: string) {
-    const business = await this.businessRepo.findOne({ where: { id },relations: { owner: true },
-    });
-    if (!business || business.owner.id !== userId) {
+    const business = await this.businessRepo.findOne({ where: { id } });
+    if (!business){ 
       throw new NotFoundException('Business not found');
     }
+    await this.recomendationRepo.delete({business: { id: business.id }});
+    await this.businessaccessibilityrepo.delete({business_id: id});
     await this.scheduleRepo.delete({business: { id: business.id }});
     await this.customSectionsrepo.delete({ business_id: id });          
     await this.linkedrepo.delete({ business_id: id });          
@@ -255,7 +260,7 @@ constructor(
   const data = await Promise.all(
     items.map(async (business) => {
     
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule] = await Promise.all([
+      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -283,6 +288,9 @@ constructor(
         }),
         this.scheduleRepo.find({
           where: {business: {id: business.id,}}
+        }),
+        this.recomendationRepo.find({
+          where: {business: {id: business.id,}}
         })
       ]);
 
@@ -297,6 +305,7 @@ constructor(
         businessCustomSections,
         businessMedia,
         businessSchedule,
+        businessRecomendations,
       };
     }),
   );
@@ -316,7 +325,7 @@ constructor(
       throw new NotFoundException('Business not found');
     }
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule] = await Promise.all([
+    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
         this.linkedrepo.find({
           where: { business_id: business.id },
         }),
@@ -344,6 +353,9 @@ constructor(
         }),
         this.scheduleRepo.find({
           where: {business: {id : business.id,}}
+        }),
+        this.recomendationRepo.find({
+          where: {business: {id: business.id,}}
         })
       ]);
 
@@ -358,6 +370,7 @@ constructor(
       businessCustomSections,
       businessMedia,
       businessSchedule,
+      businessRecomendations,
     };
   }
 }
