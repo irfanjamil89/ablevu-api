@@ -21,15 +21,11 @@ export class BusinessRecomendationsService {
 
   async createBusinessRecomendations(userId: string, dto: CreateRecomendationsDto) {
     const business = await this.businessRepo.findOne({
-      where: {
-        id: dto.businessId,
-        owner: { id: userId },
-      },
-      relations: { owner: true },
-    });
-    if (!business) {
-      throw new ForbiddenException('You cannot modify this business');
-    }
+          where: { id: dto.businessId },
+        });
+        if (!business) {
+          throw new NotFoundException('Business not found');
+        }
     const recomendations = this.recomendationsRepo.create({
       business,
       label: dto.label,
