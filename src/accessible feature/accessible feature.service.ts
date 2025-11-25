@@ -6,6 +6,7 @@ import { AccessibleFeatureDto } from './accessible feature.dto';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class AccessibleFeatureService {
@@ -20,7 +21,7 @@ export class AccessibleFeatureService {
     private accessiblefeaturebusinesstyperepo: Repository<AccessibleFeatureBusinessType>,
 
     @InjectRepository(BusinessAccessibleFeature)
-    private  businessAccessibleFeatureRepo: Repository<BusinessAccessibleFeature>
+    private businessAccessibleFeatureRepo: Repository<BusinessAccessibleFeature>
   ) { }
 
   private makeSlug(name: string) {
@@ -93,7 +94,7 @@ export class AccessibleFeatureService {
           modified_by: userId,
         }),
       );
-        await this.linkedrepo.save(linkedEntries)
+      await this.linkedrepo.save(linkedEntries)
     }
     if (dto.business_type && dto.business_type.length > 0) {
       const linkedbusinesstype = dto.business_type.map((typeId) =>
@@ -116,22 +117,38 @@ export class AccessibleFeatureService {
     }
     await this.businessAccessibleFeatureRepo.delete({ accessible_feature_id: id });
     await this.linkedrepo.delete({ accessible_feature_id: id });
-     await this.accessiblefeaturebusinesstyperepo.delete({ accessible_feature_id: id });
+    await this.accessiblefeaturebusinesstyperepo.delete({ accessible_feature_id: id });
     await this.accessibleFeatureRepo.remove(accessibleFeature);
   }
 
   async getAccessibleFeature(id: string) {
-    const accessibleFeature = await this.accessibleFeatureRepo.findOne({ where: { id } });
-    if (!accessibleFeature) {
-      throw new NotFoundException('Accessible Feature not found');
+    const accessibleFeature = await this.accessibleFeatureRepo.find({
+      where: { created_by: id }
+    });
+    if (accessibleFeature.length === 0) {
+      return { accessibleFeatures: [] };
     }
+    const featureIds = accessibleFeature.map(f => f.id);
+
     const linkedTypes = await this.linkedrepo.find({
-      where: { accessible_feature_id: id },
+      where: { accessible_feature_id: In(featureIds) },
     });
 
-    return {accessibleFeature,
-      linkedTypes,
-    };
+    const linkedBusinessTypes = await this.accessiblefeaturebusinesstyperepo.find({
+      where: { accessible_feature_id: In(featureIds) },
+    });
+
+    const featuresWithLinks = accessibleFeature.map(feature => ({
+      ...feature,
+      linkedTypes: linkedTypes.filter(
+        lt => lt.accessible_feature_id === feature.id
+      ),
+      linkedBusinessTypes: linkedBusinessTypes.filter(
+        bt => bt.accessible_feature_id === feature.id
+      )
+    }));
+
+    return { accessibleFeatures: featuresWithLinks };
   }
 
   async getPaginatedList(page = 1,
@@ -150,14 +167,14 @@ export class AccessibleFeatureService {
       .take(limit)
       .getMany();
 
-       const itemsWithLinkedTypes = await Promise.all(
-    items.map(async (feature) => {
-      const linkedTypes = await this.linkedrepo.find({
-        where: { accessible_feature_id: feature.id },
-      });
-      return { ...feature, linkedTypes };
-    })
-  );
+    const itemsWithLinkedTypes = await Promise.all(
+      items.map(async (feature) => {
+        const linkedTypes = await this.linkedrepo.find({
+          where: { accessible_feature_id: feature.id },
+        });
+        return { ...feature, linkedTypes };
+      })
+    );
 
     return {
       page,
