@@ -156,7 +156,10 @@ export class AccessibleFeatureService {
       const linkedTypes = await this.linkedrepo.find({
         where: { accessible_feature_id: feature.id },
       });
-      return { ...feature, linkedTypes };
+      const linkedBusinessTypes = await this.accessiblefeaturebusinesstyperepo.find({
+        where: { accessible_feature_id: feature.id },
+      });
+      return { ...feature, linkedTypes, linkedBusinessTypes };
     })
   );
 
