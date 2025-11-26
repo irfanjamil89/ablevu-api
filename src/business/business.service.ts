@@ -214,6 +214,7 @@ constructor(
   page = 1,
   limit = 10,
   filters: ListFilters = {},
+  currentUser?: User,
 ) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
@@ -221,18 +222,32 @@ constructor(
     .skip((page - 1) * limit)
     .orderBy('b.created_at', 'DESC');
 
+  // 🔹 Role-based filter for Business & Contributor
+  if (currentUser?.user_role) {
+    const role = currentUser.user_role.toLowerCase();
+
+    if (role === 'business' || role === 'contributor') {
+      qb.andWhere('b.owner_user_id = :ownerId', {
+        ownerId: currentUser.id,
+      });
+    }
+    // Admin = no filter
+  }
+
   if (filters.active !== undefined) {
     qb.andWhere('b.active = :active', { active: filters.active });
   }
 
   if (filters.city) {
-    const city = `%${filters.city.toLowerCase()}%`;
-    qb.andWhere('LOWER(b.city) LIKE :city', { city });
+    qb.andWhere('LOWER(b.city) LIKE :city', {
+      city: `%${filters.city.toLowerCase()}%`,
+    });
   }
 
   if (filters.country) {
-    const country = `%${filters.country.toLowerCase()}%`;
-    qb.andWhere('LOWER(b.country) LIKE :country', { country });
+    qb.andWhere('LOWER(b.country) LIKE :country', {
+      country: `%${filters.country.toLowerCase()}%`,
+    });
   }
 
   if (filters.search) {
@@ -249,7 +264,7 @@ constructor(
         SELECT 1
         FROM business_linked_type blt
         WHERE blt.business_id = b.id
-          AND blt.business_type_id = :btId
+        AND blt.business_type_id = :btId
       )`,
       { btId: filters.businessTypeId },
     );
@@ -259,46 +274,38 @@ constructor(
 
   const data = await Promise.all(
     items.map(async (business) => {
-    
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
-        this.linkedrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.businessaccessibilityrepo.find({
-          where: { business_id: business.id },
-        }),
+      const [
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+      ] = await Promise.all([
+        this.linkedrepo.find({ where: { business_id: business.id } }),
+        this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
         this.virtualTourRepo.find({
-          where: { business: {id: business.id}},
+          where: { business: { id: business.id } },
           order: { display_order: 'ASC' },
         }),
-        this.businessreviews.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessquestionrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessPartnerrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.customSectionsrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.mediaRepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.scheduleRepo.find({
-          where: {business: {id: business.id,}}
-        }),
-        this.recomendationRepo.find({
-          where: {business: {id: business.id,}}
-        })
+        this.businessreviews.find({ where: { business_id: business.id } }),
+        this.businessquestionrepo.find({ where: { business_id: business.id } }),
+        this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+        this.customSectionsrepo.find({ where: { business_id: business.id } }),
+        this.mediaRepo.find({ where: { business_id: business.id } }),
+        this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+        this.recomendationRepo.find({ where: { business: { id: business.id } } }),
       ]);
 
       return {
         ...business,
-        linkedTypes,            
-        accessibilityFeatures,  
-        virtualTours,  
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
         businessreviews,
         businessQuestions,
         businessPartners,
@@ -311,7 +318,7 @@ constructor(
   );
 
   return {
-    data, 
+    data,
     total,
     page,
     limit,
@@ -319,58 +326,52 @@ constructor(
   };
 }
 
-  async getBusinessProfile(id: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
+  async getBusinessProfile(id: string, currentUser?: any) {
+  const business = await this.businessRepo.findOne({ where: { id } });
 
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
-        this.linkedrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.businessaccessibilityrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.virtualTourRepo.find({
-          where: { business: {id: business.id}},
-          order: { display_order: 'ASC' },
-        }),
-        this.businessreviews.find({
-          where: {business_id: business.id},
-        }),
-        this.businessquestionrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessPartnerrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.customSectionsrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.mediaRepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.scheduleRepo.find({
-          where: {business: {id : business.id,}}
-        }),
-        this.recomendationRepo.find({
-          where: {business: {id: business.id,}}
-        })
-      ]);
-
-    return {
-      ...business,
-      linkedTypes,          
-      accessibilityFeatures,
-      virtualTours,         
-      businessreviews,
-      businessQuestions,
-      businessPartners,
-      businessCustomSections,
-      businessMedia,
-      businessSchedule,
-      businessRecomendations,
-    };
+  if (!business) {
+    throw new NotFoundException('Business not found');
   }
+
+  const [
+    linkedTypes,
+    accessibilityFeatures,
+    virtualTours,
+    businessreviews,
+    businessQuestions,
+    businessPartners,
+    businessCustomSections,
+    businessMedia,
+    businessSchedule,
+    businessRecomendations,
+  ] = await Promise.all([
+    this.linkedrepo.find({ where: { business_id: business.id } }),
+    this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
+    this.virtualTourRepo.find({
+      where: { business: { id: business.id } },
+      order: { display_order: 'ASC' },
+    }),
+    this.businessreviews.find({ where: { business_id: business.id } }),
+    this.businessquestionrepo.find({ where: { business_id: business.id } }),
+    this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+    this.customSectionsrepo.find({ where: { business_id: business.id } }),
+    this.mediaRepo.find({ where: { business_id: business.id } }),
+    this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+    this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+  ]);
+
+  return {
+    ...business,
+    linkedTypes,
+    accessibilityFeatures,
+    virtualTours,
+    businessreviews,
+    businessQuestions,
+    businessPartners,
+    businessCustomSections,
+    businessMedia,
+    businessSchedule,
+    businessRecomendations,
+  };
+}
 }

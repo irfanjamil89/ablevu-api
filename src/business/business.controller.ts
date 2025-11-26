@@ -40,32 +40,40 @@ async deleteBusiness(
   }
 
 @Get('list')
-  async listPaginated(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-    @Query('search') search?: string,
-    @Query('city') city?: string,
-    @Query('country') country?: string,
-    @Query('active') active?: string,
-    @Query('businessTypeId') businessTypeId?: string,
-  ) {
+@UseGuards(JwtAuthGuard)   // 👈 ab yeh endpoint auth based hai
+async listPaginated(
+  @UserSession() user: any,                      // 👈 logged-in user
+  @Query('page') page = 1,
+  @Query('limit') limit = 10,
+  @Query('search') search?: string,
+  @Query('city') city?: string,
+  @Query('country') country?: string,
+  @Query('active') active?: string,
+  @Query('businessTypeId') businessTypeId?: string,
+) {
+  const activeBool =
+    active === undefined ? undefined : active === 'true' ? true : false;
 
-    const activeBool =
-      active === undefined ? undefined : active === 'true' ? true : false;
-
-    return this.businessService.listPaginated(Number(page), Number(limit), {
+  return this.businessService.listPaginated(
+    Number(page),
+    Number(limit),
+    {
       search,
       city,
       country,
       active: activeBool,
       businessTypeId,
-      
-    });
-  }
+    },
+    user,                          // 👈 user ko service me pass karo
+  );
+}
 
 @Get('business-profile/:id')
-async getBusinessProfile(
-    @Param('id') Id: string) {
-    return this.businessService.getBusinessProfile(Id);
+  @UseGuards(JwtAuthGuard)           // 🔐 token zaroori
+  async getBusinessProfile(
+    @Param('id') id: string,
+    @UserSession() user: any,       // 🔹 user aa raha hai, future use ke liye
+  ) {
+    return this.businessService.getBusinessProfile(id, user);
   }
 }
