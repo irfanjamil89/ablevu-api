@@ -326,60 +326,52 @@ constructor(
   };
 }
 
+  async getBusinessProfile(id: string, currentUser?: any) {
+  const business = await this.businessRepo.findOne({ where: { id } });
 
-
-  async getBusinessProfile(id: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-
-    const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
-        this.linkedrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.businessaccessibilityrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.virtualTourRepo.find({
-          where: { business: {id: business.id}},
-          order: { display_order: 'ASC' },
-        }),
-        this.businessreviews.find({
-          where: {business_id: business.id},
-        }),
-        this.businessquestionrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessPartnerrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.customSectionsrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.mediaRepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.scheduleRepo.find({
-          where: {business: {id : business.id,}}
-        }),
-        this.recomendationRepo.find({
-          where: {business: {id: business.id,}}
-        })
-      ]);
-
-    return {
-      ...business,
-      linkedTypes,          
-      accessibilityFeatures,
-      virtualTours,         
-      businessreviews,
-      businessQuestions,
-      businessPartners,
-      businessCustomSections,
-      businessMedia,
-      businessSchedule,
-      businessRecomendations,
-    };
+  if (!business) {
+    throw new NotFoundException('Business not found');
   }
+
+  const [
+    linkedTypes,
+    accessibilityFeatures,
+    virtualTours,
+    businessreviews,
+    businessQuestions,
+    businessPartners,
+    businessCustomSections,
+    businessMedia,
+    businessSchedule,
+    businessRecomendations,
+  ] = await Promise.all([
+    this.linkedrepo.find({ where: { business_id: business.id } }),
+    this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
+    this.virtualTourRepo.find({
+      where: { business: { id: business.id } },
+      order: { display_order: 'ASC' },
+    }),
+    this.businessreviews.find({ where: { business_id: business.id } }),
+    this.businessquestionrepo.find({ where: { business_id: business.id } }),
+    this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+    this.customSectionsrepo.find({ where: { business_id: business.id } }),
+    this.mediaRepo.find({ where: { business_id: business.id } }),
+    this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+    this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+  ]);
+
+  return {
+    ...business,
+    linkedTypes,
+    accessibilityFeatures,
+    virtualTours,
+    businessreviews,
+    businessQuestions,
+    businessPartners,
+    businessCustomSections,
+    businessMedia,
+    businessSchedule,
+    businessRecomendations,
+  };
+}
 }

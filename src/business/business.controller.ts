@@ -68,10 +68,12 @@ async listPaginated(
   );
 }
 
-
 @Get('business-profile/:id')
-async getBusinessProfile(
-    @Param('id') Id: string) {
-    return this.businessService.getBusinessProfile(Id);
+  @UseGuards(JwtAuthGuard)           // 🔐 token zaroori
+  async getBusinessProfile(
+    @Param('id') id: string,
+    @UserSession() user: any,       // 🔹 user aa raha hai, future use ke liye
+  ) {
+    return this.businessService.getBusinessProfile(id, user);
   }
 }
