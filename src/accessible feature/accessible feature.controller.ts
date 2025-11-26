@@ -18,9 +18,9 @@ export class AccessibleFeatureController {
     @Patch('update/:id/')
     @UseGuards(JwtAuthGuard)
     async updateAccessibleFeature(@Param('id') id: string,
-        @UserSession() userId: any,
+        @UserSession() user: any,
         @Body() dto: AccessibleFeatureDto) {
-        await this.service.updateAccessibleFeature(id, userId, dto);
+        await this.service.updateAccessibleFeature(id, user.id, dto);
         return { status: 'ok', message: 'accessible feature updated successfully' }
     }
 

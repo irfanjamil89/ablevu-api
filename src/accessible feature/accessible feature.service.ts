@@ -97,6 +97,7 @@ export class AccessibleFeatureService {
         await this.linkedrepo.save(linkedEntries)
     }
     if (dto.business_type && dto.business_type.length > 0) {
+      await this.accessiblefeaturebusinesstyperepo.delete({ accessible_feature_id: id });
       const linkedbusinesstype = dto.business_type.map((typeId) =>
         this.accessiblefeaturebusinesstyperepo.create({
           accessible_feature_id: id,
@@ -146,7 +147,7 @@ export class AccessibleFeatureService {
 
     const total = await qb.getCount();
     const items = await qb
-      .orderBy('af.created_at', 'ASC')
+      .orderBy('af.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
