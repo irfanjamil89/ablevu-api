@@ -214,12 +214,26 @@ constructor(
   page = 1,
   limit = 10,
   filters: ListFilters = {},
+  currentUser?: User,                   // 👈 new param
 ) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
   qb.take(limit)
     .skip((page - 1) * limit)
     .orderBy('b.created_at', 'DESC');
+
+  // 🔹 Yahan role-based filter lagayenge
+  if (currentUser && currentUser.user_role) {
+    const role = currentUser.user_role.toLowerCase();
+
+    // Agar Business user hai ⇒ sirf uski hi businesses
+    if (role === 'business') {
+      qb.andWhere('b.owner_user_id = :ownerId', {
+        ownerId: currentUser.id,
+      });
+    }
+    // Agar Admin / koi aur role hai ⇒ koi restriction nahi
+  }
 
   if (filters.active !== undefined) {
     qb.andWhere('b.active = :active', { active: filters.active });
@@ -259,46 +273,38 @@ constructor(
 
   const data = await Promise.all(
     items.map(async (business) => {
-    
-      const [linkedTypes, accessibilityFeatures, virtualTours, businessreviews, businessQuestions, businessPartners, businessCustomSections, businessMedia, businessSchedule, businessRecomendations] = await Promise.all([
-        this.linkedrepo.find({
-          where: { business_id: business.id },
-        }),
-        this.businessaccessibilityrepo.find({
-          where: { business_id: business.id },
-        }),
+      const [
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+      ] = await Promise.all([
+        this.linkedrepo.find({ where: { business_id: business.id } }),
+        this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
         this.virtualTourRepo.find({
-          where: { business: {id: business.id}},
+          where: { business: { id: business.id } },
           order: { display_order: 'ASC' },
         }),
-        this.businessreviews.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessquestionrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.businessPartnerrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.customSectionsrepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.mediaRepo.find({
-          where: {business_id: business.id,}
-        }),
-        this.scheduleRepo.find({
-          where: {business: {id: business.id,}}
-        }),
-        this.recomendationRepo.find({
-          where: {business: {id: business.id,}}
-        })
+        this.businessreviews.find({ where: { business_id: business.id } }),
+        this.businessquestionrepo.find({ where: { business_id: business.id } }),
+        this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+        this.customSectionsrepo.find({ where: { business_id: business.id } }),
+        this.mediaRepo.find({ where: { business_id: business.id } }),
+        this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+        this.recomendationRepo.find({ where: { business: { id: business.id } } }),
       ]);
 
       return {
         ...business,
-        linkedTypes,            
-        accessibilityFeatures,  
-        virtualTours,  
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
         businessreviews,
         businessQuestions,
         businessPartners,
@@ -311,13 +317,14 @@ constructor(
   );
 
   return {
-    data, 
+    data,
     total,
     page,
     limit,
     totalPages: Math.ceil(total / limit),
   };
 }
+
 
   async getBusinessProfile(id: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
