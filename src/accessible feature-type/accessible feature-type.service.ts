@@ -54,12 +54,11 @@ export class AccessibleFeatureTypeService {
     await this.accessibleFeatureTypeRepo.save(AccessibleFeatureType);
   }
 
-   async deleteAccessibleFeatureType(id: string, userId: string) {
+   async deleteAccessibleFeatureType(id: string) {
     const AccessibleFeatureType = await this.accessibleFeatureTypeRepo.findOne({ where: { id } });
     if (!AccessibleFeatureType) { 
       throw new NotFoundException('Accessible Feature Type not found');
     }   
-    AccessibleFeatureType.modified_by = userId;
     await this.accessibleFeatureTypeRepo.remove(AccessibleFeatureType);
    }
 
@@ -88,8 +87,7 @@ export class AccessibleFeatureTypeService {
 
   const total = await qb.getCount();
   const data = await qb
-    .orderBy('aft.display_order', 'ASC')
-    .addOrderBy('aft.name', 'ASC')
+    .orderBy('aft.created_at', 'ASC')
     .skip((page - 1) * limit) 
     .take(limit)              
     .getMany();

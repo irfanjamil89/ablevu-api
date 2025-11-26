@@ -31,10 +31,15 @@ export class UsersService {
   }
 
   findOne(id: string): Promise<User | null> {
+    console.log('Finding user with id:', id);
     return this.usersRepository.findOneBy({ id : id });
   }
-
+ findOneByExternalId(externalid: string): Promise<User | null> {
+    console.log('Finding user with id:', externalid);
+    return this.usersRepository.findOneBy({ external_id : externalid });
+  }
   async findByUserName(username: string): Promise<User | null> {
+    console.log('Finding user with username:', username);
   return this.usersRepository.findOne({ where: { email: username } });
 }
 
@@ -49,7 +54,10 @@ export class UsersService {
     if (exists) {
       throw new DOMException('Email already in use');
     }
-
+    if (!dto.consent){
+      throw new BadRequestException("You must accept the Terms and Privacy Policy")
+    }
+    
     const passwordHash = await bcrypt.hash(dto.password, 12);
 console.log(dto);
      var userData = {
@@ -61,6 +69,7 @@ console.log(dto);
       created_at: new Date(),
       modified_at: new Date(),
       user_role: dto.userType || 'User',
+      consent: dto.consent,
     }
     console.log(userData);
     const user = this.usersRepository.create(userData);
@@ -75,6 +84,7 @@ console.log(user);
       firstName: saved.first_name,
       lastName: saved.last_name,
       createdAt: saved.created_at,
+      consent: saved.consent,
     };
   }
   
@@ -82,38 +92,38 @@ console.log(user);
     await this.usersRepository.delete(id);
   }
 
-   async updateProfile(userId: number | string, dto: UpdateProfileDto) {
-    const user = await this.usersRepository.findOne({ where: { id: String(userId) } });
-    if (!user) throw new NotFoundException('User not found');
+   async updateProfile(userId: string, dto: UpdateProfileDto) {
+  const user = await this.usersRepository.findOne({ where: { id: userId } });
+  if (!user) throw new NotFoundException('User not found');
 
-    if (dto.firstName !== undefined) {
-      user.first_name = dto.firstName.trim();
-    }
-
-    if (dto.lastName !== undefined) {
-      user.last_name = dto.lastName.trim();
-    }
-
-    if (dto.email !== undefined) {
-      const newEmail = dto.email.toLowerCase().trim();
-      if (newEmail !== user.email) {
-        const exists = await this.usersRepository.exists({ where: { email: newEmail } });
-        if (exists) throw new ConflictException('Email already in use');
-        user.email = newEmail;
-      }
-    }
-
-    if (dto.phoneNumber !== undefined) {
-      user.phone_number = dto.phoneNumber.trim();
-    }
-
-    await this.usersRepository.save(user);
-
-    return {
-      message: 'Profile updated successfully',
-      updatedUser: user,
-    };
+  if (dto.firstName !== undefined) {
+    user.first_name = dto.firstName.trim();
   }
+
+  if (dto.lastName !== undefined) {
+    user.last_name = dto.lastName.trim();
+  }
+
+  if (dto.email !== undefined) {
+    const newEmail = dto.email.toLowerCase().trim();
+    if (newEmail !== user.email) {
+      const exists = await this.usersRepository.exists({ where: { email: newEmail } });
+      if (exists) throw new ConflictException('Email already in use');
+      user.email = newEmail;
+    }
+  }
+
+  if (dto.phoneNumber !== undefined) {
+    user.phone_number = dto.phoneNumber.trim();
+  }
+
+  await this.usersRepository.save(user);
+
+  return {
+    message: 'Profile updated successfully',
+      updatedUser: user,
+  };
+}
 
   
    async updatePassword(userId: string, dto: UpdatePasswordDto){

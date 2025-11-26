@@ -1,7 +1,7 @@
-import { IsOptional, IsString, IsEmail, IsNumber,IsArray, ArrayNotEmpty, IsUUID, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber, IsArray, ArrayNotEmpty, IsUUID, IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class CreateBusinessDto {
-  @IsString() 
+  @IsString()
   name: string;
 
   @IsArray()
@@ -9,69 +9,100 @@ export class CreateBusinessDto {
   @IsUUID(undefined, { each: true })
   business_type: string[];
 
-  @IsString() 
+  @IsArray()
+  @IsOptional()
+  @IsUUID(undefined, { each: true })
+  accessible_feature_id: string[];
+
+  @IsString()
+  @IsOptional()
+  @IsUUID(undefined, { each: true })
+  accessible_city_id: string;
+
+  @IsString()
   description?: string;
 
-  @IsString() 
+  @IsString()
   address?: string;
 
-  @IsString() 
+  @IsString()
   city?: string;
 
-  @IsString() 
+  @IsString()
   state?: string;
 
-  @IsString() 
+  @IsString()
   country?: string;
 
-  @IsString() 
+  @IsString()
   zipcode?: string;
 
   @IsBoolean()
   active: boolean;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   website?: string;
 
-  @IsOptional() 
-  @IsEmail() 
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   phone_number?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   facebook_link?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   instagram_link?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   logo_url?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   marker_image_url?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   place_id?: string;
 
-  @IsOptional() 
-  @IsNumber() 
+  @IsOptional()
+  @IsNumber()
   latitude?: number;
 
-  @IsOptional() 
-  @IsNumber() 
+  @IsOptional()
+  @IsNumber()
   longitude?: number;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   promo_code?: string;
+
+  @IsOptional()
+  @IsString()
+  externla_id?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  creatorId?: string;
+
+  @IsOptional()
+  @IsString()
+  owner_user_id?: string;
+
+  @IsOptional()
+  @IsNumber()
+  views?: number;
+
 
 }

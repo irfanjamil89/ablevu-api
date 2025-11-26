@@ -17,4 +17,8 @@ export class AccessibleFeatureDto {
 
     @IsBoolean()
     active: boolean;
+
+    @IsString()
+    @IsNotEmpty()
+    external_id: string;
 }

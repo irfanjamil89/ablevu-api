@@ -10,8 +10,20 @@ import { BusinessModule } from './business/business.module';
 import { BusinessTypeModule } from './business-type/business-type.module';
 import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
-import { User } from './auth/user.decorator';
+import { PartnerModule } from './partner/partner.module';
+import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
+import { ReviewTypeModule } from './review type/review-type.module';
+import { BusinessReviewsModule } from './business reviews/business-reviews.module';
+import { BusinessQuestionsModule } from './business questions/business-question.module';
+import { UserSession } from './auth/user.decorator';
+import { BusinessCustomSectionsModule } from './business custom sections/business-custom-sections.module';
+import { BusinessMediaModule } from './business media/business-media.module';
+import { BusinessScheduleModule } from './business schedule/business-schedule.module';
+import { CouponsModule } from './coupons/coupons.module';
+import { AdditionalResourceModule } from './additional accessiblity resources/additional resource.module';
 
+import { BusinessRecomendationsModule } from './business recomendations/business-recomendations.module';
+import { SyncModule } from './sync/sync.module';
 
 @Module({
   imports: [
@@ -36,6 +48,19 @@ import { User } from './auth/user.decorator';
     BusinessTypeModule,
     AccessibleCityModule,
     AccessibleFeatureModule,
+    PartnerModule,
+    BusinessVirtualTourModule,
+    AdditionalResourceModule,
+    ReviewTypeModule,
+    BusinessReviewsModule,
+    BusinessQuestionsModule,
+    BusinessCustomSectionsModule,
+    BusinessMediaModule,
+    BusinessScheduleModule,
+    CouponsModule,
+    BusinessRecomendationsModule,
+    SyncModule,
+
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

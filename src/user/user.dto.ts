@@ -1,6 +1,5 @@
-import { IsEmail, IsOptional, IsString, MinLength, IsEnum } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength, IsEnum, IsBoolean } from 'class-validator';
 import { UserType } from './user-type.enum';
-
 
 export class UserDto {
   @IsEmail()
@@ -21,4 +20,15 @@ export class UserDto {
   @IsOptional()
   @IsEnum(UserType)
   userType: UserType;
+
+  @IsBoolean()
+  consent: boolean;
+
+   @IsOptional()
+  @IsString()
+  external_id: string;
+
+  @IsOptional()
+ @IsBoolean()
+  archived: boolean;
 }

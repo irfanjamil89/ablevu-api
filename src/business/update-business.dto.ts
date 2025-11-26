@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, IsNumber, IsArray, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber, IsArray, IsUUID, IsBoolean } from 'class-validator';
 
 export class UpdateBusinessDto {
 
@@ -10,6 +10,16 @@ export class UpdateBusinessDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   business_type: string[];
+
+  @IsArray()
+  @IsOptional()
+  @IsUUID(undefined, { each: true })
+  accessible_feature_id: string[];
+  
+  @IsString()
+  @IsOptional()
+  @IsUUID(undefined, { each: true })
+  accessible_city_id: string;
 
   @IsOptional() 
   @IsString() 
@@ -34,6 +44,9 @@ export class UpdateBusinessDto {
   @IsOptional() 
   @IsString() 
   zipcode?: string;
+
+  @IsBoolean()
+  active: boolean;
 
   @IsOptional() 
   @IsString() 
