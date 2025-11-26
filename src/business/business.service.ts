@@ -214,7 +214,7 @@ constructor(
   page = 1,
   limit = 10,
   filters: ListFilters = {},
-  currentUser?: User,                   // 👈 new param
+  currentUser?: User,
 ) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
@@ -222,17 +222,16 @@ constructor(
     .skip((page - 1) * limit)
     .orderBy('b.created_at', 'DESC');
 
-  // 🔹 Yahan role-based filter lagayenge
-  if (currentUser && currentUser.user_role) {
+  // 🔹 Role-based filter for Business & Contributor
+  if (currentUser?.user_role) {
     const role = currentUser.user_role.toLowerCase();
 
-    // Agar Business user hai ⇒ sirf uski hi businesses
-    if (role === 'business') {
+    if (role === 'business' || role === 'contributor') {
       qb.andWhere('b.owner_user_id = :ownerId', {
         ownerId: currentUser.id,
       });
     }
-    // Agar Admin / koi aur role hai ⇒ koi restriction nahi
+    // Admin = no filter
   }
 
   if (filters.active !== undefined) {
@@ -240,13 +239,15 @@ constructor(
   }
 
   if (filters.city) {
-    const city = `%${filters.city.toLowerCase()}%`;
-    qb.andWhere('LOWER(b.city) LIKE :city', { city });
+    qb.andWhere('LOWER(b.city) LIKE :city', {
+      city: `%${filters.city.toLowerCase()}%`,
+    });
   }
 
   if (filters.country) {
-    const country = `%${filters.country.toLowerCase()}%`;
-    qb.andWhere('LOWER(b.country) LIKE :country', { country });
+    qb.andWhere('LOWER(b.country) LIKE :country', {
+      country: `%${filters.country.toLowerCase()}%`,
+    });
   }
 
   if (filters.search) {
@@ -263,7 +264,7 @@ constructor(
         SELECT 1
         FROM business_linked_type blt
         WHERE blt.business_id = b.id
-          AND blt.business_type_id = :btId
+        AND blt.business_type_id = :btId
       )`,
       { btId: filters.businessTypeId },
     );
@@ -324,6 +325,7 @@ constructor(
     totalPages: Math.ceil(total / limit),
   };
 }
+
 
 
   async getBusinessProfile(id: string) {
