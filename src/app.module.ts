@@ -24,6 +24,7 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
 
 import { BusinessRecomendationsModule } from './business recomendations/business-recomendations.module';
 import { SyncModule } from './sync/sync.module';
+import { GoogleMapsModule } from './google-maps/google-maps.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { SyncModule } from './sync/sync.module';
     CouponsModule,
     BusinessRecomendationsModule,
     SyncModule,
+    GoogleMapsModule,
 
   ],
   controllers: [AppController],
