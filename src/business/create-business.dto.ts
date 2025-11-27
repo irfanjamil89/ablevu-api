@@ -86,7 +86,7 @@ export class CreateBusinessDto {
 
   @IsOptional()
   @IsString()
-  externla_id?: string;
+  external_id?: string;
 
   @IsOptional()
   @IsString()

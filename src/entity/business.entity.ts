@@ -89,6 +89,9 @@ export class Business {
   claimed_fee?: string;
   
   @Column() 
+  external_id?: string;
+
+  @Column() 
   promo_code?: string;
 
   @Column()
