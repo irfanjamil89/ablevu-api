@@ -18,8 +18,7 @@ import { AccessibleCity } from 'src/entity/accessible_city.entity';
 import { BusinessSchedule } from 'src/entity/business_schedule.entity';
 import { privateDecrypt } from 'crypto';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
-
-
+import { GoogleMapsService } from 'src/google-maps/google-maps.service';
 
 type ListFilters = {
   search?: string;
@@ -71,7 +70,29 @@ constructor(
   @InjectRepository(BusinessRecomendations)
   private readonly recomendationRepo: Repository<BusinessRecomendations>,
 
+   private readonly googleMapsService: GoogleMapsService,
+
 ) {}
+
+    private mapGeocodeResultToBusinessFields(result: any) {
+  const getComponent = (type: string): string | undefined => {
+    const comp = result.address_components?.find((c) =>
+      c.types?.includes(type),
+    );
+    return comp?.long_name;
+  };
+
+  return {
+    address: result.formatted_address,
+    city: getComponent('locality'),
+    state: getComponent('administrative_area_level_1'),
+    country: getComponent('country'),
+    zipcode: getComponent('postal_code'),
+    latitude: result.geometry?.location?.lat,
+    longitude: result.geometry?.location?.lng,
+    place_id: result.place_id,
+  };
+}
 
   private makeSlug(name: string) {
     return name
@@ -82,121 +103,220 @@ constructor(
   }
 
   async createBusiness(userId: string, dto: CreateBusinessDto) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('user not found');
+  const user = await this.userRepo.findOne({ where: { id: userId } });
+  if (!user) throw new NotFoundException('user not found');
 
-     if (!dto.name?.trim()) {
-      throw new BadRequestException('Business name is required');
-    }
-    if (!dto.business_type){
-      throw new BadRequestException(" Business Type is Missimg")
-    }
-    if (!dto.description?.trim()) {
-      throw new BadRequestException('Business description is required');
-    }
-    if (!dto.address?.trim()) {
-      throw new BadRequestException('Business address is required');
-    }
-    if (!dto.city?.trim()) {
-      throw new BadRequestException('City is required');
-    }
-    if (!dto.state?.trim()) {
-      throw new BadRequestException('State is required');
-    }
-    if (!dto.country?.trim()) {
-      throw new BadRequestException('Country is required');
-    }
-    if (!dto.zipcode?.trim()) {
-      throw new BadRequestException('Zip code is required');
-    }
+  if (!dto.name?.trim()) {
+    throw new BadRequestException('Business name is required');
+  }
+  if (!dto.business_type) {
+    throw new BadRequestException(' Business Type is Missimg');
+  }
+  if (!dto.description?.trim()) {
+    throw new BadRequestException('Business description is required');
+  }
+  if (!dto.address?.trim()) {
+    throw new BadRequestException('Business address is required');
+  }
+  if (!dto.city?.trim()) {
+    throw new BadRequestException('City is required');
+  }
+  if (!dto.state?.trim()) {
+    throw new BadRequestException('State is required');
+  }
+  if (!dto.country?.trim()) {
+    throw new BadRequestException('Country is required');
+  }
+  if (!dto.zipcode?.trim()) {
+    throw new BadRequestException('Zip code is required');
+  }
 
-     let accessibleCity: AccessibleCity | null = null;
+  let accessibleCity: AccessibleCity | null = null;
   if (dto.accessible_city_id) {
     accessibleCity = await this.accessibleCityRepo.findOne({
-      where: { id: dto.accessible_city_id},
+      where: { id: dto.accessible_city_id },
     });
     if (!accessibleCity) {
       throw new BadRequestException('Invalid accessible city id');
     }
   }
-    const slug = this.makeSlug(dto.name);
-    
-    const business = this.businessRepo.create({
-      ...dto,
-      slug,
-      owner: user,
-      creator: user,
-      active: true,
-      blocked: false,
-      accessibleCity: dto.accessible_city_id
+
+  const slug = this.makeSlug(dto.name);
+
+  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION START ⭐⭐⭐
+  let latitude = dto.latitude;
+  let longitude = dto.longitude;
+  let place_id = dto.place_id;
+  let address = dto.address;
+  let city = dto.city;
+  let state = dto.state;
+  let country = dto.country;
+  let zipcode = dto.zipcode;
+
+  // Agar lat/lng missing hain aur address hai → backend geocode karega
+  if ((!latitude || !longitude) && dto.address) {
+    try {
+      const geo = await this.googleMapsService.geocodeAddress(dto.address);
+
+      if (geo.status === 'OK' && geo.results && geo.results.length > 0) {
+        const result = geo.results[0];
+        const mapped = this.mapGeocodeResultToBusinessFields(result);
+
+        address = mapped.address ?? address;
+        city = mapped.city ?? city;
+        state = mapped.state ?? state;
+        country = mapped.country ?? country;
+        zipcode = mapped.zipcode ?? zipcode;
+        latitude = mapped.latitude ?? latitude;
+        longitude = mapped.longitude ?? longitude;
+        place_id = mapped.place_id ?? place_id;
+      } else {
+        console.warn(
+          'Geocode did not return results for address:',
+          dto.address,
+        );
+      }
+    } catch (e) {
+      console.error('Geocoding failed but continuing without it:', e);
+    }
+  }
+  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION END ⭐⭐⭐
+
+  const business = this.businessRepo.create({
+    ...dto,
+    slug,
+    owner: user,
+    creator: user,
+    active: true,
+    blocked: false,
+    accessibleCity: dto.accessible_city_id
       ? ({ id: dto.accessible_city_id } as any)
       : null,
-    });
-    const savedbusiness = await this.businessRepo.save(business);
 
-    if (dto.business_type && dto.business_type.length > 0) {
-      const linkedEntries = dto.business_type.map((typeId) =>
-        this.linkedrepo.create({
-          business_id: savedbusiness.id,
-          business_type_id: typeId,
-          active: dto.active,
-          created_by: userId,
-          modified_by: userId,
-        }),
-      );
-      await this.linkedrepo.save(linkedEntries);
-    }
-    if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
-      const linkedFeature = dto.accessible_feature_id.map((typeId) =>
-        this.businessaccessibilityrepo.create({
-          business_id: savedbusiness.id,
-          accessible_feature_id: typeId,
-          active: dto.active,
-          created_by: userId,
-          modified_by: userId,
-        }),
-      );
-      await this.businessaccessibilityrepo.save(linkedFeature);
-    }
-    return savedbusiness;
+    // overwrite normalized / geocoded values
+    address,
+    city,
+    state,
+    country,
+    zipcode,
+    latitude,
+    longitude,
+    place_id,
+  });
+
+  const savedbusiness = await this.businessRepo.save(business);
+
+  if (dto.business_type && dto.business_type.length > 0) {
+    const linkedEntries = dto.business_type.map((typeId) =>
+      this.linkedrepo.create({
+        business_id: savedbusiness.id,
+        business_type_id: typeId,
+        active: dto.active,
+        created_by: userId,
+        modified_by: userId,
+      }),
+    );
+    await this.linkedrepo.save(linkedEntries);
   }
+
+  if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
+    const linkedFeature = dto.accessible_feature_id.map((typeId) =>
+      this.businessaccessibilityrepo.create({
+        business_id: savedbusiness.id,
+        accessible_feature_id: typeId,
+        active: dto.active,
+        created_by: userId,
+        modified_by: userId,
+      }),
+    );
+    await this.businessaccessibilityrepo.save(linkedFeature);
+  }
+
+  return savedbusiness;
+}
+
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business){ 
-      throw new NotFoundException('Business not found');
-    }
-    if (dto.name && dto.name.trim() !== '') {
-      business.name = dto.name;
-      business.slug = this.makeSlug(dto.name);
-    }
-    Object.assign(business, dto);
-    await this.businessRepo.save(business);
+  const business = await this.businessRepo.findOne({ where: { id } });
+  if (!business) {
+    throw new NotFoundException('Business not found');
+  }
 
-    if (dto.business_type && dto.business_type.length > 0) {
-      const linkedEntries = dto.business_type.map((typeId) =>
-        this.linkedrepo.create({
-          business_id: id,
-          business_type_id: typeId,
-          active: dto.active,
-          created_by: userId,
-          modified_by: userId,
-        }),
+  // Name change → slug change
+  if (dto.name && dto.name.trim() !== '') {
+    business.name = dto.name;
+    business.slug = this.makeSlug(dto.name);
+  }
+
+  // Baqi fields ko merge kar do
+  Object.assign(business, dto);
+
+  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION FOR UPDATE ⭐⭐⭐
+  // Agar:
+  //  - naya address aya ho (dto.address)
+  //  - ya existing lat/lng missing hain
+  // tab geocode karein
+  const shouldGeocode =
+    !!business.address &&
+    (!business.latitude || !business.longitude || !!dto.address);
+
+  if (shouldGeocode) {
+    try {
+      const geo = await this.googleMapsService.geocodeAddress(
+        business.address!, // non-null assertion because upar check kar liya
       );
-      await this.linkedrepo.save(linkedEntries);
-    }
-      if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
-      const linkedFeature = dto.accessible_feature_id.map((typeId) =>
-        this.businessaccessibilityrepo.create({
-          business_id: id,
-          accessible_feature_id: typeId,
-          active: dto.active,
-          created_by: userId,
-          modified_by: userId,
-        }),
-      );
-      await this.businessaccessibilityrepo.save(linkedFeature);
+
+      if (geo.status === 'OK' && geo.results && geo.results.length > 0) {
+        const result = geo.results[0];
+        const mapped = this.mapGeocodeResultToBusinessFields(result);
+
+        business.address = mapped.address ?? business.address;
+        business.city = mapped.city ?? business.city;
+        business.state = mapped.state ?? business.state;
+        business.country = mapped.country ?? business.country;
+        business.zipcode = mapped.zipcode ?? business.zipcode;
+        business.latitude = mapped.latitude ?? business.latitude;
+        business.longitude = mapped.longitude ?? business.longitude;
+        business.place_id = mapped.place_id ?? business.place_id;
+      } else {
+        console.warn(
+          'Geocode did not return results for business update:',
+          business.address,
+        );
+      }
+    } catch (e) {
+      console.error('Geocoding failed during update but continuing:', e);
     }
   }
+  // ⭐⭐⭐ END GOOGLE MAPS INTEGRATION ⭐⭐⭐
+
+  await this.businessRepo.save(business);
+
+  if (dto.business_type && dto.business_type.length > 0) {
+    const linkedEntries = dto.business_type.map((typeId) =>
+      this.linkedrepo.create({
+        business_id: id,
+        business_type_id: typeId,
+        active: dto.active,
+        created_by: userId,
+        modified_by: userId,
+      }),
+    );
+    await this.linkedrepo.save(linkedEntries);
+  }
+
+  if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
+    const linkedFeature = dto.accessible_feature_id.map((typeId) =>
+      this.businessaccessibilityrepo.create({
+        business_id: id,
+        accessible_feature_id: typeId,
+        active: dto.active,
+        created_by: userId,
+        modified_by: userId,
+      }),
+    );
+    await this.businessaccessibilityrepo.save(linkedFeature);
+  }
+}
   async deleteBusiness(id: string, userId: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business){ 

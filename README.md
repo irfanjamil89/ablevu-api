@@ -77,6 +77,7 @@ MODE=DEV
 RUN_MIGRATIONS=false
 DATABASE_URL=postgres://postgres:irfan@51.75.68.69/ablevu
 Jwt_Secret=ABC123!@#secretKey
+GOOGLE_MAPS_API_KEY=AIzaSyDtWnAhPmJQttC_ojC6OGoY3t_JwqvQvkA
 ```
 ## Mail Enviroment
 
