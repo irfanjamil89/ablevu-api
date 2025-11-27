@@ -104,33 +104,23 @@ constructor(
 
   async createBusiness(userId: string, dto: CreateBusinessDto) {
   const user = await this.userRepo.findOne({ where: { id: userId } });
-  if (!user) throw new NotFoundException('user not found');
+  if (!user) throw new NotFoundException('User not found');
 
+  // ⭐ Required fields only (Option A)
   if (!dto.name?.trim()) {
     throw new BadRequestException('Business name is required');
   }
-  if (!dto.business_type) {
-    throw new BadRequestException(' Business Type is Missimg');
+  if (!dto.business_type || dto.business_type.length === 0) {
+    throw new BadRequestException('Business type is required');
   }
   if (!dto.description?.trim()) {
     throw new BadRequestException('Business description is required');
   }
   if (!dto.address?.trim()) {
-    throw new BadRequestException('Business address is required');
-  }
-  if (!dto.city?.trim()) {
-    throw new BadRequestException('City is required');
-  }
-  if (!dto.state?.trim()) {
-    throw new BadRequestException('State is required');
-  }
-  if (!dto.country?.trim()) {
-    throw new BadRequestException('Country is required');
-  }
-  if (!dto.zipcode?.trim()) {
-    throw new BadRequestException('Zip code is required');
+    throw new BadRequestException('Business address (formatted) is required');
   }
 
+  // ⭐ Accessible City (optional)
   let accessibleCity: AccessibleCity | null = null;
   if (dto.accessible_city_id) {
     accessibleCity = await this.accessibleCityRepo.findOne({
@@ -143,22 +133,24 @@ constructor(
 
   const slug = this.makeSlug(dto.name);
 
-  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION START ⭐⭐⭐
   let latitude = dto.latitude;
   let longitude = dto.longitude;
   let place_id = dto.place_id;
+
+  // Address parts (will be auto-filled by geocoder)
   let address = dto.address;
   let city = dto.city;
   let state = dto.state;
   let country = dto.country;
   let zipcode = dto.zipcode;
 
-  // Agar lat/lng missing hain aur address hai → backend geocode karega
-  if ((!latitude || !longitude) && dto.address) {
+  const needGeocode = (!latitude || !longitude) && dto.address;
+
+  if (needGeocode) {
     try {
       const geo = await this.googleMapsService.geocodeAddress(dto.address);
 
-      if (geo.status === 'OK' && geo.results && geo.results.length > 0) {
+      if (geo.status === 'OK' && geo.results?.length > 0) {
         const result = geo.results[0];
         const mapped = this.mapGeocodeResultToBusinessFields(result);
 
@@ -171,16 +163,14 @@ constructor(
         longitude = mapped.longitude ?? longitude;
         place_id = mapped.place_id ?? place_id;
       } else {
-        console.warn(
-          'Geocode did not return results for address:',
-          dto.address,
-        );
+        console.warn('No geocode results for:', dto.address);
       }
     } catch (e) {
-      console.error('Geocoding failed but continuing without it:', e);
+      console.error('Geocoding failed:', e);
     }
   }
-  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION END ⭐⭐⭐
+
+  // ───────────────────────────────────────────────
 
   const business = this.businessRepo.create({
     ...dto,
@@ -193,7 +183,7 @@ constructor(
       ? ({ id: dto.accessible_city_id } as any)
       : null,
 
-    // overwrite normalized / geocoded values
+    // overwrite auto-filled fields
     address,
     city,
     state,
@@ -204,35 +194,37 @@ constructor(
     place_id,
   });
 
-  const savedbusiness = await this.businessRepo.save(business);
+  const saved = await this.businessRepo.save(business);
 
-  if (dto.business_type && dto.business_type.length > 0) {
-    const linkedEntries = dto.business_type.map((typeId) =>
+  // ⭐ Business Types
+  if (dto.business_type?.length) {
+    const linked = dto.business_type.map((typeId) =>
       this.linkedrepo.create({
-        business_id: savedbusiness.id,
+        business_id: saved.id,
         business_type_id: typeId,
-        active: dto.active,
+        active: true,
         created_by: userId,
         modified_by: userId,
       }),
     );
-    await this.linkedrepo.save(linkedEntries);
+    await this.linkedrepo.save(linked);
   }
 
-  if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
-    const linkedFeature = dto.accessible_feature_id.map((typeId) =>
+  // ⭐ Accessible Features
+  if (dto.accessible_feature_id?.length) {
+    const linked = dto.accessible_feature_id.map((featureId) =>
       this.businessaccessibilityrepo.create({
-        business_id: savedbusiness.id,
-        accessible_feature_id: typeId,
-        active: dto.active,
+        business_id: saved.id,
+        accessible_feature_id: featureId,
+        active: true,
         created_by: userId,
         modified_by: userId,
       }),
     );
-    await this.businessaccessibilityrepo.save(linkedFeature);
+    await this.businessaccessibilityrepo.save(linked);
   }
 
-  return savedbusiness;
+  return saved;
 }
 
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
@@ -241,28 +233,28 @@ constructor(
     throw new NotFoundException('Business not found');
   }
 
-  // Name change → slug change
+  // 🔹 Name change ⇒ slug change
   if (dto.name && dto.name.trim() !== '') {
-    business.name = dto.name;
+    business.name = dto.name.trim();
     business.slug = this.makeSlug(dto.name);
   }
 
-  // Baqi fields ko merge kar do
+  // 🔹 Copy simple fields (address, city, lat, lng, place_id, etc.)
   Object.assign(business, dto);
 
-  // ⭐⭐⭐ GOOGLE MAPS INTEGRATION FOR UPDATE ⭐⭐⭐
-  // Agar:
-  //  - naya address aya ho (dto.address)
-  //  - ya existing lat/lng missing hain
-  // tab geocode karein
-  const shouldGeocode =
-    !!business.address &&
-    (!business.latitude || !business.longitude || !!dto.address);
+  // ───────── GOOGLE MAPS (Option A) ─────────
+  const hasAddress =
+    typeof business.address === 'string' && business.address.trim() !== '';
+
+  const coordsMissing = !business.latitude || !business.longitude;
+  const addressChanged = !!dto.address; // client ne address update kiya?
+
+  const shouldGeocode = hasAddress && (coordsMissing || addressChanged);
 
   if (shouldGeocode) {
     try {
       const geo = await this.googleMapsService.geocodeAddress(
-        business.address!, // non-null assertion because upar check kar liya
+        business.address as string, // TS error fix: cast to string
       );
 
       if (geo.status === 'OK' && geo.results && geo.results.length > 0) {
@@ -287,16 +279,28 @@ constructor(
       console.error('Geocoding failed during update but continuing:', e);
     }
   }
-  // ⭐⭐⭐ END GOOGLE MAPS INTEGRATION ⭐⭐⭐
+  // ──────── END GOOGLE MAPS ────────
 
   await this.businessRepo.save(business);
 
+  // 🔹 Decide `active` flag for child tables (dto.active is optional now)
+  const relationActive =
+    typeof dto.active === 'boolean'
+      ? dto.active
+      : typeof business.active === 'boolean'
+      ? business.active
+      : true;
+
+  // 🔹 Update Business Types (agar body mein bheje gaye hon)
   if (dto.business_type && dto.business_type.length > 0) {
+    // optional (if you want to clear old ones first):
+    // await this.linkedrepo.delete({ business_id: id });
+
     const linkedEntries = dto.business_type.map((typeId) =>
       this.linkedrepo.create({
         business_id: id,
         business_type_id: typeId,
-        active: dto.active,
+        active: relationActive,
         created_by: userId,
         modified_by: userId,
       }),
@@ -304,18 +308,24 @@ constructor(
     await this.linkedrepo.save(linkedEntries);
   }
 
+  // 🔹 Update Accessible Features (agar body mein bheje gaye hon)
   if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
+    // optional:
+    // await this.businessaccessibilityrepo.delete({ business_id: id });
+
     const linkedFeature = dto.accessible_feature_id.map((typeId) =>
       this.businessaccessibilityrepo.create({
         business_id: id,
         accessible_feature_id: typeId,
-        active: dto.active,
+        active: relationActive,
         created_by: userId,
         modified_by: userId,
       }),
     );
     await this.businessaccessibilityrepo.save(linkedFeature);
   }
+
+  return business;
 }
   async deleteBusiness(id: string, userId: string) {
     const business = await this.businessRepo.findOne({ where: { id } });

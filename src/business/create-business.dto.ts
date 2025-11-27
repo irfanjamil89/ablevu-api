@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsEmail, IsNumber, IsArray, ArrayNotEmpty, IsUUID, IsBoolean, IsNotEmpty } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsNumber,
+  IsArray,
+  ArrayNotEmpty,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateBusinessDto {
   @IsString()
@@ -12,29 +21,36 @@ export class CreateBusinessDto {
   @IsArray()
   @IsOptional()
   @IsUUID(undefined, { each: true })
-  accessible_feature_id: string[];
+  accessible_feature_id?: string[];
 
   @IsString()
   @IsOptional()
-  @IsUUID(undefined, { each: true })
-  accessible_city_id: string;
+  @IsUUID()
+  accessible_city_id?: string;
 
   @IsString()
+  @IsOptional()
   description?: string;
 
+  // ⭐ Option A: address is optional (Google Places handle karega)
   @IsString()
+  @IsOptional()
   address?: string;
 
   @IsString()
+  @IsOptional()
   city?: string;
 
   @IsString()
+  @IsOptional()
   state?: string;
 
   @IsString()
+  @IsOptional()
   country?: string;
 
   @IsString()
+  @IsOptional()
   zipcode?: string;
 
   @IsBoolean()
@@ -68,6 +84,7 @@ export class CreateBusinessDto {
   @IsString()
   marker_image_url?: string;
 
+  // ⭐ GOOGLE MAPS — all optional in Option A
   @IsOptional()
   @IsString()
   place_id?: string;
@@ -103,6 +120,4 @@ export class CreateBusinessDto {
   @IsOptional()
   @IsNumber()
   views?: number;
-
-
 }
