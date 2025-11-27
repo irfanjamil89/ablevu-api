@@ -6,7 +6,7 @@ export class SyncbubbleController {
     constructor(private readonly bubbleService: SyncService) { }
     @Get('business')
     async getBusinesses() {
-        return this.bubbleService.fetchBusinesses();
+        return this.bubbleService.SyncBusinesses();
     }
 
     @Get('users')
@@ -17,5 +17,10 @@ export class SyncbubbleController {
     @Get('af')
     async getAf() {
         return this.bubbleService.syncAF();
+    }
+
+    @Get('baf')
+    async getBAf() {
+        return this.bubbleService.SyncBusinessesAF();
     }
 }
