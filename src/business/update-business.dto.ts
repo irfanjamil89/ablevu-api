@@ -1,94 +1,104 @@
-import { IsOptional, IsString, IsEmail, IsNumber, IsArray, IsUUID, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsNumber,
+  IsArray,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 
 export class UpdateBusinessDto {
-
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @IsOptional()
   @IsArray()
   @IsUUID(undefined, { each: true })
-  business_type: string[];
+  business_type?: string[];
 
+  @IsOptional()
   @IsArray()
-  @IsOptional()
   @IsUUID(undefined, { each: true })
-  accessible_feature_id: string[];
-  
-  @IsString()
-  @IsOptional()
-  @IsUUID(undefined, { each: true })
-  accessible_city_id: string;
+  accessible_feature_id?: string[];
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsUUID()
+  accessible_city_id?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 
-  @IsOptional() 
-  @IsString() 
+  // ⭐ Option A: user may only update full formatted address
+  @IsOptional()
+  @IsString()
   address?: string;
 
-  @IsOptional() 
-  @IsString() 
+  // Backend geocoder will overwrite these if address changes
+  @IsOptional()
+  @IsString()
   city?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   state?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   country?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   zipcode?: string;
 
+  @IsOptional()
   @IsBoolean()
-  active: boolean;
+  active?: boolean;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   website?: string;
 
-  @IsOptional() 
-  @IsEmail() 
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   phone_number?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   facebook_link?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   instagram_link?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   logo_url?: string;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   marker_image_url?: string;
 
-  @IsOptional() 
-  @IsString() 
+  // ⭐ Google Maps — Optional
+  @IsOptional()
+  @IsString()
   place_id?: string;
 
-  @IsOptional() 
-  @IsNumber() 
+  @IsOptional()
+  @IsNumber()
   latitude?: number;
 
-  @IsOptional() 
-  @IsNumber() 
+  @IsOptional()
+  @IsNumber()
   longitude?: number;
 
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   promo_code?: string;
 }
