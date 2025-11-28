@@ -94,12 +94,12 @@ constructor(
   };
 }
 
-  private makeSlug(name: string) {
+  private makeSlug(name: string, external_id?: string) {
     return name
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
+      .replace(/(^-|-$)+/g, '')+(external_id ? `-${external_id}` : '');
   }
 
   async createBusiness(userId: string, dto: CreateBusinessDto) {
@@ -131,7 +131,7 @@ constructor(
     }
   }
 
-  const slug = this.makeSlug(dto.name);
+  const slug = this.makeSlug(dto.name,dto.external_id);
 
   let latitude = dto.latitude;
   let longitude = dto.longitude;
@@ -504,4 +504,7 @@ constructor(
     businessRecomendations,
   };
 }
+  async findByExternalId(externalId: string): Promise<Business | null> {
+    return this.businessRepo.findOne({ where: { external_id: externalId } });
+  }
 }

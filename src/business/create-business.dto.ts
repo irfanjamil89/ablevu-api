@@ -109,6 +109,10 @@ export class CreateBusinessDto {
   @IsString()
   status?: string;
 
+   @IsOptional()
+  @IsString()
+  business_status?: string;
+
   @IsOptional()
   @IsString()
   creatorId?: string;

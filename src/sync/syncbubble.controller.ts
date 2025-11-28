@@ -23,4 +23,14 @@ export class SyncbubbleController {
     async getBAf() {
         return this.bubbleService.SyncBusinessesAF();
     }
+
+    @Get('vt')
+    async getVT() {
+        return this.bubbleService.SyncVirtualTour();
+    }
+
+    @Get('aiSync')
+    async getAI() {
+        return this.bubbleService.SyncAIChatbotDb();
+    }
 }
