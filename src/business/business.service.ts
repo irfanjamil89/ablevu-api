@@ -232,29 +232,25 @@ constructor(
   if (!business) {
     throw new NotFoundException('Business not found');
   }
-
-  // 🔹 Name change ⇒ slug change
   if (dto.name && dto.name.trim() !== '') {
     business.name = dto.name.trim();
     business.slug = this.makeSlug(dto.name);
   }
 
-  // 🔹 Copy simple fields (address, city, lat, lng, place_id, etc.)
   Object.assign(business, dto);
 
-  // ───────── GOOGLE MAPS (Option A) ─────────
   const hasAddress =
     typeof business.address === 'string' && business.address.trim() !== '';
 
   const coordsMissing = !business.latitude || !business.longitude;
-  const addressChanged = !!dto.address; // client ne address update kiya?
+  const addressChanged = !!dto.address; 
 
   const shouldGeocode = hasAddress && (coordsMissing || addressChanged);
 
   if (shouldGeocode) {
     try {
       const geo = await this.googleMapsService.geocodeAddress(
-        business.address as string, // TS error fix: cast to string
+        business.address as string, 
       );
 
       if (geo.status === 'OK' && geo.results && geo.results.length > 0) {
@@ -283,7 +279,7 @@ constructor(
 
   await this.businessRepo.save(business);
 
-  // 🔹 Decide `active` flag for child tables (dto.active is optional now)
+  
   const relationActive =
     typeof dto.active === 'boolean'
       ? dto.active
@@ -291,10 +287,8 @@ constructor(
       ? business.active
       : true;
 
-  // 🔹 Update Business Types (agar body mein bheje gaye hon)
   if (dto.business_type && dto.business_type.length > 0) {
-    // optional (if you want to clear old ones first):
-    // await this.linkedrepo.delete({ business_id: id });
+    await this.linkedrepo.delete({ business_id: id });
 
     const linkedEntries = dto.business_type.map((typeId) =>
       this.linkedrepo.create({
@@ -310,8 +304,7 @@ constructor(
 
   // 🔹 Update Accessible Features (agar body mein bheje gaye hon)
   if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
-    // optional:
-    // await this.businessaccessibilityrepo.delete({ business_id: id });
+    await this.businessaccessibilityrepo.delete({ business_id: id });
 
     const linkedFeature = dto.accessible_feature_id.map((typeId) =>
       this.businessaccessibilityrepo.create({
