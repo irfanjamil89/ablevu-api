@@ -34,6 +34,7 @@ export class BusinessReviewsController{
       }
 
     @Delete('delete/:id')
+    @UseGuards(JwtAuthGuard)
           async deleteBusinessReviews(
             @Param('id') Id: string,
             @UserSession() user : any,
@@ -42,7 +43,7 @@ export class BusinessReviewsController{
             return{ message: 'Business Review deleted successfully'}
           }
 
-    @Get('list')
+  @Get('list')
   async listPaginated(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
