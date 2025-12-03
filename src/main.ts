@@ -1,13 +1,37 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as fs from 'fs';
+import * as winston from 'winston';
+import 'winston-daily-rotate-file';
+import { WinstonModule } from 'nest-winston';
+
 async function bootstrap() {
   const httpsOptions = {
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem'),
 };
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule,{
+    logger: WinstonModule.createLogger({
+      transports: [
+        // Console logging
+        new winston.transports.Console({
+          format: winston.format.simple(),
+        }),
+
+        // File logging with rotation
+        new (winston.transports.DailyRotateFile)({
+          dirname: 'logs',                 // log folder
+          filename: 'app-%DATE%.log',      // log file name pattern
+          datePattern: 'YYYY-MM-DD',       // daily rotation
+          zippedArchive: true,             // compress rotated logs
+          maxSize: '20m',                  // max file size
+          maxFiles: '14d',                 // keep logs for 14 days
+          level: 'info',
+        }),
+      ],
+    }),
+  });
     app.enableCors({
     // origin: [
     //   'http://localhost:3000',

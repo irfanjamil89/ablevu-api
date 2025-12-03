@@ -24,7 +24,9 @@ import { AdditionalResourceModule } from './additional accessiblity resources/ad
 
 import { BusinessRecomendationsModule } from './business recomendations/business-recomendations.module';
 import { SyncModule } from './sync/sync.module';
-
+import { GoogleMapsModule } from './google-maps/google-maps.module';
+import { FeedbackTypeModule } from './feedback type/feedback-type.module';
+import { FeedbackModule } from './feedback/feedback.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -60,6 +62,9 @@ import { SyncModule } from './sync/sync.module';
     CouponsModule,
     BusinessRecomendationsModule,
     SyncModule,
+    GoogleMapsModule,
+    FeedbackTypeModule,
+    FeedbackModule,
 
   ],
   controllers: [AppController],

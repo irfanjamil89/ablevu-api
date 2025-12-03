@@ -56,8 +56,7 @@ export class AddChatbotTables1761724084370 implements MigrationInterface {
   listing_id    TEXT,                     -- may be NULL if user claimed by name only
   listing_name  TEXT NOT NULL,
   owner_email   TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'pending'
-                CHECK (status IN ('pending','approved','rejected','cancelled')),
+  status        TEXT NOT NULL DEFAULT 'Draft',
   requested_on  DATE DEFAULT CURRENT_DATE,
   decision_on   DATE,                     -- set on approve/reject
   owner_name    TEXT,

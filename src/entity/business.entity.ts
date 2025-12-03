@@ -86,8 +86,11 @@ export class Business {
 
   @Column()
   claimed_fee?: string;
+  
+  @Column() 
+  external_id?: string;
 
-  @Column()
+  @Column() 
   promo_code?: string;
 
   @Column({ type: 'uuid', nullable: true })

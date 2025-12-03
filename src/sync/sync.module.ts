@@ -24,9 +24,14 @@ import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linke
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
 import { BusinessType } from 'src/entity/business-type.entity';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
+import { GoogleMapsModule } from 'src/google-maps/google-maps.module';
+import { ListingsVerified } from 'src/entity/listings-verified.entity';
+import { Claims } from 'src/entity/claims.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations])],
+  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations, ListingsVerified,Claims]),
+GoogleMapsModule,
+],
   controllers: [SyncbubbleController],
    providers: [SyncService,BusinessService,UsersService,AccessibleFeatureService,BusinessTypeService],
 })
