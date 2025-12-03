@@ -27,10 +27,11 @@ import { BusinessRecomendations } from 'src/entity/business_recomendations.entit
 import { GoogleMapsModule } from 'src/google-maps/google-maps.module';
 import { ListingsVerified } from 'src/entity/listings-verified.entity';
 import { Claims } from 'src/entity/claims.entity';
+import { AdditionalResourceModule } from 'src/additional accessiblity resources/additional resource.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations, ListingsVerified,Claims]),
-GoogleMapsModule,
+GoogleMapsModule, AdditionalResourceModule
 ],
   controllers: [SyncbubbleController],
    providers: [SyncService,BusinessService,UsersService,AccessibleFeatureService,BusinessTypeService],

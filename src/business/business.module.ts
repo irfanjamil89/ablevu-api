@@ -16,9 +16,10 @@ import { BusinessSchedule } from "src/entity/business_schedule.entity";
 import { AccessibleCity } from "src/entity/accessible_city.entity";
 import { BusinessRecomendations } from "src/entity/business_recomendations.entity";
 import { GoogleMapsModule } from "src/google-maps/google-maps.module";
+import { AdditionalResource } from "src/entity/additional resource.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations]),
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations, AdditionalResource]),
 GoogleMapsModule,
 ],
     providers: [BusinessService],
