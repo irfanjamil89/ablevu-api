@@ -70,13 +70,9 @@ export class BusinessVirtualTourService {
     return this.repo.save(tour);
   }
 
-  async deleteBusinessVirtualTour(id: string, userId: string) {
-  const tour = await this.repo.findOne({
-    where: { id },
-    relations: { business: { owner: true } }, 
-  });
-
-  if (!tour || tour.business.owner.id !== userId) {
+ async deleteBusinessVirtualTour(userId: string, id: string) {
+  const tour = await this.repo.findOne({ where: { id } });
+  if (!tour) {
     throw new NotFoundException('Business Virtual Tour not found');
   }
 
