@@ -19,7 +19,7 @@ import { BusinessSchedule } from 'src/entity/business_schedule.entity';
 import { privateDecrypt } from 'crypto';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
 import { GoogleMapsService } from 'src/google-maps/google-maps.service';
-import { AdditionalResource } from 'src/entity/additional resource.entity';
+import { AdditionalResource } from 'src/entity/additional_resource.entity';
 
 type ListFilters = {
   search?: string;
