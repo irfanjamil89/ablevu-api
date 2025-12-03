@@ -1,4 +1,4 @@
-import {IsBoolean, IsNumber, IsOptional, IsString, IsUrl} from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, IsUrl, IsArray, ArrayNotEmpty, IsUUID } from 'class-validator';
 
 export class CreateAccessibleCityDto {
   @IsString()
@@ -15,6 +15,11 @@ export class CreateAccessibleCityDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID("all", { each: true })
+  business_Ids: string[];
 
   @IsOptional()
   @IsNumber()

@@ -128,9 +128,7 @@ constructor(
       creator: user,
       active: true,
       blocked: false,
-      accessibleCity: dto.accessible_city_id
-      ? ({ id: dto.accessible_city_id } as any)
-      : null,
+      accessible_city_id: dto.accessible_city_id ?? null
     });
     const savedbusiness = await this.businessRepo.save(business);
 
@@ -168,6 +166,9 @@ constructor(
     if (dto.name && dto.name.trim() !== '') {
       business.name = dto.name;
       business.slug = this.makeSlug(dto.name);
+    }
+    if (dto.accessible_city_id !== undefined) {
+  business.accessible_city_id = dto.accessible_city_id;
     }
     Object.assign(business, dto);
     await this.businessRepo.save(business);

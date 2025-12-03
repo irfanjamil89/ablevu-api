@@ -4,43 +4,47 @@ import { Repository } from 'typeorm';
 import { AccessibleCity } from '../entity/accessible_city.entity';
 import { CreateAccessibleCityDto } from './create-accessible-city.dto';
 import { User } from 'src/entity/user.entity';
+import { Business } from 'src/entity/business.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class AccessibleCityService {
   constructor(
     @InjectRepository(AccessibleCity)
     private readonly accessiblecityrepo: Repository<AccessibleCity>,
-     @InjectRepository(User)
-      private readonly userRepo: Repository<User>,
-  ) {}
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
+  ) { }
 
   private makeSlug(name: string) {
-      return name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
-    }
-  
-    async createAccessibleCity(UserId: string, dto: CreateAccessibleCityDto) {
-      const user = await this.userRepo.findOne({ where: { id: UserId } });
-      if (!user) throw new NotFoundException('user not found');
-  
-       if (!dto.cityName?.trim()) {
-        throw new BadRequestException('City name is required');
-      }
-     
-      const slug = this.makeSlug(dto.cityName);
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
 
-       const existing = await this.accessiblecityrepo.findOne({
-      where: [{ city_name: dto.cityName }, { slug }],
+  async createAccessibleCity(UserId: string, dto: CreateAccessibleCityDto) {
+    const user = await this.userRepo.findOne({ where: { id: UserId } });
+    if (!user) throw new NotFoundException('user not found');
+
+    if (!dto.cityName?.trim()) {
+      throw new BadRequestException('City name is required');
+    }
+
+    const slug = this.makeSlug(dto.cityName);
+    const existing = await this.accessiblecityrepo.findOne({
+      where: [{ city_name: dto.cityName },
+      { slug: slug }],
     });
 
     if (existing) {
       throw new BadRequestException('City with this name already exists');
     }
-  
-      const city = this.accessiblecityrepo.create({
+
+    const city = this.accessiblecityrepo.create({
       city_name: dto.cityName,
       featured: dto.featured,
       latitude: dto.latitude,
@@ -50,93 +54,118 @@ export class AccessibleCityService {
       slug,
       created_by: UserId,
       modified_by: UserId,
-      });
-      return await this.accessiblecityrepo.save(city);
-    }
+    });
+    const saved_city = await this.accessiblecityrepo.save(city);
+    if (dto.business_Ids?.length) {
+      const businesses = await this.businessRepo.findBy({ id: In(dto.business_Ids) });
+      if (businesses.length !== dto.business_Ids.length) {
+        throw new BadRequestException('One or more business IDs are invalid');
+      }
+      for (const b of businesses) {
+        b.accessible_city_id = saved_city.id;
+      }
 
-    async updateAccessibleCity(id: string, userId: string, dto: any) {
+      await this.businessRepo.save(businesses);
+    }
+    return saved_city;
+  }
+
+  async updateAccessibleCity(id: string, userId: string, dto: any) {
     const accessiblecity = await this.accessiblecityrepo.findOne({ where: { id } });
-    if (!accessiblecity){ 
-      throw new NotFoundException('Accessible City Type not found');
-  }   
+    if (!accessiblecity) {
+      throw new NotFoundException('Accessible City not found');
+    }
     if (dto.cityName && dto.cityName.trim() !== '') {
       accessiblecity.city_name = dto.cityName;
       accessiblecity.slug = this.makeSlug(dto.cityName);
-  }
+    }
     if (dto.featured !== undefined) accessiblecity.featured = dto.featured;
     if (dto.latitude !== undefined) accessiblecity.latitude = dto.latitude;
     if (dto.longitude !== undefined) accessiblecity.longitude = dto.longitude;
     if (dto.displayOrder !== undefined) accessiblecity.display_order = dto.displayOrder;
-    if (dto.pictureUrl !== undefined) accessiblecity.picture_url = dto.picture_url;
+    if (dto.pictureUrl !== undefined) accessiblecity.picture_url = dto.pictureUrl;
 
     accessiblecity.modified_by = userId;
-    Object.assign(accessiblecity, dto);
-    return await this.accessiblecityrepo.save(accessiblecity);
+    await this.accessiblecityrepo.save(accessiblecity);
+    const oldBusinesses = await this.businessRepo.find({
+      where: { accessible_city_id: id }
+    });
+    for (const b of oldBusinesses) {
+      b.accessible_city_id = null;
+    }
+    await this.businessRepo.save(oldBusinesses);
+    if (dto.business_Ids?.length) {
+      const businesses = await this.businessRepo.findBy({ id: In(dto.business_Ids) });
+      if (businesses.length !== dto.business_Ids.length) {
+        throw new BadRequestException('One or more business IDs are invalid');
+      }
+      for (const b of businesses) {
+        b.accessible_city_id = id;
+      }
+      await this.businessRepo.save(businesses);
+    }
+    return accessiblecity;
   }
 
   async deleteAccessibleCity(id: string, userId: string) {
     const accessiblecity = await this.accessiblecityrepo.findOne({ where: { id } });
-    if (!accessiblecity){ 
+    if (!accessiblecity) {
       throw new NotFoundException('Accessible City not found');
-  }   
+    }
+    const linkedBusinesses = await this.businessRepo.find({ where: { accessible_city_id: id } });
+    for (const b of linkedBusinesses) {
+      b.accessible_city_id = null;
+    }
+    await this.businessRepo.save(linkedBusinesses);
     accessiblecity.modified_by = userId;
     await this.accessiblecityrepo.remove(accessiblecity);
-    return{ message: 'Accessibility City deleted successfully'}
+    return { message: 'Accessibility City deleted successfully' }
   }
 
   async listPaginated(
-  page = 1,
-  limit = 10,
-  opts?: { search?: string; featured?: boolean },
-) {
-  const qb = this.accessiblecityrepo
-    .createQueryBuilder('c')
-    .leftJoinAndSelect('c.businesses', 'b', 'b.active = :active', {
-      active: true,
-    })
-    .loadRelationCountAndMap(
-      'c.businessCount',      
-      'c.businesses',
-      'bc',
-      (q) => q.where('bc.active = :active', { active: true }),
-    );
+    page = 1,
+    limit = 10,
+    opts?: { search?: string; featured?: boolean },
+  ) {
+    const qb = this.accessiblecityrepo
+      .createQueryBuilder('c')
 
-  if (opts?.search && opts.search.trim()) {
-    const search = `%${opts.search.trim().toLowerCase()}%`;
-    qb.andWhere('LOWER(c.city_name) LIKE :search', { search });
+    if (opts?.search && opts.search.trim()) {
+      const search = `%${opts.search.trim().toLowerCase()}%`;
+      qb.andWhere('LOWER(c.city_name) LIKE :search', { search });
+    }
+    if (opts?.featured !== undefined) {
+      qb.andWhere('c.featured = :featured', { featured: opts.featured });
+    }
+
+    qb.orderBy('c.display_order', 'ASC')
+      .addOrderBy('c.city_name', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await qb.getManyAndCount();
+    for (const city of items) {
+      city['businessCount'] = await this.businessRepo.count({
+        where: { accessible_city_id: city.id }
+      });
+    }
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      pageCount: Math.ceil(total / limit),
+    };
   }
-  if (opts?.featured !== undefined) {
-    qb.andWhere('c.featured = :featured', { featured: opts.featured });
-  }
-
-  qb.orderBy('c.display_order', 'ASC')
-    .addOrderBy('c.city_name', 'ASC')
-    .skip((page - 1) * limit)
-    .take(limit);
-
-  const [items, total] = await qb.getManyAndCount();
-
-  return {
-    items,          
-    total,
-    page,
-    limit,
-    pageCount: Math.ceil(total / limit),
-  };
-}
   async getAccessibleCity(id: string) {
-  const accessiblecity = await this.accessiblecityrepo.findOne({
-    where: { id },
-    relations: {
-      businesses: true,   
-    },
-  });
-  if (!accessiblecity) {
-    throw new NotFoundException('Accessible City not found');
+    const accessiblecity = await this.accessiblecityrepo.findOne({
+      where: { id },
+    });
+    if (!accessiblecity) {
+      throw new NotFoundException('Accessible City not found');
+    }
+    return accessiblecity;
   }
-  (accessiblecity as any).businessCount = accessiblecity.businesses.length;
-
-  return accessiblecity;
-}
 
 }

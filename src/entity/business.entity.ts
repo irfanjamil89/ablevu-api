@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
 import { BusinessSchedule } from './business_schedule.entity';
-import { AccessibleCity } from './accessible_city.entity';
 import { BusinessRecomendations } from './business_recomendations.entity';
 @Entity()
 export class Business {
@@ -11,16 +10,16 @@ export class Business {
 
   @Column()
   name: string;
- 
+
   @Column()
   slug: string;
 
-  @Column() 
+  @Column()
   description?: string;
-  
-  @Column() 
+
+  @Column()
   address?: string;
-  
+
   @Column()
   city?: string;
 
@@ -32,49 +31,49 @@ export class Business {
 
   @Column()
   zipcode?: string;
-  
-  @Column() 
+
+  @Column()
   active: boolean;
 
-  @Column() 
+  @Column()
   blocked: boolean;
 
-  @Column() 
+  @Column()
   business_status?: string;
-  
-  @Column() 
+
+  @Column()
   subscription?: string;
 
   @Column() views: number;
 
-  @Column() 
+  @Column()
   website?: string;
-  
-  @Column() 
+
+  @Column()
   email?: string;
-  
-  @Column() 
+
+  @Column()
   phone_number?: string;
 
-  @Column() 
+  @Column()
   facebook_link?: string;
-  
-  @Column() 
+
+  @Column()
   instagram_link?: string;
 
-  @Column() 
+  @Column()
   logo_url?: string;
 
-  @Column() 
+  @Column()
   marker_image_url?: string;
 
-  @Column() 
+  @Column()
   place_id?: string;
 
-  @Column() 
+  @Column()
   latitude?: number;
 
-  @Column() 
+  @Column()
   longitude?: number;
 
   @ManyToOne(() => User, { nullable: false })
@@ -85,11 +84,14 @@ export class Business {
   @JoinColumn({ name: 'owner_user_id' })
   owner: User;
 
-  @Column() 
+  @Column()
   claimed_fee?: string;
-  
-  @Column() 
+
+  @Column()
   promo_code?: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  accessible_city_id: string | null;
 
   @Column()
   created_at: Date;
@@ -102,10 +104,6 @@ export class Business {
 
   @OneToMany(() => BusinessSchedule, (s) => s.business)
   schedules: BusinessSchedule[];
-
-  @ManyToOne(() => AccessibleCity, (c) => c.businesses, { nullable: true })
-  @JoinColumn({ name: 'accessible_city_id' })
-  accessibleCity: AccessibleCity;
 
   @OneToMany(() => BusinessRecomendations, (r) => r.business)
   recomendations: BusinessRecomendations[];
