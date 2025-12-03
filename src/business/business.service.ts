@@ -19,6 +19,7 @@ import { BusinessSchedule } from 'src/entity/business_schedule.entity';
 import { privateDecrypt } from 'crypto';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
 import { GoogleMapsService } from 'src/google-maps/google-maps.service';
+import { AdditionalResource } from 'src/entity/additional resource.entity';
 
 type ListFilters = {
   search?: string;
@@ -69,6 +70,10 @@ constructor(
 
   @InjectRepository(BusinessRecomendations)
   private readonly recomendationRepo: Repository<BusinessRecomendations>,
+
+  @InjectRepository(AdditionalResource)
+  private readonly resourcesrepo: Repository<AdditionalResource>,
+
 
    private readonly googleMapsService: GoogleMapsService,
 
@@ -408,6 +413,7 @@ constructor(
         businessMedia,
         businessSchedule,
         businessRecomendations,
+        additionalaccessibilityresources,
       ] = await Promise.all([
         this.linkedrepo.find({ where: { business_id: business.id } }),
         this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -422,6 +428,7 @@ constructor(
         this.mediaRepo.find({ where: { business_id: business.id } }),
         this.scheduleRepo.find({ where: { business: { id: business.id } } }),
         this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+        this.resourcesrepo.find({ where: { business_id: business.id } }),
       ]);
 
       return {
@@ -436,6 +443,7 @@ constructor(
         businessMedia,
         businessSchedule,
         businessRecomendations,
+        additionalaccessibilityresources,
       };
     }),
   );
@@ -467,6 +475,7 @@ constructor(
     businessMedia,
     businessSchedule,
     businessRecomendations,
+    additionalaccessibilityresources,
   ] = await Promise.all([
     this.linkedrepo.find({ where: { business_id: business.id } }),
     this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -481,6 +490,7 @@ constructor(
     this.mediaRepo.find({ where: { business_id: business.id } }),
     this.scheduleRepo.find({ where: { business: { id: business.id } } }),
     this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+    this.resourcesrepo.find({ where: { business_id: business.id } }),
   ]);
 
   return {
@@ -495,6 +505,7 @@ constructor(
     businessMedia,
     businessSchedule,
     businessRecomendations,
+    additionalaccessibilityresources,
   };
 }
   async findByExternalId(externalId: string): Promise<Business | null> {
