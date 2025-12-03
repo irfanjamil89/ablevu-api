@@ -38,6 +38,4 @@ export class AccessibleCity {
   @UpdateDateColumn()
   modified_at: Date;
 
-  @OneToMany(() => Business, (b) => b.accessibleCity)
-  businesses: Business[];
 }
