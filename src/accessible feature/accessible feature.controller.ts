@@ -25,8 +25,12 @@ export class AccessibleFeatureController {
     }
 
     @Delete('delete/:id')
-    async deleteAccessibleFeature(@Param('id') id: string) {
-        await this.service.deleteAccessibleFeature(id);
+    @UseGuards(JwtAuthGuard)
+    async deleteAccessibleFeature(
+        @Param('id') id: string, 
+        @UserSession() user: any,
+    ) {
+        await this.service.deleteAccessibleFeature(id, user.id);
         return { status: 'ok', message: 'accessible feature deleted successfully' }
     }
 

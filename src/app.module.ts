@@ -27,6 +27,7 @@ import { SyncModule } from './sync/sync.module';
 import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { FeedbackTypeModule } from './feedback type/feedback-type.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { BusinessPartnerModule } from './business-partner/business-partner.module';
 import { BusinessAccessibleFeatureModule } from './business-accessible-feature/business-accessible-feature.module';
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { BusinessAccessibleFeatureModule } from './business-accessible-feature/b
     GoogleMapsModule,
     FeedbackTypeModule,
     FeedbackModule,
+    BusinessPartnerModule,
     BusinessAccessibleFeatureModule,
 
   ],

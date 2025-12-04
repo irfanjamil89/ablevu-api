@@ -4,6 +4,7 @@ import { UpdateBusinessDto } from "./update-business.dto";
 import { BusinessService } from "./business.service";
 import { UserSession } from "src/auth/user.decorator";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+import { BusinessStatusDto } from "./business-status.dto";
 
 @Controller('business')
 export class BusinessController {
@@ -40,9 +41,9 @@ async deleteBusiness(
   }
 
 @Get('list')
-@UseGuards(JwtAuthGuard)   // 👈 ab yeh endpoint auth based hai
+@UseGuards(JwtAuthGuard)
 async listPaginated(
-  @UserSession() user: any,                      // 👈 logged-in user
+  @UserSession() user: any,        
   @Query('page') page = 1,
   @Query('limit') limit = 10,
   @Query('search') search?: string,
@@ -64,15 +65,38 @@ async listPaginated(
       active: activeBool,
       businessTypeId,
     },
-    user,                          // 👈 user ko service me pass karo
+    user,                         
   );
 }
 
+@Get('list1')
+async list1Paginated(       
+  @Query('page') page = 1,
+  @Query('limit') limit = 10,
+) {
+  return this.businessService.list1Paginated(
+    Number(page),
+    Number(limit),      
+  );
+}
+
+@Patch('status/:id')
+@UseGuards(JwtAuthGuard)
+async updateBusinessStatus(
+    @Param('id') id: string,
+    @Body() dto: BusinessStatusDto,
+    @UserSession() user: any,
+){
+    await this.businessService.updateBusinessStatus(id, dto, user.id);
+    return { message: 'Business status updated successfully' };
+  }
+
+
 @Get('business-profile/:id')
-  @UseGuards(JwtAuthGuard)           // 🔐 token zaroori
+  @UseGuards(JwtAuthGuard)           
   async getBusinessProfile(
     @Param('id') id: string,
-    @UserSession() user: any,       // 🔹 user aa raha hai, future use ke liye
+    @UserSession() user: any,      
   ) {
     return this.businessService.getBusinessProfile(id, user);
   }

@@ -111,7 +111,7 @@ export class AccessibleFeatureService {
     }
   }
 
-  async deleteAccessibleFeature(id: string) {
+  async deleteAccessibleFeature(id: string, userId: string ) {
     const accessibleFeature = await this.accessibleFeatureRepo.findOne({ where: { id } });
     if (!accessibleFeature) {
       throw new NotFoundException('Accessible Feature not found');
