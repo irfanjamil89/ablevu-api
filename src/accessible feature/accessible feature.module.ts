@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AccessibleFeatureService } from './accessible feature.service';
 import { AccessibleFeatureController  } from './accessible feature.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AccessibleFeature } from 'src/entity/accessible feature.entity';
+import { AccessibleFeature } from 'src/entity/accessible_feature.entity';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';

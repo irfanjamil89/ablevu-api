@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsString, IsUrl, IsUUID, Matches } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsString, IsUrl, IsUUID } from 'class-validator';
 
 export class PartnerDto {
     @IsString()

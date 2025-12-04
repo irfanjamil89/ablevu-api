@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AccessibleFeature } from 'src/entity/accessible feature.entity';
+import { AccessibleFeature } from 'src/entity/accessible_feature.entity';
 import { AccessibleFeatureDto } from './accessible feature.dto';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';

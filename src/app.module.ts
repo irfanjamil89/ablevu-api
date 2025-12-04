@@ -28,6 +28,7 @@ import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { FeedbackTypeModule } from './feedback type/feedback-type.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { BusinessPartnerModule } from './business-partner/business-partner.module';
+import { BusinessAccessibleFeatureModule } from './business-accessible-feature/business-accessible-feature.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -67,6 +68,7 @@ import { BusinessPartnerModule } from './business-partner/business-partner.modul
     FeedbackTypeModule,
     FeedbackModule,
     BusinessPartnerModule,
+    BusinessAccessibleFeatureModule,
 
   ],
   controllers: [AppController],

@@ -1,32 +1,60 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Business } from './business.entity';
+import { AccessibleFeature } from './accessible_feature.entity';
 
-@Entity()
+@Entity('business_accessible_feature')
 export class BusinessAccessibleFeature {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column({ type: 'uuid' })
-    business_id: string;
+  // ------- FK column + relation: business -------
+  @Column({ type: 'uuid' })
+  business_id: string;
 
-    @Column({ type: 'uuid' })
-    accessible_feature_id: string;
+  @ManyToOne(() => Business, (business) => business.accessibleFeatures, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'business_id' })
+  business: Business;
 
-    @Column()
-    optional_answer: string;
+  // ------- FK column + relation: accessible_feature -------
+  @Column({ type: 'uuid' })
+  accessible_feature_id: string;
 
-    @Column()
-    active: boolean;
+  @ManyToOne(
+    () => AccessibleFeature,
+    (feature) => feature.businessAccessibleFeatures,
+    {
+      onDelete: 'CASCADE',
+      eager: true,
+    },
+  )
+  @JoinColumn({ name: 'accessible_feature_id' })
+  accessible_feature: AccessibleFeature;
 
-    @Column()
-    created_by: string;
+  @Column({ type: 'text', nullable: true })
+  optional_answer: string | null;
 
-    @Column()
-    modified_by: string;
+  @Column({ default: true })
+  active: boolean;
 
-    @Column()
-    created_at: Date;
+  @Column({ type: 'uuid' })
+  created_by: string;
 
-    @Column()
-    modified_at: Date;
+  @Column({ type: 'uuid' })
+  modified_by: string;
 
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  modified_at: Date;
 }

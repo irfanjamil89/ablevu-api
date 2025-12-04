@@ -3,6 +3,8 @@ import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
 import { BusinessSchedule } from './business_schedule.entity';
 import { BusinessRecomendations } from './business_recomendations.entity';
+import { BusinessAccessibleFeature } from './business_accessiblity_feature.entity';
+
 @Entity()
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -110,4 +112,8 @@ export class Business {
 
   @OneToMany(() => BusinessRecomendations, (r) => r.business)
   recomendations: BusinessRecomendations[];
+
+  @OneToMany(() => BusinessAccessibleFeature, (bf) => bf.business)
+accessibleFeatures: BusinessAccessibleFeature[];
+
 }
