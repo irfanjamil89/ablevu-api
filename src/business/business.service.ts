@@ -19,6 +19,7 @@ import { BusinessSchedule } from 'src/entity/business_schedule.entity';
 import { privateDecrypt } from 'crypto';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
 import { GoogleMapsService } from 'src/google-maps/google-maps.service';
+import { AdditionalResource } from 'src/entity/additional_resource.entity';
 
 type ListFilters = {
   search?: string;
@@ -69,6 +70,10 @@ constructor(
 
   @InjectRepository(BusinessRecomendations)
   private readonly recomendationRepo: Repository<BusinessRecomendations>,
+
+  @InjectRepository(AdditionalResource)
+  private readonly resourcesrepo: Repository<AdditionalResource>,
+
 
    private readonly googleMapsService: GoogleMapsService,
 
@@ -173,60 +178,59 @@ constructor(
   // ───────────────────────────────────────────────
 
   const business = this.businessRepo.create({
-    ...dto,
-    slug,
-    owner: user,
-    creator: user,
-    active: true,
-    blocked: false,
-    accessibleCity: dto.accessible_city_id
-      ? ({ id: dto.accessible_city_id } as any)
-      : null,
+  ...dto,
+  slug,
+  owner: user,
+  creator: user,
+  active: true,
+  blocked: false,
 
-    // overwrite auto-filled fields
-    address,
-    city,
-    state,
-    country,
-    zipcode,
-    latitude,
-    longitude,
-    place_id,
-  });
+  // ✅ correct column name from Business entity
+  accessible_city_id: dto.accessible_city_id ?? null,
 
-  const saved = await this.businessRepo.save(business);
+  // overwrite auto-filled fields
+  address,
+  city,
+  state,
+  country,
+  zipcode,
+  latitude,
+  longitude,
+  place_id,
+});
 
-  // ⭐ Business Types
-  if (dto.business_type?.length) {
-    const linked = dto.business_type.map((typeId) =>
-      this.linkedrepo.create({
-        business_id: saved.id,
-        business_type_id: typeId,
-        active: true,
-        created_by: userId,
-        modified_by: userId,
-      }),
-    );
-    await this.linkedrepo.save(linked);
-  }
+const saved = await this.businessRepo.save(business);
 
-  // ⭐ Accessible Features
-  if (dto.accessible_feature_id?.length) {
-    const linked = dto.accessible_feature_id.map((featureId) =>
-      this.businessaccessibilityrepo.create({
-        business_id: saved.id,
-        accessible_feature_id: featureId,
-        active: true,
-        created_by: userId,
-        modified_by: userId,
-      }),
-    );
-    await this.businessaccessibilityrepo.save(linked);
-  }
-
-  return saved;
+// ⭐ Business Types
+if (dto.business_type?.length) {
+  const linked = dto.business_type.map((typeId) =>
+    this.linkedrepo.create({
+      business_id: saved.id,
+      business_type_id: typeId,
+      active: true,
+      created_by: userId,
+      modified_by: userId,
+    }),
+  );
+  await this.linkedrepo.save(linked);
 }
 
+// ⭐ Accessible Features
+if (dto.accessible_feature_id?.length) {
+  const linked = dto.accessible_feature_id.map((featureId) =>
+    this.businessaccessibilityrepo.create({
+      business_id: saved.id,
+      accessible_feature_id: featureId,
+      active: true,
+      created_by: userId,
+      modified_by: userId,
+    }),
+  );
+  await this.businessaccessibilityrepo.save(linked);
+}
+
+return saved;
+}
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
   const business = await this.businessRepo.findOne({ where: { id } });
   if (!business) {
@@ -408,6 +412,7 @@ constructor(
         businessMedia,
         businessSchedule,
         businessRecomendations,
+        additionalaccessibilityresources,
       ] = await Promise.all([
         this.linkedrepo.find({ where: { business_id: business.id } }),
         this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -422,6 +427,7 @@ constructor(
         this.mediaRepo.find({ where: { business_id: business.id } }),
         this.scheduleRepo.find({ where: { business: { id: business.id } } }),
         this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+        this.resourcesrepo.find({ where: { business_id: business.id } }),
       ]);
 
       return {
@@ -436,6 +442,7 @@ constructor(
         businessMedia,
         businessSchedule,
         businessRecomendations,
+        additionalaccessibilityresources,
       };
     }),
   );
@@ -467,6 +474,7 @@ constructor(
     businessMedia,
     businessSchedule,
     businessRecomendations,
+    additionalaccessibilityresources,
   ] = await Promise.all([
     this.linkedrepo.find({ where: { business_id: business.id } }),
     this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -481,6 +489,7 @@ constructor(
     this.mediaRepo.find({ where: { business_id: business.id } }),
     this.scheduleRepo.find({ where: { business: { id: business.id } } }),
     this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+    this.resourcesrepo.find({ where: { business_id: business.id } }),
   ]);
 
   return {
@@ -495,6 +504,7 @@ constructor(
     businessMedia,
     businessSchedule,
     businessRecomendations,
+    additionalaccessibilityresources,
   };
 }
   async findByExternalId(externalId: string): Promise<Business | null> {

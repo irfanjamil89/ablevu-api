@@ -48,7 +48,7 @@ export class BusinessReviewsService {
     if (!reviewType) {
       throw new NotFoundException('Review Type not found');
     }
-    const approved = dto.approved ?? true;
+    const approved = dto.approved ?? false;
 
     const review = this.reviewRepo.create({
       business_id: dto.business_id,

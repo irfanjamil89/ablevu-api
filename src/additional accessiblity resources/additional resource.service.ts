@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AdditionalResource } from 'src/entity/additional resource.entity';
+import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { AdditionalResourceDto } from './additional resource.dto';
 
 @Injectable()
