@@ -1,4 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { OneToMany } from 'typeorm';
+import { BusinessAccessibleFeature } from "./business_accessiblity_feature.entity";
 
 @Entity()
 export class AccessibleFeature {
@@ -25,4 +27,7 @@ export class AccessibleFeature {
 
     @Column()
     modified_at: Date;
+
+    @OneToMany(() => BusinessAccessibleFeature, (bf) => bf.accessible_feature)
+    businessAccessibleFeatures: BusinessAccessibleFeature[];
 }

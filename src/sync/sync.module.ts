@@ -19,7 +19,7 @@ import { BusinessVirtualTour } from 'src/entity/business_virtual_tours.entity';
 import { AccessibleFeatureType } from 'src/entity/accessible feature-type.entity';
 import { AccessibleFeatureService } from 'src/accessible feature/accessible feature.service';
 import { BusinessTypeService } from 'src/business-type/business-type.service';
-import { AccessibleFeature } from 'src/entity/accessible feature.entity';
+import { AccessibleFeature } from 'src/entity/accessible_feature.entity';
 import { AccessibleFeatureLinkedType } from 'src/entity/accessible_feature_linked_type.entity';
 import { AccessibleFeatureBusinessType } from 'src/entity/accessible_feature_business_type.entity';
 import { BusinessType } from 'src/entity/business-type.entity';
@@ -27,11 +27,11 @@ import { BusinessRecomendations } from 'src/entity/business_recomendations.entit
 import { GoogleMapsModule } from 'src/google-maps/google-maps.module';
 import { ListingsVerified } from 'src/entity/listings-verified.entity';
 import { Claims } from 'src/entity/claims.entity';
-import { AdditionalResourceModule } from 'src/additional accessiblity resources/additional resource.module';
+import { AdditionalResource } from 'src/entity/additional_resource.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations, ListingsVerified,Claims]),
-GoogleMapsModule, AdditionalResourceModule
+  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims]),
+GoogleMapsModule
 ],
   controllers: [SyncbubbleController],
    providers: [SyncService,BusinessService,UsersService,AccessibleFeatureService,BusinessTypeService],

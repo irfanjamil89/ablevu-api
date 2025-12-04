@@ -57,7 +57,7 @@ export class PartnerService {
     }
   }
 
-  async deletePartner(id: string) {
+  async deletePartner(id: string, userId:string) {
     const Partner = await this.partnerRepo.findOne({ where: { id } });
     if (!Partner) {
       throw new NotFoundException('Partner not found');

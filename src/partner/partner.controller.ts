@@ -16,6 +16,7 @@ export class PartnerController {
     }
 
     @Patch('update/:id')
+    @UseGuards(JwtAuthGuard)
     async updatePartner(@Param('id') id: string,
         @UserSession() userId: any,
         @Body() dto: PartnerDto) {
@@ -24,8 +25,12 @@ export class PartnerController {
     }
 
     @Delete('delete/:id')
-    async deletePartner(@Param('id') id: string) {
-        await this.service.deletePartner(id);
+    @UseGuards(JwtAuthGuard)
+    async deletePartner(
+        @Param('id') id: string,
+        @UserSession() user: any,
+    ) {
+        await this.service.deletePartner(id,user.id);
         return { status: 'ok', message: 'Partner deleted successfully' }
     }
 
