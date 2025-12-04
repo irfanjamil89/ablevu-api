@@ -25,8 +25,12 @@ export class AdditionalResourceController {
     }
 
     @Delete('delete/:id')
-    async deleteAdditionalResource(@Param('id') id: string) {
-        await this.service.deleteAdditionalResource(id);
+    @UseGuards(JwtAuthGuard)
+    async deleteAdditionalResource(
+        @Param('id') id: string,
+        @UserSession() user: any, 
+    ) {
+        await this.service.deleteAdditionalResource(id, user.id);
         return { status: 'ok', message: 'Additional Resource deleted successfully' }
     }
 

@@ -27,6 +27,7 @@ import { SyncModule } from './sync/sync.module';
 import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { FeedbackTypeModule } from './feedback type/feedback-type.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { BusinessPartnerModule } from './business-partner/business-partner.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -65,6 +66,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     GoogleMapsModule,
     FeedbackTypeModule,
     FeedbackModule,
+    BusinessPartnerModule,
 
   ],
   controllers: [AppController],

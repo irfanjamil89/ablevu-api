@@ -4,6 +4,7 @@ import { UpdateBusinessDto } from "./update-business.dto";
 import { BusinessService } from "./business.service";
 import { UserSession } from "src/auth/user.decorator";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+import { BusinessStatusDto } from "./business-status.dto";
 
 @Controller('business')
 export class BusinessController {
@@ -72,27 +73,23 @@ async listPaginated(
 async list1Paginated(       
   @Query('page') page = 1,
   @Query('limit') limit = 10,
-  @Query('search') search?: string,
-  @Query('city') city?: string,
-  @Query('country') country?: string,
-  @Query('active') active?: string,
-  @Query('businessTypeId') businessTypeId?: string,
 ) {
-  const activeBool =
-    active === undefined ? undefined : active === 'true' ? true : false;
-
   return this.businessService.list1Paginated(
     Number(page),
-    Number(limit),
-    {
-      search,
-      city,
-      country,
-      active: activeBool,
-      businessTypeId,
-    },                         
+    Number(limit),      
   );
 }
+
+@Patch('status/:id')
+@UseGuards(JwtAuthGuard)
+async updateBusinessStatus(
+    @Param('id') id: string,
+    @Body() dto: BusinessStatusDto,
+    @UserSession() user: any,
+){
+    await this.businessService.updateBusinessStatus(id, dto, user.id);
+    return { message: 'Business status updated successfully' };
+  }
 
 
 @Get('business-profile/:id')

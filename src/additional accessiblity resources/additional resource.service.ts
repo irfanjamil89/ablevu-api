@@ -35,7 +35,7 @@ export class AdditionalResourceService {
         await this.additionalResourceRepo.save(additionalResource);
     }
 
-    async deleteAdditionalResource(id: string) {
+    async deleteAdditionalResource(id: string, userId: string) {
         const additionalResource = await this.additionalResourceRepo.findOne({ where: { id } });
         if (!additionalResource) {
             throw new NotFoundException('Additional Resource not found');
