@@ -19,7 +19,10 @@ export class BusinessPartnerService {
         await this.businessPartnersRepo.save(businessPartner);
     }
 
-    async deleteBusinessPartner(id: string, userId: string) {
-        await this.businessPartnersRepo.delete({ partner: { id: id } });
+    async deleteBusinessPartner( dto: BusinessPartnerDto,id: string, userId: string) {
+        await this.businessPartnersRepo.delete({
+             business: { id: id },
+             partner:  { id: dto.partner_id },
+            });
     }
 }
