@@ -73,10 +73,10 @@ export class Business {
   @Column()
   place_id?: string;
 
-  @Column()
+  @Column('decimal', { precision: 15, scale: 10, nullable: true })
   latitude?: number;
 
-  @Column()
+  @Column('decimal', { precision: 15, scale: 10, nullable: true })
   longitude?: number;
 
   @ManyToOne(() => User, { nullable: false })
