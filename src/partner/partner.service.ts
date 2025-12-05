@@ -26,8 +26,8 @@ export class PartnerService {
     });
     const savedPartner = await this.partnerRepo.save(partner);
     const businessPartner = this.businessPartnersRepo.create({
-      business_id: dto.business_id,
-      partner_id: savedPartner.id,
+      business: { id: dto.business_id },
+      partner: savedPartner,
       active: dto.active,
       created_by: userId,
       modified_by: userId,
@@ -49,7 +49,12 @@ export class PartnerService {
       partner.modified_by = userId,
       await this.partnerRepo.save(partner);
 
-    const businessPartner = await this.businessPartnersRepo.findOne({ where: { partner_id: id, business_id: dto.business_id } });
+    const businessPartner = await this.businessPartnersRepo.findOne({ 
+      where: {
+       partner: { id }, 
+       business: { id: dto.business_id }
+      }
+      });
     if (businessPartner) {
       businessPartner.active = dto.active;
       businessPartner.modified_by = userId;
@@ -62,7 +67,7 @@ export class PartnerService {
     if (!Partner) {
       throw new NotFoundException('Partner not found');
     }
-    await this.businessPartnersRepo.delete({ partner_id: id });
+    await this.businessPartnersRepo.delete({ partner: { id } });
     await this.partnerRepo.remove(Partner);
   }
 
@@ -72,7 +77,7 @@ export class PartnerService {
       throw new NotFoundException('Accessible Feature not found');
     }
     const linkedTypes = await this.businessPartnersRepo.find({
-      where: { partner_id: id },
+      where: { partner: { id } },
     });
     return { Partner, linkedTypes };
   }
@@ -99,7 +104,7 @@ export class PartnerService {
     const itemsWithLinkedTypes = await Promise.all(
       items.map(async (partner) => {
         const linkedTypes = await this.businessPartnersRepo.find({
-          where: { partner_id: partner.id },
+          where: { partner: { id: partner.id } },
         });
         return { ...partner, linkedTypes };
       }),
