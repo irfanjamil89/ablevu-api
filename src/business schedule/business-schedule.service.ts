@@ -21,19 +21,23 @@ export class BusinessScheduleService {
     private readonly businessRepo: Repository<Business>,
   ) {}
 
-  async createBusinessSchedule(userId: string, dto: CreateScheduleDto) {
-    const business = await this.businessRepo.findOne({
-      where: {
-        id: dto.businessId,
-        owner: { id: userId },
-      },
-      relations: { owner: true },
-    });
-    if (!business) {
+async createBusinessSchedule(user: { id: string; user_role: string }, dto: CreateScheduleDto) {
+  const business = await this.businessRepo.findOne({
+    where: { id: dto.businessId },
+    relations: { owner: true },
+  });
+
+  if (!business) {
+    throw new NotFoundException('Business not found');
+  }
+  if (user.user_role !== 'Admin') {
+    if (!business.owner || business.owner.id !== user.id) {
       throw new ForbiddenException('You cannot modify this business');
     }
-    const schedule = dto.schedules.map(items=>
-     this.scheduleRepo.create({
+  }
+
+  const scheduleEntities = dto.schedules.map((items) =>
+    this.scheduleRepo.create({
       business,
       day: items.day,
       opening_time: items.opening_time ?? null,
@@ -41,13 +45,14 @@ export class BusinessScheduleService {
       opening_time_text: items.opening_time_text ?? null,
       closing_time_text: items.closing_time_text ?? null,
       active: items.active ?? true,
-      created_by: userId,
-      modified_by: userId,
-    })
+      created_by: user.id,
+      modified_by: user.id,
+    }),
   );
 
-    return this.scheduleRepo.save(schedule);
-  }
+  return this.scheduleRepo.save(scheduleEntities);
+}
+
 
   async updateBusinessSchedule(
     id: string,
