@@ -12,14 +12,14 @@ export class BusinessPartnerService {
 
     async createBusinessPartner(dto: BusinessPartnerDto, id: string, userId: string) {
         const businessPartner = this.businessPartnersRepo.create({
-            business_id: id,
-            partner_id: dto.partner_id,
+            business: { id: id }, 
+            partner: { id: dto.partner_id }, 
             created_by: userId
         });
         await this.businessPartnersRepo.save(businessPartner);
     }
 
     async deleteBusinessPartner(id: string, userId: string) {
-        await this.businessPartnersRepo.delete({ business_id: id });
+        await this.businessPartnersRepo.delete({ partner: { id: id } });
     }
 }

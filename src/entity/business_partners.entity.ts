@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
+import { Partner } from './partner.entity';
+import { Business } from './business.entity';
 
 @Entity()
 export class BusinessPartners {
@@ -8,8 +10,18 @@ export class BusinessPartners {
     @Column({ type: 'uuid' })
     business_id: string;
 
-    @Column({ type: 'uuid' })
-    partner_id: string;
+    @ManyToOne(() => Business, (business) => business.partners, {
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'business_id' })
+    business: Business;
+
+    @ManyToOne(() => Partner, (partner) => partner.businessPartners, {
+        eager: true, 
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'partner_id' })
+    partner: Partner;
 
     @Column()
     active: boolean;

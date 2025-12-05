@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { BusinessPartners } from './business_partners.entity';
 
 @Entity()
 export class Partner {
@@ -34,4 +35,7 @@ export class Partner {
 
     @Column()
     modified_at: Date;
+
+    @OneToMany(() => BusinessPartners, (bp) => bp.partner)
+    businessPartners: BusinessPartners[];
 }
