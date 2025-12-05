@@ -18,9 +18,9 @@ export class PartnerController {
     @Patch('update/:id')
     @UseGuards(JwtAuthGuard)
     async updatePartner(@Param('id') id: string,
-        @UserSession() userId: any,
+        @UserSession() user: any,
         @Body() dto: PartnerDto) {
-        await this.service.updatePartner(id, userId, dto);
+        await this.service.updatePartner(id,user.id,dto);
         return { status: 'ok', message: 'Partner updated successfully' }
     }
 

@@ -23,8 +23,9 @@ export class BusinessPartnerController {
     async deleteBusinessPartner(
         @Param('id') id: string,
         @UserSession() user: any,
+        @Body() dto: BusinessPartnerDto
     ) {
-        await this.service.deleteBusinessPartner(id, user.id);
+        await this.service.deleteBusinessPartner(dto, id, user.id);
         return { status: 'ok', message: ' Business Partner deleted successfully' }
     }
 
