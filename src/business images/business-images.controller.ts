@@ -18,8 +18,8 @@ export class BusinessImagesController{
             @UserSession() user : any,
             @Body() dto: CreateBusinessImages,
         ) {
-              await this.imagesService.createBusinessImages(user.id, dto);
-              return { message: 'Business Images created successfully' };
+              return await this.imagesService.createBusinessImages(user.id, dto);
+              
         }
     
     @Patch('update/:id')
