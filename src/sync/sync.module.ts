@@ -28,9 +28,10 @@ import { GoogleMapsModule } from 'src/google-maps/google-maps.module';
 import { ListingsVerified } from 'src/entity/listings-verified.entity';
 import { Claims } from 'src/entity/claims.entity';
 import { AdditionalResource } from 'src/entity/additional_resource.entity';
+import { BusinessImages } from 'src/entity/business_images.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims]),
+  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages]),
 GoogleMapsModule
 ],
   controllers: [SyncbubbleController],

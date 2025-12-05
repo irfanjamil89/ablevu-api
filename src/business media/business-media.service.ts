@@ -78,7 +78,7 @@ export class BusinessMediaService{
       .orderBy('m.created_at', 'DESC');
 
     if (filters.businessId) {
-      qb.andWhere('r.business_id = :businessId', { businessId: filters.businessId });
+      qb.andWhere('m.business_id = :businessId', { businessId: filters.businessId });
     }
      if (filters.active !== undefined) {
     qb.andWhere('m.active = :active', { active: filters.active });
