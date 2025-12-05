@@ -20,6 +20,7 @@ import { privateDecrypt } from 'crypto';
 import { BusinessRecomendations } from 'src/entity/business_recomendations.entity';
 import { GoogleMapsService } from 'src/google-maps/google-maps.service';
 import { AdditionalResource } from 'src/entity/additional_resource.entity';
+import { BusinessImages } from 'src/entity/business_images.entity';
 
 type ListFilters = {
   search?: string;
@@ -74,6 +75,8 @@ export class BusinessService {
     @InjectRepository(AdditionalResource)
     private readonly resourcesrepo: Repository<AdditionalResource>,
 
+     @InjectRepository(BusinessImages)
+    private readonly imagesRepo: Repository<BusinessImages>,
 
     private readonly googleMapsService: GoogleMapsService,
 
@@ -413,6 +416,7 @@ export class BusinessService {
           businessSchedule,
           businessRecomendations,
           additionalaccessibilityresources,
+          businessImages,
         ] = await Promise.all([
           this.linkedrepo.find({ where: { business_id: business.id } }),
           this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -428,6 +432,7 @@ export class BusinessService {
           this.scheduleRepo.find({ where: { business: { id: business.id } } }),
           this.recomendationRepo.find({ where: { business: { id: business.id } } }),
           this.resourcesrepo.find({ where: { business_id: business.id } }),
+          this.imagesRepo.find({ where: { business_id: business.id } }),
         ]);
 
         return {
@@ -443,6 +448,7 @@ export class BusinessService {
           businessSchedule,
           businessRecomendations,
           additionalaccessibilityresources,
+          businessImages,
         };
       }),
     );
@@ -482,6 +488,7 @@ export class BusinessService {
           businessSchedule,
           businessRecomendations,
           additionalaccessibilityresources,
+          businessImages,
         ] = await Promise.all([
           this.linkedrepo.find({ where: { business_id: business.id } }),
           this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -497,6 +504,7 @@ export class BusinessService {
           this.scheduleRepo.find({ where: { business: { id: business.id } } }),
           this.recomendationRepo.find({ where: { business: { id: business.id } } }),
           this.resourcesrepo.find({ where: { business_id: business.id } }),
+          this.imagesRepo.find({ where: { business_id: business.id } }),
         ]);
 
         return {
@@ -512,6 +520,7 @@ export class BusinessService {
           businessSchedule,
           businessRecomendations,
           additionalaccessibilityresources,
+          businessImages
         };
       }),
     );
@@ -553,6 +562,7 @@ export class BusinessService {
       businessSchedule,
       businessRecomendations,
       additionalaccessibilityresources,
+      businessImages,
     ] = await Promise.all([
       this.linkedrepo.find({ where: { business_id: business.id } }),
       this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
@@ -568,6 +578,7 @@ export class BusinessService {
       this.scheduleRepo.find({ where: { business: { id: business.id } } }),
       this.recomendationRepo.find({ where: { business: { id: business.id } } }),
       this.resourcesrepo.find({ where: { business_id: business.id } }),
+      this.imagesRepo.find({ where: { business_id: business.id } }),
     ]);
 
     return {
@@ -583,6 +594,7 @@ export class BusinessService {
       businessSchedule,
       businessRecomendations,
       additionalaccessibilityresources,
+      businessImages
     };
   }
   async findByExternalId(externalId: string): Promise<Business | null> {
