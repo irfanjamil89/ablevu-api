@@ -30,6 +30,16 @@ type ListFilters = {
   businessTypeId?: string;
 };
 
+type List1Filters = {
+  page: number;
+  limit: number;
+  search?: string;
+  businessTypeIds?: string; 
+  featureIds?: string;    
+  city?: string;
+  country?: string;
+};
+
 @Injectable()
 export class BusinessService {
   constructor(
@@ -462,77 +472,157 @@ export class BusinessService {
     };
   }
   
-  async list1Paginated(page = 1, limit = 10) {
-    const qb = this.businessRepo.createQueryBuilder('b');
+  async list1Paginated({
+  page = 1,
+  limit = 10,
+  search,
+  businessTypeIds,
+  featureIds,
+  city,
+  country,
+}: List1Filters) {
+  const qb = this.businessRepo.createQueryBuilder('b');
 
+  // ✅ sirf approved public listing ke liye
+  qb.where('b.business_status = :status', { status: 'approved' });
 
-    qb.where('b.business_status = :status', { status: 'approved' });
-
-    qb.take(limit)
-      .skip((page - 1) * limit)
-      .orderBy('b.created_at', 'DESC');
-
-    const [items, total] = await qb.getManyAndCount();
-
-    const data = await Promise.all(
-      items.map(async (business) => {
-        const [
-          linkedTypes,
-          accessibilityFeatures,
-          virtualTours,
-          businessreviews,
-          businessQuestions,
-          businessPartners,
-          businessCustomSections,
-          businessMedia,
-          businessSchedule,
-          businessRecomendations,
-          additionalaccessibilityresources,
-          businessImages,
-        ] = await Promise.all([
-          this.linkedrepo.find({ where: { business_id: business.id } }),
-          this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
-          this.virtualTourRepo.find({
-            where: { business: { id: business.id } },
-            order: { display_order: 'ASC' },
-          }),
-          this.businessreviews.find({ where: { business_id: business.id } }),
-          this.businessquestionrepo.find({ where: { business_id: business.id } }),
-          this.businessPartnerrepo.find({ where: { business_id: business.id } }),
-          this.customSectionsrepo.find({ where: { business_id: business.id } }),
-          this.mediaRepo.find({ where: { business_id: business.id } }),
-          this.scheduleRepo.find({ where: { business: { id: business.id } } }),
-          this.recomendationRepo.find({ where: { business: { id: business.id } } }),
-          this.resourcesrepo.find({ where: { business_id: business.id } }),
-          this.imagesRepo.find({ where: { business_id: business.id } }),
-        ]);
-
-        return {
-          ...business,
-          linkedTypes,
-          accessibilityFeatures,
-          virtualTours,
-          businessreviews,
-          businessQuestions,
-          businessPartners,
-          businessCustomSections,
-          businessMedia,
-          businessSchedule,
-          businessRecomendations,
-          additionalaccessibilityresources,
-          businessImages
-        };
-      }),
+  // 🔍 text search: name + address + city + country
+  if (search && search.trim()) {
+    const s = `%${search.trim().toLowerCase()}%`;
+    qb.andWhere(
+      `(LOWER(b.name) LIKE :s
+         OR LOWER(b.address) LIKE :s
+         OR LOWER(b.city) LIKE :s
+         OR LOWER(b.state) LIKE :s
+         OR LOWER(b.country) LIKE :s)`,
+      { s },
     );
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
+
+  // 🌆 City filter (exact match, case-insensitive)
+  if (city && city.trim()) {
+    qb.andWhere('LOWER(b.city) = :city', {
+      city: city.trim().toLowerCase(),
+    });
+  }
+
+  // 🌍 Country filter
+  if (country && country.trim()) {
+    qb.andWhere('LOWER(b.country) = :country', {
+      country: country.trim().toLowerCase(),
+    });
+  }
+
+  // 🏷 Category / Business Type filter (comma separated IDs)
+  if (businessTypeIds && businessTypeIds.trim()) {
+    const btIds = businessTypeIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (btIds.length) {
+      qb.andWhere(
+        `b.id IN (
+          SELECT blt.business_id
+          FROM business_linked_type blt
+          WHERE blt.business_type_id IN (:...btIds)
+        )`,
+        { btIds },
+      );
+    }
+  }
+
+  // ♿ Accessible Feature filter (comma separated accessible_feature_id)
+  if (featureIds && featureIds.trim()) {
+    const afIds = featureIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (afIds.length) {
+      qb.andWhere(
+        `b.id IN (
+          SELECT baf.business_id
+          FROM business_accessible_feature baf
+          WHERE baf.accessible_feature_id IN (:...afIds)
+        )`,
+        { afIds },
+      );
+    }
+  }
+
+  qb
+    .take(limit)
+    .skip((page - 1) * limit)
+    .orderBy('b.created_at', 'DESC');
+
+  const [items, total] = await qb.getManyAndCount();
+
+  // 🔁 same enrichment jaisa tum pehle kar rahe thay
+  const data = await Promise.all(
+    items.map(async (business) => {
+      const [
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+        additionalaccessibilityresources,
+        businessImages,
+      ] = await Promise.all([
+        this.linkedrepo.find({ where: { business_id: business.id } }),
+        this.businessaccessibilityrepo.find({
+          where: { business_id: business.id },
+          relations: ['accessible_feature'], // agar relation banaya ho to
+        }),
+        this.virtualTourRepo.find({
+          where: { business: { id: business.id } },
+          order: { display_order: 'ASC' },
+        }),
+        this.businessreviews.find({ where: { business_id: business.id } }),
+        this.businessquestionrepo.find({ where: { business_id: business.id } }),
+        this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+        this.customSectionsrepo.find({ where: { business_id: business.id } }),
+        this.mediaRepo.find({ where: { business_id: business.id } }),
+        this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+        this.recomendationRepo.find({
+          where: { business: { id: business.id } },
+        }),
+        this.resourcesrepo.find({ where: { business_id: business.id } }),
+        this.imagesRepo.find({ where: { business_id: business.id } }),
+      ]);
+
+      return {
+        ...business,
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+        additionalaccessibilityresources,
+        businessImages,
+      };
+    }),
+  );
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
 
   async updateBusinessStatus(id: string, dto: any, userId: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
