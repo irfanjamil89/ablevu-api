@@ -70,14 +70,24 @@ async listPaginated(
 }
 
 @Get('list1')
-async list1Paginated(       
-  @Query('page') page = 1,
-  @Query('limit') limit = 10,
+async list1Paginated(
+  @Query('page') page: string = '1',
+  @Query('limit') limit: string = '10',
+  @Query('search') search?: string,           
+  @Query('businessTypeIds') businessTypeIds?: string,
+  @Query('featureIds') featureIds?: string,   
+  @Query('city') city?: string,
+  @Query('country') country?: string,
 ) {
-  return this.businessService.list1Paginated(
-    Number(page),
-    Number(limit),      
-  );
+  return this.businessService.list1Paginated({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+    search,
+    businessTypeIds,
+    featureIds,
+    city,
+    country,
+  });
 }
 
 @Patch('status/:id')
