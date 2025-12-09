@@ -26,7 +26,7 @@ export class PartnerService {
     });
     const savedPartner = await this.partnerRepo.save(partner);
     const businessPartner = this.businessPartnersRepo.create({
-      business: { id: dto.business_id },
+      business_id: dto.business_id,
       partner: savedPartner,
       active: dto.active,
       created_by: userId,
