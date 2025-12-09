@@ -20,15 +20,15 @@ export class BusinessReviewsService {
   constructor(
     @InjectRepository(BusinessReviews)
     private readonly reviewRepo: Repository<BusinessReviews>,
-     @InjectRepository(Business)
+    @InjectRepository(Business)
     private readonly businessRepo: Repository<Business>,
 
     @InjectRepository(ReviewType)
     private readonly reviewTypeRepo: Repository<ReviewType>,
-  ) {}
+  ) { }
 
   async createBusinessReviews(userId: string, dto: CreateBusinessReviewsDto) {
-     if (!dto.business_id) {
+    if (!dto.business_id) {
       throw new BadRequestException('business_id is required');
     }
     if (!dto.review_type_id) {
@@ -41,21 +41,19 @@ export class BusinessReviewsService {
     if (!business) {
       throw new NotFoundException('Business not found');
     }
-    
+
     const reviewType = await this.reviewTypeRepo.findOne({
       where: { id: dto.review_type_id },
     });
     if (!reviewType) {
       throw new NotFoundException('Review Type not found');
     }
-    const approved = dto.approved ?? false;
 
     const review = this.reviewRepo.create({
       business_id: dto.business_id,
       review_type_id: dto.review_type_id ?? undefined,
       description: dto.description ?? undefined,
-      approved,
-      approvedAt: approved ? new Date() : null,
+      approved: false,
       active: dto.active ?? true,
       created_by: userId,
       modified_by: userId,
@@ -64,7 +62,7 @@ export class BusinessReviewsService {
     return this.reviewRepo.save(review);
   }
 
-  
+
   async updateBusinessReviews(id: string, userId: string, dto: UpdateBusinessReviewsDto) {
     const review = await this.reviewRepo.findOne({ where: { id } });
     if (!review) throw new NotFoundException('Business Review not found');
@@ -78,30 +76,26 @@ export class BusinessReviewsService {
       const reviewType = await this.reviewTypeRepo.findOne({ where: { id: dto.review_type_id } });
       if (!reviewType) throw new NotFoundException('Review Type not found');
     }
-  
+
     let approvedAt = review.approvedAt;
-    if (dto.approved !== undefined) {
-      if (dto.approved === true && review.approved !== true) {
-        approvedAt = new Date();
-      } else if (dto.approved === false) {
-        approvedAt = null;
-      }
+    if (dto.approved === true && review.approved === false) {
+      approvedAt = new Date();
     }
 
     Object.assign(review, {
-      businessId: dto.business_id ?? review.business_id,
-      reviewTypeId: dto.review_type_id ?? review.review_type_id,
+      business_id: dto.business_id ?? review.business_id,
+      review_type_id: dto.review_type_id ?? review.review_type_id,
       description: dto.description ?? review.description,
       approved: dto.approved ?? review.approved,
       approvedAt,
       active: dto.active ?? review.active,
-      modifiedBy: userId,
+      modified_by: userId,
     });
 
     return this.reviewRepo.save(review);
   }
 
-  
+
   async deleteBusinessReviews(id: string, userId: string) {
     const review = await this.reviewRepo.findOne({ where: { id } });
     if (!review) throw new NotFoundException('Business Review not found');
@@ -111,7 +105,7 @@ export class BusinessReviewsService {
     return this.reviewRepo.remove(review);
   }
 
-  
+
   async listPaginated(
     page = 1,
     limit = 10,
