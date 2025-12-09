@@ -33,7 +33,7 @@ export class PartnerService {
       modified_by: userId,
     });
     await this.businessPartnersRepo.save(businessPartner);
-
+    return savedPartner;
   }
   async updatePartner(id: string, userId: string, dto: PartnerDto) {
     const partner = await this.partnerRepo.findOne({ where: { id } });
