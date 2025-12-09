@@ -16,8 +16,10 @@ export class BusinessController {
     @UserSession() user : any,
     @Body() dto: CreateBusinessDto,
   ) {
-    await this.businessService.createBusiness(user.id, dto);
-    return { message: 'Business created successfully' };
+    const createdBusiness = await this.businessService.createBusiness(user.id, dto);
+    return { message: 'Business created successfully',
+      id: createdBusiness.id,
+     };
   }
 
 @Patch('update/:id')

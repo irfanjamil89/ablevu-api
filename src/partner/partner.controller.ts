@@ -11,8 +11,10 @@ export class PartnerController {
     @Post('create')
     @UseGuards(JwtAuthGuard)
     async createPartner(@UserSession() user: any, @Body() dto: PartnerDto) {
-        await this.service.createPartner(dto, user.id);
-        return { status: 'ok', message: 'Partner created successfully' }
+        const createdPartner = await this.service.createPartner(dto, user.id);
+        return { status: 'ok', message: 'Partner created successfully',
+            id: createdPartner.id
+         }
     }
 
     @Patch('update/:id')

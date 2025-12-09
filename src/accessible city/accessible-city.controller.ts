@@ -17,8 +17,10 @@ export class AccessibleCityController {
     @UserSession() user: any,
     @Body() dto: CreateAccessibleCityDto,
   ) {
-    await this.accessiblecityservice.createAccessibleCity(user.id, dto);
-    return { message: 'Accessible City created successfully' };
+    const createdCity = await this.accessiblecityservice.createAccessibleCity(user.id, dto);
+    return { message: 'Accessible City created successfully',
+      id: createdCity.id, 
+     };
   }
 
   @Patch('update/:id')
