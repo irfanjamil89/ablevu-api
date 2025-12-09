@@ -30,6 +30,7 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { BusinessPartnerModule } from './business-partner/business-partner.module';
 import { BusinessAccessibleFeatureModule } from './business-accessible-feature/business-accessible-feature.module';
 import { BusinessImagesModule } from './business images/business-images.module';
+import { SubscribeModule } from './subscribe/subscribe.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -71,6 +72,7 @@ import { BusinessImagesModule } from './business images/business-images.module';
     BusinessPartnerModule,
     BusinessAccessibleFeatureModule,
     BusinessImagesModule,
+    SubscribeModule,
 
   ],
   controllers: [AppController],
