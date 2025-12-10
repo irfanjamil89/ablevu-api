@@ -338,17 +338,50 @@ export class BusinessService {
     return business;
   }
   async deleteBusiness(id: string, userId: string) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-    await this.recomendationRepo.delete({ business: { id: business.id } });
-    await this.businessaccessibilityrepo.delete({ business_id: id });
-    await this.scheduleRepo.delete({ business: { id: business.id } });
-    await this.customSectionsrepo.delete({ business_id: id });
-    await this.linkedrepo.delete({ business_id: id });
-    await this.businessRepo.remove(business);
+  const business = await this.businessRepo.findOne({ where: { id } });
+  if (!business) {
+    throw new NotFoundException('Business not found');
   }
+  // Virtual tours
+  await this.virtualTourRepo.delete({ business: { id: business.id } });
+
+  // Reviews
+  await this.businessreviews.delete({ business_id: id });
+
+  // Questions
+  await this.businessquestionrepo.delete({ business_id: id });
+
+  // Partners
+  await this.businessPartnerrepo.delete({ business_id: id });
+
+  // Custom sections
+  await this.customSectionsrepo.delete({ business_id: id });
+
+  // Media
+  await this.mediaRepo.delete({ business_id: id });
+
+  // Schedules
+  await this.scheduleRepo.delete({ business: { id: business.id } });
+
+  // Linked business types
+  await this.linkedrepo.delete({ business_id: id });
+
+  // Accessible features
+  await this.businessaccessibilityrepo.delete({ business_id: id });
+
+  // Recommendations
+  await this.recomendationRepo.delete({ business: { id: business.id } });
+
+  // Additional resources
+  await this.resourcesrepo.delete({ business_id: id });
+
+  // Business images
+  await this.imagesRepo.delete({ business_id: id });
+
+  // 🔚 Last mein business khud delete karo
+  await this.businessRepo.remove(business);
+}
+
 
   async listPaginated(
     page = 1,
@@ -483,8 +516,11 @@ export class BusinessService {
 }: List1Filters) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
-  // ✅ sirf approved public listing ke liye
-  qb.where('b.business_status = :status', { status: 'approved' });
+  qb.where(
+  '(b.business_status = :approved OR b.business_status = :claimed)',
+  { approved: 'approved', claimed: 'claimed' },
+);
+
 
   // 🔍 text search: name + address + city + country
   if (search && search.trim()) {
