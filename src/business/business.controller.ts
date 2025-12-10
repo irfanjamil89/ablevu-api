@@ -104,12 +104,10 @@ async updateBusinessStatus(
   }
 
 
-@Get('business-profile/:id')
-  @UseGuards(JwtAuthGuard)           
+@Get('business-profile/:id')          
   async getBusinessProfile(
-    @Param('id') id: string,
-    @UserSession() user: any,      
+    @Param('id') id: string,    
   ) {
-    return this.businessService.getBusinessProfile(id, user);
+    return this.businessService.getBusinessProfile(id);
   }
 }

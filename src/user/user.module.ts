@@ -7,9 +7,13 @@ import { User } from 'src/entity/user.entity';
 import { ImagesController } from './image.controller';
 import { S3Service } from 'src/services/s3service';
 import { S3Client } from '@aws-sdk/client-s3';
+import { Business } from 'src/entity/business.entity';
+import { BusinessImages } from 'src/entity/business_images.entity';
+import { Partner } from 'src/entity/partner.entity';
+import { AccessibleCity } from 'src/entity/accessible_city.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([User])],
+    imports: [TypeOrmModule.forFeature([User, Business, BusinessImages, Partner, AccessibleCity])],
     controllers: [UserController,ImagesController],
     providers: [AppService,UsersService,S3Service,{
       provide: S3Client,

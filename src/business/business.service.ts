@@ -483,8 +483,11 @@ export class BusinessService {
 }: List1Filters) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
-  // ✅ sirf approved public listing ke liye
-  qb.where('b.business_status = :status', { status: 'approved' });
+  qb.where(
+  '(b.business_status = :approved OR b.business_status = :claimed)',
+  { approved: 'approved', claimed: 'claimed' },
+);
+
 
   // 🔍 text search: name + address + city + country
   if (search && search.trim()) {
