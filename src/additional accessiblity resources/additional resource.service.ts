@@ -32,7 +32,7 @@ export class AdditionalResourceService {
         additionalResource.link = dto.link;
         additionalResource.active = dto.active;
         additionalResource.modified_by = userId;
-        await this.additionalResourceRepo.save(additionalResource);
+        return await this.additionalResourceRepo.save(additionalResource);
     }
 
     async deleteAdditionalResource(id: string, userId: string) {

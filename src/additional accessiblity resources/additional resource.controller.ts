@@ -18,9 +18,9 @@ export class AdditionalResourceController {
     @Patch('update/:id')
     @UseGuards(JwtAuthGuard)
     async updateAdditionalResource(@Param('id') id: string,
-        @UserSession() userId: any,
+        @UserSession() user: any,
         @Body() dto: AdditionalResourceDto) {
-        await this.service.updateAdditionalResource(id, userId, dto);
+        await this.service.updateAdditionalResource(id, user.id, dto);
         return { status: 'ok', message: 'additional resource updated successfully' }
     }
 
