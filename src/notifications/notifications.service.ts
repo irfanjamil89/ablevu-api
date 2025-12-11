@@ -130,12 +130,13 @@ export class NotificationService {
 </html>
     `;
   }
-  async createPullNotification(content: string, createdBy: string) {
+  async createPullNotification(content: string, createdBy: string, meta?: string) {
     const notification = this.notificationRepo.create({
       content,
       feedbacktype: 'onsite',
       created_by: createdBy,
       modified_by: createdBy,
+      meta,
     });
 
     return await this.notificationRepo.save(notification);
@@ -178,19 +179,23 @@ export class NotificationService {
       .filter((email): email is string => !!email);
 
 
-    await this.createPullNotification(shortMessage, createdBy);
+    await this.createPullNotification(
+      shortMessage,
+      createdBy,
+      JSON.stringify({ type: 'business-created', id: businessId })
+    );
 
 
-    {if (adminEmails.length > 0) {
-      const emailHTML = this.buildBusinessCreatedEmail(businessName);
+  if (adminEmails.length > 0) {
+  const emailHTML = this.buildBusinessCreatedEmail(businessName);
 
-      await this.createEmailNotification(
-        adminEmails,
-        emailHTML,
-        `New Business Created: ${businessName}`,
-        createdBy,
-      );
-    }}
+  this.createEmailNotification(
+    adminEmails,
+    emailHTML,
+    `New Business Created: ${businessName}`,
+    createdBy,
+  ).catch(err => console.error("Error sending emails:", err));
+}
 
     return { success: true };
   }
@@ -206,7 +211,8 @@ export class NotificationService {
   });
   return notifications.map(n => ({
     id: n.id,
-    content: n.content
+    content: n.content,
+    meta: n.meta ? JSON.parse(n.meta) : null 
   }));
   }
 

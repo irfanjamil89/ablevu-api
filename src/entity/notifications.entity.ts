@@ -15,6 +15,9 @@ export class Notification {
   read: boolean;
 
   @Column()
+  meta: string;
+
+  @Column()
   created_by: string;
 
   @Column()
