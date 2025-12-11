@@ -18,10 +18,11 @@ import { BusinessRecomendations } from "src/entity/business_recomendations.entit
 import { GoogleMapsModule } from "src/google-maps/google-maps.module";
 import { AdditionalResource } from "src/entity/additional_resource.entity";
 import { BusinessImages } from "src/entity/business_images.entity";
+import { NotificationModule } from "src/notifications/notifications.module";
 
 @Module({
     imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations, AdditionalResource, BusinessImages]),
-GoogleMapsModule,
+GoogleMapsModule, NotificationModule
 ],
     providers: [BusinessService],
     controllers: [BusinessController],

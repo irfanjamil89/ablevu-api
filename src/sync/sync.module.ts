@@ -29,12 +29,12 @@ import { ListingsVerified } from 'src/entity/listings-verified.entity';
 import { Claims } from 'src/entity/claims.entity';
 import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
-
+import { BusinessModule } from 'src/business/business.module';
 @Module({
   imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages]),
-GoogleMapsModule
+GoogleMapsModule, BusinessModule,
 ],
   controllers: [SyncbubbleController],
-   providers: [SyncService,BusinessService,UsersService,AccessibleFeatureService,BusinessTypeService],
+   providers: [SyncService,UsersService,AccessibleFeatureService,BusinessTypeService],
 })
 export class SyncModule {}
