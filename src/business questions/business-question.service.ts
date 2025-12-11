@@ -5,6 +5,7 @@ import { CreateBusinessQuestionsDto } from "./create-business-questions.dto";
 import { UpdateBusinessQuestionsDto } from "./update-business-questions.dto";
 import { Repository } from "typeorm";
 import { Business } from "src/entity/business.entity";
+import { User } from 'src/entity/user.entity';
 
 @Injectable()
 export class BusinessQuestionsService{
@@ -12,7 +13,9 @@ export class BusinessQuestionsService{
     @InjectRepository(BusinessQuestions)
     private readonly businessquestionsrepo: Repository<BusinessQuestions>,
     @InjectRepository(Business)
-    private readonly businessRepo: Repository<Business>
+    private readonly businessRepo: Repository<Business>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
 
     ){}
 
@@ -87,8 +90,29 @@ export class BusinessQuestionsService{
     qb.andWhere('q.active = :active', { active: filters.active });
     }
     const [items, total] = await qb.getManyAndCount();
+      const itemsWithNames = await Promise.all(
+    items.map(async (q) => {
+       let createdByName: string | null = null; 
+
+      if (q.show_name) {
+        const user = await this.userRepo.findOne({
+          where: { id: q.created_by },
+          select: ['id', 'first_name', 'last_name'],
+        });
+
+       if (user) {
+          createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        }
+      }
+
+      return {
+        ...q,
+        created_by_name: createdByName,
+      };
+    })
+  );
     return {
-      data: items,
+      data: itemsWithNames,
       meta: {
         total,
         page,
