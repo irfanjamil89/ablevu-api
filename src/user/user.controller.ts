@@ -18,6 +18,16 @@ export class UserController {
   async findAll(): Promise<User[]> {
     return await this.userService.findAll();
   }
+
+  @Get('me/:id')
+@UseGuards(JwtAuthGuard)
+async findOne(@Param('id') id: string): Promise<User> {
+  const user = await this.userService.findOneById(id);
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+  return user;
+}
   
   @Get(':id')
   @UseGuards(JwtAuthGuard)

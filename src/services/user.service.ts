@@ -22,6 +22,10 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) { }
 
+  async findOneById(id: string): Promise<User | null> {
+  return this.usersRepository.findOne({ where: { id } });
+}
+
   async findByResetToken(token: string) {
   return this.usersRepository.findOne({ where: { resetToken: token } });
 }

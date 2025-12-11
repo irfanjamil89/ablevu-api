@@ -6,10 +6,18 @@ import {
   Logger,
   Post,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { fileTypeFromBuffer } from 'file-type';
 import { S3Service } from 'src/services/s3service';
 import { UploadBase64Dto } from './upload-image';
 import { randomUUID } from 'crypto';
+import { User } from 'src/entity/user.entity';
+import { Business } from 'src/entity/business.entity';
+import { BusinessImages } from 'src/entity/business_images.entity';
+import { Partner } from 'src/entity/partner.entity';
+import { AccessibleCity } from 'src/entity/accessible_city.entity';
+
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME = new Set([
@@ -23,7 +31,25 @@ const ALLOWED_MIME = new Set([
 @Controller('images')
 export class ImagesController {
   private readonly logger = new Logger(ImagesController.name);
-  constructor(private readonly s3: S3Service) {}
+  constructor(
+    private readonly s3: S3Service,
+    
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
+
+    @InjectRepository(BusinessImages)
+    private readonly businessImagesRepo: Repository<BusinessImages>,
+
+    @InjectRepository(Partner)
+    private readonly partnerRepo: Repository<Partner>,
+
+    @InjectRepository(AccessibleCity)
+    private readonly cityRepo: Repository<AccessibleCity>,
+    
+  ) {}
 
   @Post('upload-base64')
   async uploadBase64(@Body() dto: UploadBase64Dto) {
@@ -89,6 +115,37 @@ export class ImagesController {
     });
     this.logger.log(`Upload success  ${dto.fileName ?? ''}`);
 
+    const imageUrl = (res as any).url;
+
+    if (!dto.fileName) {
+  throw new BadRequestException(
+    'fileName is required',
+  );
+}
+    if (dto.folder === 'user') {
+  await this.userRepo.update(dto.fileName, {
+    profile_picture_url: imageUrl,
+  });
+} else if (dto.folder === 'business'){
+  await this.businessRepo.update(dto.fileName, {
+    logo_url: imageUrl,
+  });
+}
+  else if (dto.folder === 'business-images'){
+    await this .businessImagesRepo.update(dto.fileName,{
+      image_url: imageUrl,
+    });
+} 
+  else if (dto.folder === 'partner'){
+    await this.partnerRepo.update(dto.fileName,{
+      image_url: imageUrl,
+    });
+} 
+  else if (dto.folder === 'accessible-city'){
+    await this.cityRepo.update(dto.fileName,{
+      picture_url: imageUrl,
+    });
+}
     return { ok: true, ...res, size: buffer.length };
   }
 }

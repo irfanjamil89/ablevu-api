@@ -21,19 +21,16 @@ export class BusinessScheduleService {
     private readonly businessRepo: Repository<Business>,
   ) {}
 
-async createBusinessSchedule(user: { id: string; user_role: string }, dto: CreateScheduleDto) {
+async createBusinessSchedule(
+  user: { id: string; user_role: string },
+  dto: CreateScheduleDto,
+) {
   const business = await this.businessRepo.findOne({
     where: { id: dto.businessId },
-    relations: { owner: true },
   });
 
   if (!business) {
     throw new NotFoundException('Business not found');
-  }
-  if (user.user_role !== 'Admin') {
-    if (!business.owner || business.owner.id !== user.id) {
-      throw new ForbiddenException('You cannot modify this business');
-    }
   }
 
   const scheduleEntities = dto.schedules.map((items) =>
@@ -53,80 +50,49 @@ async createBusinessSchedule(user: { id: string; user_role: string }, dto: Creat
   return this.scheduleRepo.save(scheduleEntities);
 }
 
+async updateBusinessSchedule(id: string, userId: string, dto: UpdateScheduleDto) {
+  const schedule = await this.scheduleRepo.findOne({
+    where: { id },
+  });
 
-  async updateBusinessSchedule(
-    id: string,
-    userId: string,
-    dto: UpdateScheduleDto,
-  ) {
-    const schedule = await this.scheduleRepo.findOne({
-      where: { id },
-      relations: { business: { owner: true } },
-    });
+  if (!schedule) {
+    throw new NotFoundException('Business Schedule not found');
+  }
 
-    if (!schedule) {
-      throw new NotFoundException('Business Schedule not found');
-    }
+  schedule.day = dto.day ? dto.day : schedule.day;
 
-    if (schedule.business.owner.id !== userId) {
-      throw new ForbiddenException('You cannot edit this schedule');
-    }
+  schedule.opening_time = dto.opening_time
+    ? new Date(dto.opening_time)
+    : schedule.opening_time;
 
-    if (dto.businessId && dto.businessId !== schedule.business.id) {
-      const newBusiness = await this.businessRepo.findOne({
-        where: {
-          id: dto.businessId,
-          owner: { id: userId },
-        },
-        relations: { owner: true },
-      });
-
-      if (!newBusiness) {
-        throw new ForbiddenException('You cannot move schedule to this business');
-      }
-
-      schedule.business = newBusiness;
-    }
-
-    schedule.day = dto.day ? dto.day.toLowerCase() : schedule.day;
-    schedule.opening_time =
-    dto.opening_time
-        ? new Date(dto.opening_time)
-        : schedule.opening_time;
-
-    schedule.closing_time =
-    dto.closing_time
+  schedule.closing_time = dto.closing_time
     ? new Date(dto.closing_time)
     : schedule.closing_time;
-    schedule.opening_time_text = dto.opening_time_text !== undefined? dto.opening_time_text: schedule.opening_time_text;
-    schedule.closing_time_text =
-      dto.closing_time_text !== undefined
-        ? dto.closing_time_text
-        : schedule.closing_time_text;
-    schedule.active =
-      dto.active !== undefined ? dto.active : schedule.active;
-    schedule.modified_by = userId;
 
-    return this.scheduleRepo.save(schedule);
+  schedule.opening_time_text =
+    dto.opening_time_text ?? schedule.opening_time_text;
+
+  schedule.closing_time_text =
+    dto.closing_time_text ?? schedule.closing_time_text;
+
+  schedule.active = dto.active ?? schedule.active;
+
+  schedule.modified_by = userId;
+
+  return this.scheduleRepo.save(schedule);
+}
+async deleteBusinessSchedule(userId: string, id: string) {
+  const schedule = await this.scheduleRepo.findOne({
+    where: { id },
+    relations: { business: true }, // owner: true hata diya
+  });
+
+  if (!schedule) {
+    throw new NotFoundException('Business Schedule not found');
   }
-  
-  async deleteBusinessSchedule(userId: string, id: string) {
-    const schedule = await this.scheduleRepo.findOne({
-      where: { id },
-      relations: { business: { owner: true } },
-    });
-
-    if (!schedule) {
-      throw new NotFoundException('Business Schedule not found');
-    }
-
-    if (schedule.business.owner.id !== userId) {
-      throw new ForbiddenException('You cannot delete this schedule');
-    }
-
-    await this.scheduleRepo.remove(schedule);
-    return { deleted: true };
-  }
+  await this.scheduleRepo.remove(schedule);
+  return { deleted: true };
+}
 
   async listPaginated(
     page = 1,
