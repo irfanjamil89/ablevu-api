@@ -31,6 +31,7 @@ import { BusinessPartnerModule } from './business-partner/business-partner.modul
 import { BusinessAccessibleFeatureModule } from './business-accessible-feature/business-accessible-feature.module';
 import { BusinessImagesModule } from './business images/business-images.module';
 import { SubscribeModule } from './subscribe/subscribe.module';
+import { ClaimRequestModule } from './claim request/claim-request.module';
 import { NotificationModule } from './notifications/notifications.module';
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { NotificationModule } from './notifications/notifications.module';
     BusinessAccessibleFeatureModule,
     BusinessImagesModule,
     SubscribeModule,
+    ClaimRequestModule,
     NotificationModule,
 
   ],
