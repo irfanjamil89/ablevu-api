@@ -23,12 +23,10 @@ export class BusinessRecomendationsService {
     const business = await this.businessRepo.findOne({
       where: {
         id: dto.businessId,
-        owner: { id: userId },
       },
-      relations: { owner: true },
     });
     if (!business) {
-      throw new ForbiddenException('You cannot modify this business');
+      throw new NotFoundException('Business Not Found');
     }
     const recomendations = this.recomendationsRepo.create({
       business,
