@@ -32,6 +32,7 @@ import { BusinessAccessibleFeatureModule } from './business-accessible-feature/b
 import { BusinessImagesModule } from './business images/business-images.module';
 import { SubscribeModule } from './subscribe/subscribe.module';
 import { NotificationModule } from './notifications/notifications.module';
+import { EmailModule } from './chatbot-email/email.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -75,6 +76,7 @@ import { NotificationModule } from './notifications/notifications.module';
     BusinessImagesModule,
     SubscribeModule,
     NotificationModule,
+    EmailModule,
 
   ],
   controllers: [AppController],
