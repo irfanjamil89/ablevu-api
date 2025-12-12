@@ -32,6 +32,7 @@ import { BusinessAccessibleFeatureModule } from './business-accessible-feature/b
 import { BusinessImagesModule } from './business images/business-images.module';
 import { SubscribeModule } from './subscribe/subscribe.module';
 import { ClaimRequestModule } from './claim request/claim-request.module';
+import { NotificationModule } from './notifications/notifications.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -75,6 +76,7 @@ import { ClaimRequestModule } from './claim request/claim-request.module';
     BusinessImagesModule,
     SubscribeModule,
     ClaimRequestModule,
+    NotificationModule,
 
   ],
   controllers: [AppController],
