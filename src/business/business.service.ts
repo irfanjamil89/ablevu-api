@@ -675,8 +675,13 @@ export class BusinessService {
     }
     business.business_status = dto.business_status;
     await this.businessRepo.save(business);
+    this.notificationService.notifyBusinessStatusUpdated({
+    businessId: business.id,
+    businessName: business.name,
+    triggeredBy: userId,
+    newStatus: dto.business_status
+});
   }
-
   async getBusinessProfile(id: string, currentUser?: any) {
     const business = await this.businessRepo.findOne({ where: { id } });
 
