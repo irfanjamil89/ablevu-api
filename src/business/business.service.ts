@@ -690,7 +690,8 @@ export class BusinessService {
   const businessWithUpdatedViews = {
     ...business,
     views: (business.views ?? 0) + 1,
-  };
+
+  }; 
 
   const [
     linkedTypes,

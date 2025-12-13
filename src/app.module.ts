@@ -34,6 +34,7 @@ import { SubscribeModule } from './subscribe/subscribe.module';
 import { ClaimRequestModule } from './claim request/claim-request.module';
 import { NotificationModule } from './notifications/notifications.module';
 import { EmailModule } from './chatbot-email/email.module';
+import { BusinessSaveModule } from './business save/business-save.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -79,7 +80,7 @@ import { EmailModule } from './chatbot-email/email.module';
     ClaimRequestModule,
     NotificationModule,
     EmailModule,
-
+    BusinessSaveModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
