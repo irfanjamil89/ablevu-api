@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from '../entity/notifications.entity';
 import { User } from '../entity/user.entity';
 import { sendMail } from '../shared/mailer';
+import { Business } from '../entity/business.entity';
 
 @Injectable()
 export class NotificationService {
@@ -13,9 +14,15 @@ export class NotificationService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
   ) { }
 
-  private buildBusinessCreatedEmail(businessName: string) {
+  private buildEmail(
+    heading: string,
+    bodyHtml: string,
+  ) {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -63,7 +70,7 @@ export class NotificationService {
       <img src="https://ablevu-webapp.vercel.app/assets/images/logo.png" alt="Able Vu Logo" class="logo">
     </td>
     <td valign="middle" style="padding-left:20px; font-size:28px; font-weight:bold; color:black;">
-      Able Vu
+      AbleVu
     </td>
   </tr>
 </table>
@@ -72,13 +79,8 @@ export class NotificationService {
 
         <!-- Main Content -->
         <div class="main-content">
-            <div class="main-heading">New Business Created</div>
-            <div class="main-text">
-                A new business <strong>${businessName}</strong> has been successfully created in the Able Vu system.
-            </div>
-            <div class="main-text">
-                This business is now available for review and management within your admin dashboard. Please check its details and update any necessary information to ensure smooth operation.
-            </div>
+            <div class="main-heading">${heading}</div>
+                ${bodyHtml}
         </div>
 
         <!-- Social Icons -->
@@ -186,38 +188,149 @@ export class NotificationService {
     );
 
 
-  if (adminEmails.length > 0) {
-  const emailHTML = this.buildBusinessCreatedEmail(businessName);
+    if (adminEmails.length > 0) {
+      const heading = `New Business Created`;
+      const bodyHtml = `
+    <div class="main-text">
+      A new business <strong>${businessName}</strong> has been successfully created in the Able Vu system.
+    </div>
+    <div class="main-text">
+      This business is now available for review and management within your admin dashboard.
+      Please check its details and update any necessary information to ensure smooth operation.
+    </div>
+  `;
 
-  this.createEmailNotification(
-    adminEmails,
-    emailHTML,
-    `New Business Created: ${businessName}`,
-    createdBy,
-  ).catch(err => console.error("Error sending emails:", err));
-}
+      const emailHTML = this.buildEmail(heading, bodyHtml);
+      this.createEmailNotification(
+        adminEmails,
+        emailHTML,
+        `New Business Created: ${businessName}`,
+        createdBy,
+      ).catch(err => console.error("Error sending emails:", err));
+    }
 
     return { success: true };
   }
 
-  async getNotifications(userId: string) {
-     const notifications = await this.notificationRepo.find({
-    where: {
-      created_by: userId,
-      read: false,
-      feedbacktype: 'onsite'
-    },
-    order: { created_at: 'DESC' }
-  });
-  return notifications.map(n => ({
-    id: n.id,
-    content: n.content,
-    meta: n.meta ? JSON.parse(n.meta) : null 
-  }));
+  async notifyBusinessStatusUpdated(payload: {
+    businessId: string;
+    businessName: string;
+    triggeredBy: string;
+    newStatus: string;
+  }) {
+    const { businessId, businessName, triggeredBy, newStatus } = payload;
+    const actor = await this.userRepo.findOne({ where: { id: triggeredBy } });
+
+    if (!actor) {
+      throw new Error("User triggering the action not found");
+    }
+    if (actor.user_role === 'Business' && newStatus === 'pending approved') {
+      const admins = await this.userRepo.find({
+        where: { user_role: 'Admin' },
+        select: ['email', 'id'],
+      });
+
+      const adminEmails = admins
+        .map(a => a.email)
+        .filter((email): email is string => !!email);
+
+      for (const admin of admins) {
+        await this.createPullNotification(
+          `Business "${businessName}" is pending approval`,
+          admin.id,
+          JSON.stringify({
+            type: 'business-status',
+            status: newStatus,
+            businessId,
+          }),
+        );
+      }
+      if (adminEmails.length > 0) {
+        const heading = 'Business Pending Approval';
+        const bodyHtml = `
+        <div class="main-text">
+          The business <strong>${businessName}</strong> has been submitted for approval.
+        </div>
+        <div class="main-text">
+          Please review the business details and take the necessary action from the admin dashboard.
+        </div>
+      `;
+
+        const emailHTML = this.buildEmail(heading, bodyHtml);
+
+        await this.createEmailNotification(
+          adminEmails,
+          emailHTML,
+          `Business Pending Approval: ${businessName}`,
+          triggeredBy,
+        );
+      }
+      return { success: true };
+    }
+    if (actor.user_role === 'Admin' && newStatus === 'approved') {
+
+      const business = await this.businessRepo.findOne({
+        where: { id: businessId },
+        relations: ['owner'],
+      });
+
+      if (!business?.owner?.id) {
+        return { success: false, message: 'Business owner not found' };
+      }
+      const businessOwnerId = business?.owner.id;
+
+      await this.createPullNotification(
+        `Your business "${businessName}" has been approved`,
+        businessOwnerId,
+        JSON.stringify({ type: 'business-status', status: newStatus, id: businessId }),
+      );
+
+      const businessOwner = await this.userRepo.findOne({
+        where: { id: businessOwnerId },
+        select: ['email'],
+      });
+
+      if (businessOwner?.email) {
+        const heading = 'Business Approved';
+        const bodyHtml = `
+      <div class="main-text">
+        Congratulations! Your business <strong>${businessName}</strong> has been approved.
+      </div>
+      <div class="main-text">
+        Your business is now live and visible on the platform.
+      </div>
+    `;
+
+        const emailHTML = this.buildEmail(heading, bodyHtml);
+        await this.createEmailNotification(
+          [businessOwner.email],
+          emailHTML,
+          `Business Approved: ${businessName}`,
+          actor.id,
+        );
+      } 
+      return { success: true };
+    }
   }
+
+  async getNotifications(userId: string) {
+        const notifications = await this.notificationRepo.find({
+          where: {
+            created_by: userId,
+            read: false,
+            feedbacktype: 'onsite'
+          },
+          order: { created_at: 'DESC' }
+        });
+        return notifications.map(n => ({
+          id: n.id,
+          content: n.content,
+          meta: n.meta ? JSON.parse(n.meta) : null
+        }));
+      }
 
   async markAsRead(id: string) {
-    return this.notificationRepo.update(id, { read: true });
-  }
+        return this.notificationRepo.update(id, { read: true });
+      }
 
-}
+    }
