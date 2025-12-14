@@ -241,7 +241,7 @@ export class NotificationService {
           JSON.stringify({
             type: 'business-status',
             status: newStatus,
-            businessId,
+            id: businessId,
           }),
         );
       }
