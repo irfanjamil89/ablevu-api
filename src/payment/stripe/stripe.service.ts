@@ -38,4 +38,27 @@ export class StripeService {
       process.env.STRIPE_WEBHOOK_SECRET!,
     );
   }
+
+  async createConnectedAccount(userId: string, email?: string) {
+    const account = await this.stripe.accounts.create({
+      type: "express",
+      email,
+      metadata: { userId },
+      // country: "US", // set if you know it (recommended)
+    });
+
+    return account; // contains account.id (acct_...)
+  }
+
+  async createOnboardingLink(accountId: string) {
+  const link = await this.stripe.accountLinks.create({
+    account: accountId,
+    type: "account_onboarding",
+    refresh_url: `${process.env.CLIENT_URL}/seller/onboarding/refresh`,
+    return_url: `${process.env.CLIENT_URL}/seller/onboarding/return`,
+  });
+
+  return link.url;
+}
+
 }

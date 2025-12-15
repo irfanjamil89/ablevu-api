@@ -1,6 +1,7 @@
 // stripe.controller.ts
 import { Body, Controller, Post } from '@nestjs/common';
 import { StripeService } from './stripe.service';
+import { use } from 'passport';
 
 @Controller('stripe')
 export class StripeController {
@@ -17,4 +18,16 @@ export class StripeController {
       items: body.items,
     });
   }
+
+   @Post("create-account")
+  async createAccount(@Body() body: { userId: string; email?: string }) {
+    console.log('Created Stripe Account:'+body.email);
+    const acct = await this.stripe.createConnectedAccount(body.userId, body.email);
+    // TODO: save acct.id to Mongo against userId
+console.log('Created Stripe Account:', acct.id);
+     const url = await this.stripe.createOnboardingLink(acct.id );
+    return { url };
+  }
+
+  
 }
