@@ -47,6 +47,8 @@ async function bootstrap() {
     exposedHeaders: ['Content-Disposition'], // e.g., for file downloads
     maxAge: 600,                    // cache preflight (seconds)
   });
+
+  app.use('/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
   app.use(bodyParser.json({ limit: '5mb' }));
   await app.listen(process.env.PORT ?? 3006);
 }

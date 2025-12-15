@@ -87,6 +87,11 @@ SMTP_USER=levelupsolution911@gmail.com
 SMTP_PASS=yhbkowglaxmcrrvx
 APP_URL=http://localhost:3000/reset-password
 
+## Stripe
+STRIPE_SECRET_KEY=sk_test_51Laj2MBp1KPY5YeIh7wfZYgKf7BGV8thmWPu2ElRAFviYB7bW42sqYuqSijegBL9QHFbzHSIZavijec0EJ33svbV00meWCFMik
+STRIPE_WEBHOOK_SECRET=whsec_...
+CLIENT_URL=http://localhost:3000
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

@@ -35,6 +35,8 @@ import { ClaimRequestModule } from './claim request/claim-request.module';
 import { NotificationModule } from './notifications/notifications.module';
 import { EmailModule } from './chatbot-email/email.module';
 import { BusinessSaveModule } from './business save/business-save.module';
+import { PaymentModule } from './payment/payment.module';
+import { StripeService } from './payment/stripe/stripe.service';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -81,6 +83,7 @@ import { BusinessSaveModule } from './business save/business-save.module';
     NotificationModule,
     EmailModule,
     BusinessSaveModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
