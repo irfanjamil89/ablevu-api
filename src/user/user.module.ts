@@ -11,9 +11,10 @@ import { Business } from 'src/entity/business.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { AccessibleCity } from 'src/entity/accessible_city.entity';
+import { NotificationModule } from "src/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([User, Business, BusinessImages, Partner, AccessibleCity])],
+    imports: [TypeOrmModule.forFeature([User, Business, BusinessImages, Partner, AccessibleCity]),NotificationModule],
     controllers: [UserController,ImagesController],
     providers: [AppService,UsersService,S3Service,{
       provide: S3Client,

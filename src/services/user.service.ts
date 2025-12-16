@@ -7,6 +7,7 @@ import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from "src/user/dto/update-profile.dto";
 import { UpdatePasswordDto } from "src/user/update-password.dto";
+import { NotificationService } from 'src/notifications/notifications.service';
 
 export enum UserRole {
   ADMIN = 'Admin',
@@ -20,6 +21,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+
+     private readonly notificationService: NotificationService,
   ) { }
 
   async findOneById(id: string): Promise<User | null> {
@@ -80,6 +83,15 @@ console.log(dto);
 
 console.log(user);
     const saved = await this.usersRepository.save(user);
+    try {
+      if (!saved.email || !saved.first_name) {
+        console.error('No email found for user, cannot send welcome email.');
+      } else {
+      await this.notificationService.sendWelcomeEmail(saved.email, saved.first_name, saved.id);
+      }
+    } catch (err) {
+      console.error('Error sending welcome email:', err);
+    }
 
 
     return {

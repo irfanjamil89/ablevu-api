@@ -43,11 +43,13 @@ export class BusinessQuestionsController{
         }
     
     @Get('list')
+    @UseGuards(JwtAuthGuard)
     async listpaginated(
         @Query('page') page='1',
         @Query('limit') limit='10',
         @Query('businessId') businessId: string,
         @Query('active') active: string,
+        @UserSession() user : any,
 
     ){
     const activeBool =
@@ -59,6 +61,8 @@ export class BusinessQuestionsController{
         {
             businessId,
             active: activeBool,
+            userId: user.id,
+            userRole: user.user_role,
         }
       )
     }

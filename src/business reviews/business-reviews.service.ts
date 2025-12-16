@@ -6,6 +6,9 @@ import { CreateBusinessReviewsDto } from './create-business-reviews.dto';
 import { UpdateBusinessReviewsDto } from './update-business-reviews.dto';
 import { Business } from 'src/entity/business.entity';
 import { ReviewType } from 'src/entity/review_type.entity';
+import { In } from 'typeorm';
+import { User } from 'src/entity/user.entity';
+import { profile } from 'console';
 
 type ReviewListFilters = {
   businessId?: string;
@@ -25,6 +28,9 @@ export class BusinessReviewsService {
 
     @InjectRepository(ReviewType)
     private readonly reviewTypeRepo: Repository<ReviewType>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) { }
 
   async createBusinessReviews(userId: string, dto: CreateBusinessReviewsDto) {
@@ -109,8 +115,9 @@ export class BusinessReviewsService {
   async listPaginated(
     page = 1,
     limit = 10,
-    filters: ReviewListFilters = {},
+    filters: { businessId?: string; reviewTypeId?: string; approved?: boolean | undefined; active?: boolean | undefined; search?: string; userId: string; userRole: string },
   ) {
+    const { businessId, reviewTypeId, approved, active, search, userId, userRole } = filters;
     const qb = this.reviewRepo
       .createQueryBuilder('r')
       .take(limit)
@@ -133,11 +140,69 @@ export class BusinessReviewsService {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       qb.andWhere('LOWER(r.description) LIKE :searchTerm', { searchTerm });
     }
+    if (userRole === 'User' || userRole === 'Contributor') {
+      qb.andWhere('r.created_by = :userId', { userId });
+    }
+    if (userRole === 'Business') {
+      const businesses = await this.businessRepo.find({
+        where: { owner: { id: userId } },
+        select: ['id'],
+      });
+      const businessIds = businesses.map((b) => b.id);
+      if (!businessIds.length) {
+        return {
+          data: [],
+          meta: {
+            total: 0,
+            page,
+            limit,
+            pageCount: 1,
+          },
+        };
+      }
 
+      qb.andWhere('r.business_id IN (:...businessIds)', { businessIds });
+    }
     const [items, total] = await qb.getManyAndCount();
+    const reviewTypeIds = Array.from(new Set(items.map(q => q.review_type_id)));
+    const reviewTypes = await this.reviewTypeRepo.find({
+      where: { id: In(reviewTypeIds) },
+      select: ['id', 'title',],
+    });
+    const businessIds = Array.from(new Set(items.map(q => q.business_id)));
+        const businesses = await this.businessRepo.find({
+          where: { id: In(businessIds) },
+          select: ['id', 'name', 'logo_url'],
+        });
+        const itemsWithNames = await Promise.all(
+      items.map(async (q) => {
+        let createdByName: string | null = null;
+            let userAvatar: string | null = null;   
+          const user = await this.userRepo.findOne({
+            where: { id: q.created_by },
+            select: ['id', 'first_name', 'last_name', 'profile_picture_url'],
+          });
+
+          if (user) {
+            createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+            userAvatar = user.profile_picture_url ?? null;
+          }
+        const business = businesses.find(b => b.id === q.business_id);
+        const reviewType = reviewTypes.find(rt => rt.id === q.review_type_id);
+        return {
+          ...q,
+          created_by_name: createdByName,
+          user_avatar: userAvatar,
+          business_name: business?.name ?? null,
+          business_logo: business?.logo_url ?? null,
+          review_type_title: reviewType?.title ?? null,
+        };
+      })
+    );
+
 
     return {
-      data: items,
+      data: itemsWithNames,
       meta: {
         total,
         page,
