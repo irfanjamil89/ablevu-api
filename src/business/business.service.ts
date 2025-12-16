@@ -775,61 +775,6 @@ export class BusinessService {
     };
   }
 
-  await this.businessRepo.increment({ id }, 'views', 1);
-
-  const businessWithUpdatedViews = {
-    ...business,
-    views: (business.views ?? 0) + 1,
-
-  }; 
-
-  const [
-    linkedTypes,
-    accessibilityFeatures,
-    virtualTours,
-    businessreviews,
-    businessQuestions,
-    businessPartners,
-    businessCustomSections,
-    businessMedia,
-    businessSchedule,
-    businessRecomendations,
-    additionalaccessibilityresources,
-    businessImages,
-  ] = await Promise.all([
-    this.linkedrepo.find({ where: { business_id: business.id } }),
-    this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
-    this.virtualTourRepo.find({
-      where: { business: { id: business.id } },
-      order: { display_order: 'ASC' },
-    }),
-    this.businessreviews.find({ where: { business_id: business.id } }),
-    this.businessquestionrepo.find({ where: { business_id: business.id } }),
-    this.businessPartnerrepo.find({ where: { business_id: business.id } }),
-    this.customSectionsrepo.find({ where: { business_id: business.id } }),
-    this.mediaRepo.find({ where: { business_id: business.id } }),
-    this.scheduleRepo.find({ where: { business: { id: business.id } } }),
-    this.recomendationRepo.find({ where: { business: { id: business.id } } }),
-    this.resourcesrepo.find({ where: { business_id: business.id } }),
-    this.imagesRepo.find({ where: { business_id: business.id } }),
-  ]);
-
-  return {
-    ...businessWithUpdatedViews,
-    linkedTypes,
-    accessibilityFeatures,
-    virtualTours,
-    businessreviews,
-    businessQuestions,
-    businessPartners,
-    businessCustomSections,
-    businessMedia,
-    businessSchedule,
-    businessRecomendations,
-    additionalaccessibilityresources,
-    businessImages,
-  };
-}
   async findByExternalId(externalId: string): Promise<Business | null> {
     return this.businessRepo.findOne({ where: { external_id: externalId } });
   }
