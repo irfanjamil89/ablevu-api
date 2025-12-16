@@ -683,7 +683,9 @@ export class BusinessService {
 });
   }
   async getBusinessProfile(id: string, currentUser?: any) {
-    const business = await this.businessRepo.findOne({ where: { id } });
+    const business = await this.businessRepo.findOne({ where: { id },
+    relations: ['owner']
+    });
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -719,14 +721,42 @@ export class BusinessService {
       this.resourcesrepo.find({ where: { business_id: business.id } }),
       this.imagesRepo.find({ where: { business_id: business.id } }),
     ]);
+    const businessQuestionsWithNames = await Promise.all(
+  businessQuestions.map(async (q) => {
+    let createdByName: string | null = null;
+    if (q.show_name) {
+      const user = await this.userRepo.findOne({
+        where: { id: q.created_by },
+        select: ['first_name', 'last_name'],
+      });
+      if (user) {
+        createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+      }
+    }
+    return { ...q, created_by_name: createdByName };
+  }),
+);
+   const businessReviewsWithNames = await Promise.all(
+  businessreviews.map(async (r) => {
+    let createdByName: string | null = null;
+    const user = await this.userRepo.findOne({
+      where: { id: r.created_by },
+      select: ['first_name', 'last_name'],
+    });
+    if (user) {
+      createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    }
+    return { ...r, created_by_name: createdByName };
+  })
+);
 
     return {
       ...business,
       linkedTypes,
       accessibilityFeatures,
       virtualTours,
-      businessreviews,
-      businessQuestions,
+      businessreviews: businessReviewsWithNames,
+      businessQuestions: businessQuestionsWithNames,
       businessPartners,
       businessCustomSections,
       businessMedia,

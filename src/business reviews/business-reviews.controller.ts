@@ -44,9 +44,11 @@ export class BusinessReviewsController{
           }
 
   @Get('list')
+  @UseGuards(JwtAuthGuard)
   async listPaginated(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+     @UserSession() user : any,
     @Query('businessId') businessId?: string,
     @Query('reviewTypeId') reviewTypeId?: string,
     @Query('approved') approved?: string,
@@ -65,6 +67,8 @@ export class BusinessReviewsController{
         approved: toBool(approved),
         active: toBool(active),
         search,
+        userId: user.id,
+        userRole: user.user_role,
       },
     );
   }
