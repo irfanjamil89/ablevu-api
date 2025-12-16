@@ -7,7 +7,7 @@ export class CreateRecomendationsDto {
     businessId: string;
 
    @IsString()
-   @IsNotEmpty()
+   @IsOptional()
    label: string;
 
     @IsBoolean()

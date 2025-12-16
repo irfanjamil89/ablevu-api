@@ -1,7 +1,7 @@
 // business-accessible-feature.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 import { CreateBusinessAccessibleFeatureDto } from './create-business-accessible-feature.dto';
 import { UpdateBusinessAccessibleFeatureDto } from './update-business-accessible-feature.dto';
@@ -13,27 +13,46 @@ export class BusinessAccessibleFeatureService {
     private readonly repo: Repository<BusinessAccessibleFeature>,
   ) {}
 
-  // userId token se ayega (jaise baqi services me)
   async create(userId: string, dto: CreateBusinessAccessibleFeatureDto) {
-    const { business_id, accessible_feature_ids, optional_answer } = dto;
+  const { business_id, accessible_feature_ids, optional_answer } = dto;
 
-    const rows = accessible_feature_ids.map((featureId) =>
-      this.repo.create({
-        business_id,
-        accessible_feature_id: featureId,
-        optional_answer: optional_answer || null,
-        active: true,
-        created_by: userId,
-        modified_by: userId,
-      }),
+  // 🔹 same ID bar-bar aa jaye to bhi handle ho jaye
+  const uniqueFeatureIds = Array.from(new Set(accessible_feature_ids));
+
+  // 🔹 check karo ke in IDs me se koi pehle se is business ke sath added to nahi
+  const alreadyExisting = await this.repo.find({
+    where: {
+      business_id: business_id,
+      accessible_feature_id: In(uniqueFeatureIds),
+    },
+  });
+
+  if (alreadyExisting.length > 0) {
+    // agar even 1 bhi mila to error throw karo
+    throw new BadRequestException(
+      'This accessibility feature is already added',
     );
-
-    await this.repo.save(rows);
-
-    return {
-      message: 'Accessibility features added successfully',
-    };
   }
+
+  // 🔹 sirf NEW rows create karo
+  const rows = uniqueFeatureIds.map((featureId) =>
+    this.repo.create({
+      business_id,
+      accessible_feature_id: featureId,
+      optional_answer: optional_answer || null,
+      active: true,
+      created_by: userId,
+      modified_by: userId,
+    }),
+  );
+
+  await this.repo.save(rows);
+
+  return {
+    message: 'Accessibility features added successfully',
+  };
+}
+
 
   async update(
   id: string,
