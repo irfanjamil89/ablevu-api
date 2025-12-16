@@ -38,7 +38,6 @@ export class NotificationService {
         a { text-decoration: none; }
 
         /* Header */
-        .header-bg { background: linear-gradient(90deg, #0072ce, #00b386, #ff6600); padding: 40px 0; text-align: center; }
         .header-container { display: inline-flex; align-items: center; background-color: #e5e5e5; padding: 15px 30px; border-radius: 10px; }
         .logo { display: block; width: 150px; height: auto; margin-right: 20px; }
         .header-text { font-size: 28px; font-weight: bold; color: black; }
@@ -311,6 +310,45 @@ export class NotificationService {
       } 
       return { success: true };
     }
+  }
+
+  async sendWelcomeEmail(email: string, firstName: string, createdBy: string) {  
+    const heading = `Welcome to Able Vu, ${firstName}!`;
+    const bodyHtml = `
+  <div class="main-text">
+    Hi <strong>${firstName}</strong>,
+  </div>
+
+  <div class="main-text">
+    Welcome to <strong>AbleVu</strong>! We’re excited to have you on board.
+  </div>
+
+  <div class="main-text">
+    AbleVu helps you explore businesses with accessibility in mind — from facilities and features to real user experiences.
+    You can browse businesses, ask questions, leave reviews, and help others make informed decisions.
+  </div>
+
+  <div class="main-text">
+    To get started, log in to your account and explore businesses around you.
+  </div>
+
+  <div class="main-text">
+    If you have any questions or need help, our Help Center is always available.
+  </div>
+
+  <div class="main-text">
+    We’re glad to have you with us!<br/>
+    <strong>The AbleVu Team</strong>
+  </div>
+`;
+    const emailHTML = this.buildEmail(heading, bodyHtml);
+    await this.createEmailNotification(
+      [email],
+      emailHTML,
+      'Welcome to Able Vu!',
+      createdBy,
+    );
+    return { success: true };
   }
 
   async getNotifications(userId: string) {

@@ -30,9 +30,10 @@ import { Claims } from 'src/entity/claims.entity';
 import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { BusinessModule } from 'src/business/business.module';
+import { NotificationModule } from 'src/notifications/notifications.module';
 @Module({
   imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages]),
-GoogleMapsModule, BusinessModule,
+GoogleMapsModule, BusinessModule, NotificationModule
 ],
   controllers: [SyncbubbleController],
    providers: [SyncService,UsersService,AccessibleFeatureService,BusinessTypeService],
