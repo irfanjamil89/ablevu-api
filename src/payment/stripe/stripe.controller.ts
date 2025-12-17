@@ -29,5 +29,16 @@ console.log('Created Stripe Account:', acct.id);
     return { url };
   }
 
+  @Post("subscription/checkout")
+  create(@Body() body: { userId: string; customerEmail: string; priceId: string }) {
+    return this.stripe.createSubscriptionCheckoutSession({
+      userId: body.userId,
+      customerEmail: body.customerEmail,
+      priceId: body.priceId,
+      successUrl: `${process.env.CLIENT_URL}/checkout/success`,
+      cancelUrl: `${process.env.CLIENT_URL}/checkout/cancel`,
+    });
+  }
+
   
 }

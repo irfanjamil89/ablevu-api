@@ -61,4 +61,39 @@ export class StripeService {
   return link.url;
 }
 
+ async createSubscriptionCheckoutSession(input: {
+    userId: string;
+    customerEmail: string;
+    priceId: string;          // price_...
+    successUrl: string;
+    cancelUrl: string;
+  }) {
+    // 1) Create customer (or lookup & reuse in your DB)
+    const customer = await this.stripe.customers.create({
+      email: input.customerEmail,
+      metadata: { userId: input.userId },
+    });
+
+    // 2) Create Checkout session in subscription mode
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customer.id,
+      line_items: [{ price: input.priceId, quantity: 1 }],
+
+      // Optional: let users enter promo codes
+      allow_promotion_codes: true,
+
+      success_url: input.successUrl + "?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: input.cancelUrl,
+
+      metadata: { userId: input.userId },
+    });
+
+    return {
+      url: session.url,
+      sessionId: session.id,
+      customerId: customer.id,
+    };
+  }
+
 }
