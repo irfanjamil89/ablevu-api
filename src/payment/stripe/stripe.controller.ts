@@ -1,6 +1,9 @@
 // stripe.controller.ts
 import { Body, Controller, Post } from '@nestjs/common';
 import { StripeService } from './stripe.service';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { UserSession } from 'src/auth/user.decorator';
 import { use } from 'passport';
 
 @Controller('stripe')
@@ -8,14 +11,11 @@ export class StripeController {
   constructor(private readonly stripe: StripeService) {}
 
   @Post('checkout')
-  async checkout(@Body() body: any) {
-    // IMPORTANT: in production, DO NOT trust unitAmount from client
-    // Look up items/prices from DB instead.
-    console.log('Checkout body:', body);
-    return this.stripe.createCheckoutSession({
-      orderId: body.orderId,
-      userId: body.userId,
-      items: body.items,
+  @UseGuards(JwtAuthGuard)
+  async checkout(@UserSession() user: any, @Body() body: { batch_id: string }) {
+    return this.stripe.createCheckoutSessionFromBatch({
+      userId: user.id,
+      batchId: body.batch_id,
     });
   }
 
