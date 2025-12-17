@@ -37,6 +37,7 @@ import { EmailModule } from './chatbot-email/email.module';
 import { BusinessSaveModule } from './business save/business-save.module';
 import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './payment/stripe/stripe.service';
+import { BusinessClaimCartModule } from './business-claim-cart/business-claim-cart.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -84,6 +85,7 @@ import { StripeService } from './payment/stripe/stripe.service';
     EmailModule,
     BusinessSaveModule,
     PaymentModule,
+    BusinessClaimCartModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
