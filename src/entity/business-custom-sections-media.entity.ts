@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-@Entity()
+@Entity('business_custom_section_media')
 export class BusinessCustomSectionsMedia{
 
     @PrimaryGeneratedColumn('uuid')

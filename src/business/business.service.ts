@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Business } from 'src/entity/business.entity';
@@ -22,6 +22,7 @@ import { GoogleMapsService } from 'src/google-maps/google-maps.service';
 import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { NotificationService } from 'src/notifications/notifications.service';
+import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
 
 type ListFilters = {
   search?: string;
@@ -85,6 +86,9 @@ export class BusinessService {
 
     @InjectRepository(AdditionalResource)
     private readonly resourcesrepo: Repository<AdditionalResource>,
+
+    @InjectRepository(BusinessCustomSectionsMedia)
+    private readonly customSectionsMediaRepo: Repository<BusinessCustomSectionsMedia>,
 
     @InjectRepository(BusinessImages)
     private readonly imagesRepo: Repository<BusinessImages>,
@@ -707,6 +711,7 @@ export class BusinessService {
       businessQuestions,
       businessPartners,
       businessCustomSections,
+      businessCustomSectionsMedia,
       businessMedia,
       businessSchedule,
       businessRecomendations,
@@ -723,6 +728,7 @@ export class BusinessService {
       this.businessquestionrepo.find({ where: { business_id: business.id } }),
       this.businessPartnerrepo.find({ where: { business_id: business.id } }),
       this.customSectionsrepo.find({ where: { business_id: business.id } }),
+      this.customSectionsMediaRepo.find({ where: { business_id: business.id } }),
       this.mediaRepo.find({ where: { business_id: business.id } }),
       this.scheduleRepo.find({ where: { business: { id: business.id } } }),
       this.recomendationRepo.find({ where: { business: { id: business.id } } }),
@@ -767,6 +773,7 @@ export class BusinessService {
       businessQuestions: businessQuestionsWithNames,
       businessPartners,
       businessCustomSections,
+      businessCustomSectionsMedia,
       businessMedia,
       businessSchedule,
       businessRecomendations,
