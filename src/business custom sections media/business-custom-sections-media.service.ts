@@ -22,6 +22,7 @@ export class BusinessCustomSectionsMediaService {
             business_custom_section_id: dto.business_custom_section_id,
             label: dto.label,
             link: dto.link,
+            description: dto.description,
             active: dto.active,
             created_by: userId,
             modified_by: userId,
@@ -37,6 +38,7 @@ export class BusinessCustomSectionsMediaService {
             business_custom_section_id: dto.business_custom_section_id ?? customSectionMedia.business_custom_section_id,
             label: dto.label ?? customSectionMedia.label,
             link: dto.link ?? customSectionMedia.link,
+            description:dto.description ?? customSectionMedia.description,
             active: dto.active ?? customSectionMedia.active,
             modified_by: userId,
         });

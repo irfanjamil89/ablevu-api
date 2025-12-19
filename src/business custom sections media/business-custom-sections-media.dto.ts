@@ -17,6 +17,9 @@ export class BusinessCustomSectionsMediaDto{
         @IsString()
         link: string;
 
+        @IsString()
+        description:string;
+
         @IsOptional()
         @IsBoolean()
         active: boolean;

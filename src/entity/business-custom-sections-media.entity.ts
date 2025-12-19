@@ -19,6 +19,9 @@ export class BusinessCustomSectionsMedia{
     link: string;
 
     @Column()
+    description:string;
+
+    @Column()
     active: boolean;
 
     @Column()
