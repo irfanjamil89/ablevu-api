@@ -40,5 +40,5 @@ console.log('Created Stripe Account:', acct.id);
     });
   }
 
-  
+   
 }

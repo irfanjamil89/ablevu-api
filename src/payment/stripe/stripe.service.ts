@@ -18,56 +18,62 @@ export class StripeService {
   ) {}
 
   async createCheckoutSessionFromBatch(input: { userId: string; batchId: string }) {
-    if (!input.batchId) throw new BadRequestException('batch_id is required');
+  if (!input.batchId) throw new BadRequestException('batch_id is required');
 
-    // 1) cart rows (pending) fetch
-    const rows = await this.cartRepo.find({
-      where: { user_id: input.userId, batch_id: input.batchId, status: 'pending' as any },
-      order: { created_at: 'DESC' as any },
-    });
+  // 1) cart rows (pending) fetch
+  const rows = await this.cartRepo.find({
+    where: { user_id: input.userId, batch_id: input.batchId, status: 'pending' as any },
+    order: { created_at: 'DESC' as any },
+  });
 
-    if (!rows.length) {
-      throw new BadRequestException('No pending cart items found for this batch');
-    }
-
-    // 2) total calculate (server-side)
-    const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    if (total <= 0) throw new BadRequestException('Invalid total amount');
-
-    // 3) create payment row (pending)
-    const savedPayment = await this.paymentService.createPending({
-      user_id: input.userId,
-      batch_id: input.batchId,
-      amount: total,
-    });
-
-    // 4) Stripe amount must be in cents
-    const amountInCents = Math.round(total * 100);
-
-    const session = await this.stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: { name: `Business Claim (Batch ${input.batchId})` },
-            unit_amount: amountInCents,
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/cancel`,
-      metadata: {
-        batch_id: input.batchId,
-        user_id: input.userId,
-        payment_id: savedPayment.id,
-      },
-    });
-
-    return { url: session.url, id: session.id, payment_id: savedPayment.id };
+  if (!rows.length) {
+    throw new BadRequestException('No pending cart items found for this batch');
   }
+
+  // 2) total calculate (server-side)
+  const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  if (total <= 0) throw new BadRequestException('Invalid total amount');
+
+  // 3) create payment row (pending)
+  const savedPayment = await this.paymentService.createPending({
+    user_id: input.userId,
+    batch_id: input.batchId,
+    amount: total,
+  });
+
+  // 4) Stripe amount must be in cents
+  const amountInCents = Math.round(total * 100);
+
+  const session = await this.stripe.checkout.sessions.create({
+    mode: 'payment',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: { name: `Business Claim (Batch ${input.batchId})` },
+          unit_amount: amountInCents,
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.CLIENT_URL}/cancel`,
+    metadata: {
+      batch_id: input.batchId,
+      user_id: input.userId,
+      payment_id: savedPayment.id,
+    },
+  });
+
+  // ✅ 5) NOW mark cart items as processed (so cart only shows pending)
+  await this.cartRepo.update(
+    { user_id: input.userId, batch_id: input.batchId, status: 'pending' as any },
+    { status: 'processed' as any }
+  );
+
+  return { url: session.url, id: session.id, payment_id: savedPayment.id };
+}
 
   constructEvent(rawBody: Buffer, signature: string) {
     return this.stripe.webhooks.constructEvent(
