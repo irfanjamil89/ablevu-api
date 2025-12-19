@@ -38,6 +38,7 @@ import { BusinessSaveModule } from './business save/business-save.module';
 import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './payment/stripe/stripe.service';
 import { BusinessClaimCartModule } from './business-claim-cart/business-claim-cart.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -86,6 +87,7 @@ import { BusinessClaimCartModule } from './business-claim-cart/business-claim-ca
     BusinessSaveModule,
     PaymentModule,
     BusinessClaimCartModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
