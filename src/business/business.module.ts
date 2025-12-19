@@ -11,6 +11,7 @@ import { BusinessReviews } from "src/entity/business_reviews.entity";
 import { BusinessQuestions } from "src/entity/business-questions.entity";
 import { BusinessPartners } from "src/entity/business_partners.entity";
 import { BusinessCustomSections } from "src/entity/business_custom_sections.entity";
+import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
 import { BusinessMedia } from "src/entity/business_media.entity";
 import { BusinessSchedule } from "src/entity/business_schedule.entity";
 import { AccessibleCity } from "src/entity/accessible_city.entity";
@@ -21,7 +22,7 @@ import { BusinessImages } from "src/entity/business_images.entity";
 import { NotificationModule } from "src/notifications/notifications.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations, AdditionalResource, BusinessImages]),
+    imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations, AdditionalResource, BusinessImages, BusinessCustomSectionsMedia]),
 GoogleMapsModule, NotificationModule
 ],
     providers: [BusinessService],

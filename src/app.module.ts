@@ -37,6 +37,7 @@ import { EmailModule } from './chatbot-email/email.module';
 import { BusinessSaveModule } from './business save/business-save.module';
 import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './payment/stripe/stripe.service';
+import { BusinessCustomSectionsMediaModule } from './business custom sections media/business-custom-sections-media.module';
 import { BusinessClaimCartModule } from './business-claim-cart/business-claim-cart.module';
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { BusinessClaimCartModule } from './business-claim-cart/business-claim-ca
     EmailModule,
     BusinessSaveModule,
     PaymentModule,
+    BusinessCustomSectionsMediaModule,
     BusinessClaimCartModule,
   ],
   controllers: [AppController],

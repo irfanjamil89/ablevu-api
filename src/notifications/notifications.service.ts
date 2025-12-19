@@ -223,7 +223,7 @@ export class NotificationService {
     if (!actor) {
       throw new Error("User triggering the action not found");
     }
-    if (actor.user_role === 'Business' && newStatus === 'pending approved') {
+    if (actor.user_role === 'Business' && newStatus === 'pending approval') {
       const admins = await this.userRepo.find({
         where: { user_role: 'Admin' },
         select: ['email', 'id'],
@@ -351,6 +351,122 @@ export class NotificationService {
     return { success: true };
   }
 
+  async notifyquestionCreated(businessId: string, question: string, createdBy: string) {
+    const business = await this.businessRepo.findOne({
+      where: { id: businessId },
+      relations: ['owner'],
+    });
+    if (!business?.owner?.id) {
+      return { success: false, message: 'Business owner not found' };
+    }
+    const businessOwnerId = business?.owner.id;
+
+    await this.createPullNotification(
+      `New question for your business "${business.name}": "${question}"`,
+      businessOwnerId,
+      JSON.stringify({ type: 'new-question', id: businessId }),
+    );
+     const businessOwner = await this.userRepo.findOne({
+        where: { id: businessOwnerId },
+        select: ['email'],
+      });
+    if (businessOwner?.email) {
+      const heading = 'New Question Received';
+      const bodyHtml = `
+      <div class="main-text">
+        You have received a new question for your business <strong>${business.name}</strong>:
+      </div>
+      <div class="main-text">
+        Please review and respond to the question.
+      </div>
+    `;
+      const emailHTML = this.buildEmail(heading, bodyHtml);
+      this.createEmailNotification(
+        [businessOwner.email],
+        emailHTML,
+        `New Question for Your Business: ${business.name}`,
+        createdBy,
+      );
+    }
+    return { success: true };
+  }
+
+  async notifyquestionAnswered(businessId: string, answer: string, createdBy: string) {
+    const business = await this.businessRepo.findOne({
+      where: { id: businessId },
+    });
+    if (!business) {
+      return { success: false, message: 'Business not found' };
+    }
+    await this.createPullNotification(
+      `Your question for business "${business.name}" has been answered: "${answer}"`,
+      createdBy,
+      JSON.stringify({ type: 'question-answered', id: businessId }),
+    );
+      const user = await this.userRepo.findOne({
+        where: { id: createdBy },
+        select: ['email'],
+      });
+    if (user?.email) {
+      const heading = 'Your Question Has Been Answered';
+      const bodyHtml = `
+      <div class="main-text">
+        Your question for the business <strong>${business.name}</strong> has been answered
+      </div>
+      <div class="main-text">
+        Please check the answer provided in your dashboard.
+      </div>
+    `;
+      const emailHTML = this.buildEmail(heading, bodyHtml);
+       this.createEmailNotification(
+        [user.email],
+        emailHTML,
+        `Your Question Answered for Business: ${business.name}`,
+        createdBy,
+      );
+    }
+    return { success: true };
+  }
+
+  async notifyreviewCreated(businessId: string, review: string, createdBy: string ){
+     const business = await this.businessRepo.findOne({
+      where: { id: businessId },
+      relations: ['owner'],
+    });
+    if (!business?.owner?.id) {
+      return { success: false, message: 'Business owner not found' };
+    }
+    const businessOwnerId = business?.owner.id;
+
+    await this.createPullNotification(
+      `New review for your business "${business.name}": "${review}"`,
+      businessOwnerId,
+      JSON.stringify({ type: 'new-review', id: businessId }),
+    );
+     const businessOwner = await this.userRepo.findOne({
+        where: { id: businessOwnerId },
+        select: ['email'],
+      });
+    if (businessOwner?.email) {
+       const heading = ' Review Created';
+      const bodyHtml = `
+      <div class="main-text">
+        You have received a new review for your business <strong>${business.name}</strong>:
+      </div>
+      <div class="main-text">
+        Please check it in your dashboard.
+      </div>
+    `;
+    const emailHTML = this.buildEmail(heading, bodyHtml);
+     this.createEmailNotification(
+        [businessOwner.email],
+        emailHTML,
+        `New Review for Your Business: ${business.name}`,
+        createdBy,
+      );
+    }
+    return { success: true };
+  }
   async getNotifications(userId: string) {
         const notifications = await this.notificationRepo.find({
           where: {

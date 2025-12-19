@@ -7,6 +7,7 @@ import { Repository } from "typeorm";
 import { Business } from "src/entity/business.entity";
 import { User } from 'src/entity/user.entity';
 import { In } from "typeorm";
+import { NotificationService } from "src/notifications/notifications.service";
 
 
 @Injectable()
@@ -18,6 +19,8 @@ export class BusinessQuestionsService {
     private readonly businessRepo: Repository<Business>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly notificationService: NotificationService,
 
   ) { }
 
@@ -41,7 +44,12 @@ export class BusinessQuestionsService {
       created_by: userId,
       modified_by: userId,
     });
-
+    try{
+      await this.notificationService.notifyquestionCreated( questions.business_id, questions.question, userId);
+    }
+    catch(err){
+      console.error('Error sending notification:', err);
+    }
     return this.businessquestionsrepo.save(questions);
   }
 
@@ -62,7 +70,12 @@ export class BusinessQuestionsService {
       active: dto.active ?? question.active,
       modifiedBy: userId,
     });
-
+    try{
+      await this.notificationService.notifyquestionAnswered( question.business_id, question.answer, question.created_by);
+    }
+    catch(err){
+      console.error('Error sending notification:', err);
+    }
     return this.businessquestionsrepo.save(question);
   }
 
