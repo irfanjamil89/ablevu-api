@@ -9,6 +9,7 @@ import { ReviewType } from 'src/entity/review_type.entity';
 import { In } from 'typeorm';
 import { User } from 'src/entity/user.entity';
 import { profile } from 'console';
+import { NotificationService } from "src/notifications/notifications.service";
 
 type ReviewListFilters = {
   businessId?: string;
@@ -31,6 +32,8 @@ export class BusinessReviewsService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly notificationService: NotificationService,
   ) { }
 
   async createBusinessReviews(userId: string, dto: CreateBusinessReviewsDto) {
@@ -64,7 +67,12 @@ export class BusinessReviewsService {
       created_by: userId,
       modified_by: userId,
     });
-
+    try{
+      await this.notificationService.notifyreviewCreated(review.business_id, review.description, userId);
+    }
+    catch(err){
+      console.error('Error sending notification:', err);
+    }
     return this.reviewRepo.save(review);
   }
 

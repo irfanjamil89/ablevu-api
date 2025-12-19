@@ -428,6 +428,45 @@ export class NotificationService {
     return { success: true };
   }
 
+  async notifyreviewCreated(businessId: string, review: string, createdBy: string ){
+     const business = await this.businessRepo.findOne({
+      where: { id: businessId },
+      relations: ['owner'],
+    });
+    if (!business?.owner?.id) {
+      return { success: false, message: 'Business owner not found' };
+    }
+    const businessOwnerId = business?.owner.id;
+
+    await this.createPullNotification(
+      `New review for your business "${business.name}": "${review}"`,
+      businessOwnerId,
+      JSON.stringify({ type: 'new-review', id: businessId }),
+    );
+     const businessOwner = await this.userRepo.findOne({
+        where: { id: businessOwnerId },
+        select: ['email'],
+      });
+    if (businessOwner?.email) {
+       const heading = ' Review Created';
+      const bodyHtml = `
+      <div class="main-text">
+        You have received a new review for your business <strong>${business.name}</strong>:
+      </div>
+      <div class="main-text">
+        Please check it in your dashboard.
+      </div>
+    `;
+    const emailHTML = this.buildEmail(heading, bodyHtml);
+     this.createEmailNotification(
+        [businessOwner.email],
+        emailHTML,
+        `New Review for Your Business: ${business.name}`,
+        createdBy,
+      );
+    }
+    return { success: true };
+  }
   async getNotifications(userId: string) {
         const notifications = await this.notificationRepo.find({
           where: {
