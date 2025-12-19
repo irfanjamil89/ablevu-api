@@ -39,6 +39,7 @@ import { PaymentModule } from './payment/payment.module';
 import { StripeService } from './payment/stripe/stripe.service';
 import { BusinessCustomSectionsMediaModule } from './business custom sections media/business-custom-sections-media.module';
 import { BusinessClaimCartModule } from './business-claim-cart/business-claim-cart.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 @Module({
   imports: [
     //  TypeOrmModule.forRoot({
@@ -88,6 +89,7 @@ import { BusinessClaimCartModule } from './business-claim-cart/business-claim-ca
     PaymentModule,
     BusinessCustomSectionsMediaModule,
     BusinessClaimCartModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],

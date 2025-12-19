@@ -7,9 +7,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BusinessClaimCart } from 'src/entity/business_claim_cart.entity';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { Business } from 'src/entity/business.entity';
+import { Subscription } from 'src/entity/subscription.entity';
 
 @Module({
- imports: [TypeOrmModule.forFeature([Payment, BusinessClaimCart])],
+ imports: [TypeOrmModule.forFeature([Payment, BusinessClaimCart,Business, Subscription])],
       providers: [StripeService, PaymentService],   
       controllers: [StripeController, WebhookController, PaymentController ],
       exports: [StripeService, PaymentService],
