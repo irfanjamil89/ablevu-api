@@ -223,7 +223,7 @@ export class NotificationService {
     if (!actor) {
       throw new Error("User triggering the action not found");
     }
-    if (actor.user_role === 'Business' && newStatus === 'pending approved') {
+    if (actor.user_role === 'Business' && newStatus === 'pending approval') {
       const admins = await this.userRepo.find({
         where: { user_role: 'Admin' },
         select: ['email', 'id'],
