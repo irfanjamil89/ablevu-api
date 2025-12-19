@@ -724,7 +724,8 @@ export class BusinessService {
         where: { business: { id: business.id } },
         order: { display_order: 'ASC' },
       }),
-      this.businessreviews.find({ where: { business_id: business.id } }),
+      this.businessreviews.find({ where:
+         { business_id: business.id, approved: true }, }),
       this.businessquestionrepo.find({ where: { business_id: business.id } }),
       this.businessPartnerrepo.find({ where: { business_id: business.id } }),
       this.customSectionsrepo.find({ where: { business_id: business.id } }),
