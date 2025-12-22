@@ -50,6 +50,6 @@ async function bootstrap() {
 
   app.use('/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
   app.use(bodyParser.json({ limit: '5mb' }));
-  await app.listen(process.env.PORT ?? 3006);
+  await app.listen(process.env.PORT ?? 8080);
 }
 bootstrap();
