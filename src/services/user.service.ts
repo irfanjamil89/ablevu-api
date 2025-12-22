@@ -171,6 +171,15 @@ console.log(user);
       requestingUser.user_role = newRole;
       await this.usersRepository.save(requestingUser);
   }
+  async setPaidContributor(userId: string, sellerId: string) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    user.seller_id = sellerId;
+    user.paid_contributor = true;
+
+    return this.usersRepository.save(user);
+  }
 }
 function uuidv4(): string | undefined {
   throw new Error("Function not implemented.");
