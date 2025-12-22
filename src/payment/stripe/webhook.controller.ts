@@ -21,14 +21,16 @@ export class WebhookController {
   async webhook(@Req() req: express.Request, @Res() res: express.Response) {
     const sig = req.headers['stripe-signature'];
     if (!sig || Array.isArray(sig)) return res.status(400).send('Missing signature');
-
+    console.log('Stripe Webhook received',req);
     let event;
     try {
+      console.log('Stripe Webhook Secret:',req.body);
       event = this.stripe.constructEvent(req.body as Buffer, sig);
     } catch (err: any) {
+      console.log(`⚠️  Webhook signature verification failed.`, err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-
+    console.log('Stripe Webhook Event Type:', event.type);
     // ✅ Payment Success
     if (event.type === 'checkout.session.completed') {
       const session: any = event.data.object;
