@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { BusinessClaimCart } from 'src/entity/business_claim_cart.entity';
 import { PaymentService } from '../payment.service';
 import { Business } from 'src/entity/business.entity';
+import { UsersService } from 'src/services/user.service';
+import { User } from 'src/entity/user.entity';
 
 @Injectable()
 export class StripeService {
@@ -18,6 +20,10 @@ export class StripeService {
     @InjectRepository(Business)
     private readonly businessRepo: Repository<Business>,
 
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+
+    private readonly users: UsersService,
     private readonly paymentService: PaymentService,
   ) {}
 
@@ -51,6 +57,15 @@ export class StripeService {
 
   const amountInCents = Math.round(total * 100);
 
+  const user = await this.userRepo.findOne({
+  where: { id: input.userId },
+  select: { email: true },
+});
+
+if (!user?.email) {
+  throw new BadRequestException('User email not found');
+}
+
   // ✅ Debug log
   console.log('[StripeCheckout] user:', input.userId, 'batch:', input.batchId, 'rows:', rows.length, 'total:', total);
 
@@ -60,6 +75,7 @@ export class StripeService {
     session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
@@ -147,12 +163,23 @@ export class StripeService {
   const link = await this.stripe.accountLinks.create({
     account: accountId,
     type: "account_onboarding",
-    refresh_url: `${process.env.CLIENT_URL}/seller/onboarding/refresh`,
-    return_url: `${process.env.CLIENT_URL}/seller/onboarding/return`,
+    refresh_url: `${process.env.CLIENT_URL}/dashboard/contributor-success?status=refresh`,
+    return_url: `${process.env.CLIENT_URL}/dashboard/contributor-success?status=success&account=${accountId}`,
   });
 
   return link.url;
 }
+/// ✅ Combined flow
+  async startPaidContributorOnboarding(input: { userId: string; email?: string }) {
+    const acct = await this.createConnectedAccount(input.userId, input.email);
+
+    // ✅ save acct.id + paid_contributor=true
+    await this.users.setPaidContributor(input.userId, acct.id);
+
+    const url = await this.createOnboardingLink(acct.id);
+
+    return { url, accountId: acct.id };
+  }
 
  async createSubscriptionCheckoutSession(input: {
   userId: string;
