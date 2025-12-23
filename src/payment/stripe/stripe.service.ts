@@ -5,6 +5,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessClaimCart } from 'src/entity/business_claim_cart.entity';
 import { PaymentService } from '../payment.service';
+import { Business } from 'src/entity/business.entity';
+import { UsersService } from 'src/services/user.service';
+import { User } from 'src/entity/user.entity';
 
 @Injectable()
 export class StripeService {
@@ -14,39 +17,65 @@ export class StripeService {
     @InjectRepository(BusinessClaimCart)
     private readonly cartRepo: Repository<BusinessClaimCart>,
 
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+
+    private readonly users: UsersService,
     private readonly paymentService: PaymentService,
   ) {}
 
   async createCheckoutSessionFromBatch(input: { userId: string; batchId: string }) {
-    if (!input.batchId) throw new BadRequestException('batch_id is required');
+  if (!input.batchId) throw new BadRequestException('batch_id is required');
 
-    // 1) cart rows (pending) fetch
-    const rows = await this.cartRepo.find({
-      where: { user_id: input.userId, batch_id: input.batchId, status: 'pending' as any },
-      order: { created_at: 'DESC' as any },
-    });
-
-    if (!rows.length) {
-      throw new BadRequestException('No pending cart items found for this batch');
-    }
-
-    // 2) total calculate (server-side)
-    const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    if (total <= 0) throw new BadRequestException('Invalid total amount');
-
-    // 3) create payment row (pending)
-    const savedPayment = await this.paymentService.createPending({
+  // 1) cart rows (pending) fetch
+  const rows = await this.cartRepo.find({
+    where: {
       user_id: input.userId,
       batch_id: input.batchId,
-      amount: total,
-    });
+      status: 'pending' as any,
+    },
+    order: { created_at: 'DESC' as any },
+  });
 
-    // 4) Stripe amount must be in cents
-    const amountInCents = Math.round(total * 100);
+  if (!rows.length) {
+    throw new BadRequestException('No pending cart items found for this batch');
+  }
 
-    const session = await this.stripe.checkout.sessions.create({
+  // 2) total calculate
+  const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  if (total <= 0) throw new BadRequestException('Invalid total amount');
+
+  // 3) create payment row (pending)
+  const savedPayment = await this.paymentService.createPending({
+    user_id: input.userId,
+    batch_id: input.batchId,
+    amount: total,
+  });
+
+  const amountInCents = Math.round(total * 100);
+
+  const user = await this.userRepo.findOne({
+  where: { id: input.userId },
+  select: { email: true },
+});
+
+if (!user?.email) {
+  throw new BadRequestException('User email not found');
+}
+
+  // ✅ Debug log
+  console.log('[StripeCheckout] user:', input.userId, 'batch:', input.batchId, 'rows:', rows.length, 'total:', total);
+
+  // 4) create stripe session (if this fails => nothing else runs)
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
@@ -65,9 +94,51 @@ export class StripeService {
         payment_id: savedPayment.id,
       },
     });
-
-    return { url: session.url, id: session.id, payment_id: savedPayment.id };
+  } catch (err: any) {
+    console.error('[StripeCheckout] Stripe session create failed:', err?.message || err);
+    throw new BadRequestException(err?.message || 'Stripe session create failed');
   }
+
+  // 5) mark cart items processed
+  const upd = await this.cartRepo.update(
+    { user_id: input.userId, batch_id: input.batchId, status: 'pending' as any },
+    { status: 'processed' as any },
+  );
+
+  console.log('[StripeCheckout] cart update affected:', upd.affected);
+
+  // ✅ if 0, then status mismatch or rows already not pending
+  if (!upd.affected) {
+    throw new BadRequestException(
+      'Cart items were not updated to processed. (Maybe status is not "pending" in DB?)'
+    );
+  }
+
+  // 6) claim businesses (DON'T block checkout if this fails)
+  try {
+    const businessIds = rows.map(r => r.business_id).filter(Boolean);
+    console.log('[StripeCheckout] claiming businesses:', businessIds);
+
+    await this.businessRepo
+      .createQueryBuilder()
+      .update(Business)
+      .set({
+        business_status: 'claimed' as any,
+        owner: { id: input.userId } as any, // sets owner_user_id
+        modified_at: new Date() as any,
+      })
+      .where('id IN (:...ids)', { ids: businessIds })
+      .execute();
+
+  } catch (e: any) {
+    console.error('[StripeCheckout] business claim update failed:', e?.message || e);
+    // ✅ don't throw, cart already processed and user should still go to stripe
+  }
+
+  return { url: session.url, id: session.id, payment_id: savedPayment.id };
+}
+
+
 
   constructEvent(rawBody: Buffer, signature: string) {
     return this.stripe.webhooks.constructEvent(
@@ -92,46 +163,65 @@ export class StripeService {
   const link = await this.stripe.accountLinks.create({
     account: accountId,
     type: "account_onboarding",
-    refresh_url: `${process.env.CLIENT_URL}/seller/onboarding/refresh`,
-    return_url: `${process.env.CLIENT_URL}/seller/onboarding/return`,
+    refresh_url: `${process.env.CLIENT_URL}/dashboard/contributor-success?status=refresh`,
+    return_url: `${process.env.CLIENT_URL}/dashboard/contributor-success?status=success&account=${accountId}`,
   });
 
   return link.url;
 }
+/// ✅ Combined flow
+  async startPaidContributorOnboarding(input: { userId: string; email?: string }) {
+    const acct = await this.createConnectedAccount(input.userId, input.email);
+
+    // ✅ save acct.id + paid_contributor=true
+    await this.users.setPaidContributor(input.userId, acct.id);
+
+    const url = await this.createOnboardingLink(acct.id);
+
+    return { url, accountId: acct.id };
+  }
 
  async createSubscriptionCheckoutSession(input: {
-    userId: string;
-    customerEmail: string;
-    priceId: string;          // price_...
-    successUrl: string;
-    cancelUrl: string;
-  }) {
-    // 1) Create customer (or lookup & reuse in your DB)
-    const customer = await this.stripe.customers.create({
-      email: input.customerEmail,
-      metadata: { userId: input.userId },
-    });
+  userId: string;
+  customerEmail: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}) {
+  const customer = await this.stripe.customers.create({
+    email: input.customerEmail,
+    metadata: { userId: input.userId },
+  });
 
-    // 2) Create Checkout session in subscription mode
-    const session = await this.stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customer.id,
-      line_items: [{ price: input.priceId, quantity: 1 }],
+  const session = await this.stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer: customer.id,
+    line_items: [{ price: input.priceId, quantity: 1 }],
+    allow_promotion_codes: true,
+    success_url: `${process.env.CLIENT_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: input.cancelUrl,
+    metadata: {
+      userId: input.userId,
+      ...(input.metadata || {}),
+    },
+  });
 
-      // Optional: let users enter promo codes
-      allow_promotion_codes: true,
+  return {
+    url: session.url,
+    sessionId: session.id,
+    customerId: customer.id, 
+  };
+}
+async getPriceAmount(priceId: string): Promise<string> {
+  const price = await this.stripe.prices.retrieve(priceId);
 
-      success_url: input.successUrl + "?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: input.cancelUrl,
-
-      metadata: { userId: input.userId },
-    });
-
-    return {
-      url: session.url,
-      sessionId: session.id,
-      customerId: customer.id,
-    };
+  if (!price.unit_amount) {
+    throw new Error('Invalid price amount');
   }
+
+  // Stripe cents → dollars
+  return (price.unit_amount / 100).toFixed(2);
+}
 
 }

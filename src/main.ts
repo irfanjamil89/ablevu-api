@@ -7,10 +7,10 @@ import { WinstonModule } from 'nest-winston';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
-  const httpsOptions = {
-  key: fs.readFileSync('key.pem'),
-  cert: fs.readFileSync('cert.pem'),
-};
+//   const httpsOptions = {
+//   key: fs.readFileSync('key.pem'),
+//   cert: fs.readFileSync('cert.pem'),
+// };
 
   const app = await NestFactory.create(AppModule,{
     logger: WinstonModule.createLogger({
@@ -50,6 +50,6 @@ async function bootstrap() {
 
   app.use('/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
   app.use(bodyParser.json({ limit: '5mb' }));
-  await app.listen(process.env.PORT ?? 3006);
+  await app.listen(process.env.PORT ?? 8080);
 }
 bootstrap();

@@ -19,14 +19,15 @@ export class StripeController {
     });
   }
 
-   @Post("create-account")
-  async createAccount(@Body() body: { userId: string; email?: string }) {
-    console.log('Created Stripe Account:'+body.email);
-    const acct = await this.stripe.createConnectedAccount(body.userId, body.email);
-    // TODO: save acct.id to Mongo against userId
-console.log('Created Stripe Account:', acct.id);
-     const url = await this.stripe.createOnboardingLink(acct.id );
-    return { url };
+  @Post("create-account")
+  @UseGuards(JwtAuthGuard)
+  async createAccount(@UserSession() user: any) {
+    const result = await this.stripe.startPaidContributorOnboarding({
+      userId: user.id,
+      email: user.email,
+    });
+
+    return { url: result.url };
   }
 
   @Post("subscription/checkout")
@@ -40,5 +41,5 @@ console.log('Created Stripe Account:', acct.id);
     });
   }
 
-  
+   
 }
