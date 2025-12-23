@@ -14,6 +14,9 @@ export class UpdateBusinessMedia{
         @IsString()
         link: string;
 
+        @IsString()
+        description:string;
+
         @IsOptional()
         @IsBoolean()
         active: boolean;
