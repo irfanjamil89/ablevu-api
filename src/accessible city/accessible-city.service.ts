@@ -158,14 +158,37 @@ export class AccessibleCityService {
       pageCount: Math.ceil(total / limit),
     };
   }
-  async getAccessibleCity(id: string) {
-    const accessiblecity = await this.accessiblecityrepo.findOne({
-      where: { id },
-    });
-    if (!accessiblecity) {
-      throw new NotFoundException('Accessible City not found');
-    }
-    return accessiblecity;
-  }
+  async getAccessibleCity(
+  id: string,
+  page = 1,
+  limit = 10,
+) {
+  const city = await this.accessiblecityrepo.findOne({ where: { id } });
+
+  if (!city) throw new NotFoundException('Accessible City not found');
+
+  // businesses list (pagination)
+  const [businesses, totalBusinesses] = await this.businessRepo.findAndCount({
+    where: { accessible_city_id: id },
+    order: { created_at: 'DESC' as any }, 
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  // total count (optional if you want same as list)
+  city['businessCount'] = totalBusinesses;
+
+  return {
+    ...city,
+    businesses,
+    businessesMeta: {
+      total: totalBusinesses,
+      page,
+      limit,
+      pageCount: Math.ceil(totalBusinesses / limit),
+    },
+  };
+}
+
 
 }
