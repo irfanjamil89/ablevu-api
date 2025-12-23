@@ -310,6 +310,94 @@ export class NotificationService {
       } 
       return { success: true };
     }
+     if (actor.user_role === 'Business' && newStatus === 'pending acclaim') {
+      const admins = await this.userRepo.find({
+        where: { user_role: 'Admin' },
+        select: ['email', 'id'],
+      });
+
+      const adminEmails = admins
+        .map(a => a.email)
+        .filter((email): email is string => !!email);
+
+      for (const admin of admins) {
+        await this.createPullNotification(
+          `Business "${businessName}" is pending acclaim`,
+          admin.id,
+          JSON.stringify({
+            type: 'business-status',
+            status: newStatus,
+            id: businessId,
+          }),
+        );
+      }
+      if (adminEmails.length > 0) {
+        const heading = 'Business Pending Acclaim';
+        const bodyHtml = `
+        <div class="main-text">
+          The business <strong>${businessName}</strong> has been submitted for acclaim.
+        </div>
+        <div class="main-text">
+          Please review the business details and take the necessary action from the admin dashboard.
+        </div>
+      `;
+
+        const emailHTML = this.buildEmail(heading, bodyHtml);
+
+        await this.createEmailNotification(
+          adminEmails,
+          emailHTML,
+          `Business Pending Acclaim: ${businessName}`,
+          triggeredBy,
+        );
+      }
+      return { success: true };
+    }
+    if (actor.user_role === 'Admin' && newStatus === 'claimed') {
+
+      const business = await this.businessRepo.findOne({
+        where: { id: businessId },
+        relations: ['owner'],
+      });
+
+      if (!business?.owner?.id) {
+        return { success: false, message: 'Business owner not found' };
+      }
+      const businessOwnerId = business?.owner.id;
+
+      await this.createPullNotification(
+        `Your business "${businessName}" has been claimed`,
+        businessOwnerId,
+        JSON.stringify({ type: 'business-status', status: newStatus, id: businessId }),
+      );
+
+      const businessOwner = await this.userRepo.findOne({
+        where: { id: businessOwnerId },
+        select: ['email'],
+      });
+
+      if (businessOwner?.email) {
+        const heading = 'Business Claimed';
+        const bodyHtml = `
+      <div class="main-text">
+        Congratulations! Your business <strong>${businessName}</strong> has been claimed.
+      </div>
+      <div class="main-text">
+        Your business is now claimed and visible on the platform.
+      </div>
+    `;
+
+        const emailHTML = this.buildEmail(heading, bodyHtml);
+        await this.createEmailNotification(
+          [businessOwner.email],
+          emailHTML,
+          `Business Claimed: ${businessName}`,
+          actor.id,
+        );
+      } 
+      return { success: true };
+    }
+
   }
 
   async sendWelcomeEmail(email: string, firstName: string, createdBy: string) {  
