@@ -30,6 +30,7 @@ export class BusinessMediaService{
           business_id: dto.business_id,
           label: dto.label,
           link: dto.link,
+          description:dto.description,
           active: dto.active,
           created_by: userId,
           modified_by: userId,
@@ -51,6 +52,7 @@ export class BusinessMediaService{
             businessId: dto.business_id ?? media.business_id,
             label: dto.label ?? media.label,
             link: dto.link ?? media.link,
+            description:dto.description ?? media.description,
             active: dto.active ?? media.active,
             modifiedBy: userId,
           });

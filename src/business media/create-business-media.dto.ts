@@ -14,6 +14,9 @@ export class CreateBusinessMedia{
         @IsString()
         link: string;
 
+        @IsString()
+        description:string;
+
         @IsOptional()
         @IsBoolean()
         active: boolean;

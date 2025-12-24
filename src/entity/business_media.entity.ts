@@ -16,6 +16,9 @@ export class BusinessMedia{
     link: string;
 
     @Column()
+    description:string;
+
+    @Column()
     active: boolean;
 
     @Column()
