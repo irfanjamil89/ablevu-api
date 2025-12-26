@@ -12,6 +12,8 @@ import { AccessibleCityModule } from './accessible city/accessible-city.module';
 import { AccessibleFeatureModule } from './accessible feature/accessible feature.module';
 import { PartnerModule } from './partner/partner.module';
 import { BusinessVirtualTourModule } from 'src/business virtual tour/business-virtual-tour.module'
+import { BusinessAudioTourModule } from 'src/business audio tour/business-audio-tour.module'
+import { AudioModule } from './audio/audio.module';
 import { ReviewTypeModule } from './review type/review-type.module';
 import { BusinessReviewsModule } from './business reviews/business-reviews.module';
 import { BusinessQuestionsModule } from './business questions/business-question.module';
@@ -63,6 +65,8 @@ import { BusinessClaimCartModule } from './business-claim-cart/business-claim-ca
     AccessibleFeatureModule,
     PartnerModule,
     BusinessVirtualTourModule,
+    BusinessAudioTourModule,
+    AudioModule,
     AdditionalResourceModule,
     ReviewTypeModule,
     BusinessReviewsModule,
