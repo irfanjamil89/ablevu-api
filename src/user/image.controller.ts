@@ -17,6 +17,8 @@ import { Business } from 'src/entity/business.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { AccessibleCity } from 'src/entity/accessible_city.entity';
+import { BusinessReviews } from 'src/entity/business_reviews.entity';
+import { UploadBase64MultipleDto } from './upload-review-images.dto';
 
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -48,6 +50,9 @@ export class ImagesController {
 
     @InjectRepository(AccessibleCity)
     private readonly cityRepo: Repository<AccessibleCity>,
+
+    @InjectRepository(BusinessReviews)
+    private readonly businessReviewsRepo: Repository<BusinessReviews>,
     
   ) {}
 
@@ -147,5 +152,126 @@ export class ImagesController {
     });
 }
     return { ok: true, ...res, size: buffer.length };
+  }
+  @Post('upload-base64-multiple')
+  async uploadBase64Multiple(@Body() dto: UploadBase64MultipleDto) {
+    this.logger.log(
+      `Starting multiple image upload for ${dto.fileName ?? 'unknown'}, count: ${dto.images.length}`,
+    );
+
+    if (!dto.fileName) {
+      throw new BadRequestException('fileName is required');
+    }
+
+    const uploadedUrls: string[] = [];
+    for (let i = 0; i < dto.images.length; i++) {
+      try {
+
+        let base64 = dto.images[i].trim();
+        let declaredMime: string | undefined;
+
+        const dataUrlMatch = base64.match(/^data:([a-z0-9-+/.]+);base64,(.*)$/i);
+        if (dataUrlMatch) {
+          declaredMime = dataUrlMatch[1];
+          base64 = dataUrlMatch[2];
+        }
+
+        // 2) Basic sanity check
+        if (!/^[A-Za-z0-9+/=\s]+$/.test(base64)) {
+          this.logger.warn(`Invalid base64 payload for image ${i + 1}, skipping`);
+          continue;
+        }
+
+        // 3) Decode to Buffer
+        let buffer: Buffer;
+        try {
+          buffer = Buffer.from(base64, 'base64');
+        } catch {
+          this.logger.warn(`Unable to decode base64 for image ${i + 1}, skipping`);
+          continue;
+        }
+
+        // 4) Enforce size
+        if (!buffer?.length) {
+          this.logger.warn(`Empty image ${i + 1}, skipping`);
+          continue;
+        }
+        if (buffer.length > MAX_SIZE_BYTES) {
+          this.logger.warn(`Image ${i + 1} too large, skipping`);
+          continue;
+        }
+
+        // 5) Sniff real type from bytes
+        const ft = await fileTypeFromBuffer(buffer);
+        const realMime = ft?.mime ?? declaredMime;
+        const ext = ft?.ext;
+
+        if (!realMime) {
+          this.logger.warn(`Unable to detect image type for image ${i + 1}, skipping`);
+          continue;
+        }
+        if (!ALLOWED_MIME.has(realMime)) {
+          this.logger.warn(`Unsupported image type for image ${i + 1}: ${realMime}, skipping`);
+          continue;
+        }
+
+        // 6) Upload to S3
+        const uniqueId = `${dto.fileName}-${randomUUID()}`;
+        const res = await this.s3.uploadRawBuffer({
+          buffer,
+          contentType: realMime,
+          folder: dto.folder ?? 'business-reviews',
+          extension: ext,
+          fileName: uniqueId,
+        });
+
+        const cleanedUrl = (res as any).url
+          .replace(/\/{2,}/g, '/')
+          .replace('https:/', 'https://');
+
+        uploadedUrls.push(cleanedUrl);
+        this.logger.log(`Image ${i + 1} uploaded successfully`);
+      } catch (error) {
+        this.logger.error(`Error processing image ${i + 1}:`, error);
+        // Continue with next image
+      }
+    }
+
+    if (uploadedUrls.length === 0) {
+      throw new BadRequestException('No images were successfully uploaded');
+    }
+
+    // Update database
+    if (dto.folder === 'business-reviews') {
+      const review = await this.businessReviewsRepo.findOne({
+        where: { id: dto.fileName },
+      });
+
+      let existingImages: string[] = [];
+      if (review?.image_url) {
+        try {
+          existingImages = JSON.parse(review.image_url);
+        } catch {
+          existingImages = [];
+        }
+      }
+
+      const allImages = [...existingImages, ...uploadedUrls];
+
+      await this.businessReviewsRepo.update(dto.fileName, {
+        image_url: JSON.stringify(allImages),
+      });
+
+      this.logger.log(
+        `Updated review ${dto.fileName} with ${uploadedUrls.length} new images`,
+      );
+    }
+
+    return {
+      ok: true,
+      uploadedCount: uploadedUrls.length,
+      totalRequested: dto.images.length,
+      urls: uploadedUrls,
+    };
   }
 }

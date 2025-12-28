@@ -66,6 +66,7 @@ export class BusinessReviewsService {
       active: dto.active ?? true,
       created_by: userId,
       modified_by: userId,
+      image_url: dto.image_url ?? undefined,
     });
     try{
       await this.notificationService.notifyreviewCreated(review.business_id, review.description, userId);
