@@ -151,6 +151,11 @@ export class ImagesController {
       picture_url: imageUrl,
     });
 }
+  else if (dto.folder === 'business-reviews'){
+    await this.businessReviewsRepo.update(dto.fileName,{
+      image_url: imageUrl,
+    });
+}
     return { ok: true, ...res, size: buffer.length };
   }
   @Post('upload-base64-multiple')

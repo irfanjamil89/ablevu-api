@@ -17,8 +17,7 @@ export class BusinessRecomendationsController{
           @UserSession() user : any,
           @Body() dto: CreateRecomendationsDto,
         ) {
-          await this.recomendationsService.createBusinessRecomendations(user.id, dto);
-          return { message: 'Business Recomendations created successfully' };
+          return await this.recomendationsService.createBusinessRecomendations(user.id, dto);
         }
     
       @Patch('update/:id')
