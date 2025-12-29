@@ -38,95 +38,141 @@ function getTransporter(): Transporter {
   return transporter!;
 }
 
-
 function buildResetEmailHTML(opts: {
   name?: string;
   resetLink: string;
-  expiryText?: string; 
-  brand?: { header?: string; color?: string; supportEmail?: string };
+  expiryText?: string;
 }) {
-  const name = opts.name || 'User';
-  const link = opts.resetLink;
-  const expiry = opts.expiryText || '1 hour';
-  const brand = {
-    header: opts.brand?.header ?? 'Password Reset Request',
-    color: opts.brand?.color ?? '#4c416aff', 
-    supportEmail: opts.brand?.supportEmail ?? 'support@ablevu.com',
-  };
+  const name = opts.name || "User";
+  const expiry = opts.expiryText || "1 hour";
 
-  return `<!DOCTYPE html>
+  const bodyHtml = `
+    <p class="main-text">Dear ${name},</p>
+
+    <p class="main-text">
+      We received a request to reset your AbleVu account password.
+      Click the button below to continue.
+    </p>
+
+    <div style="text-align:center;">
+      <a href="${opts.resetLink}" class="btn">Reset My Password</a>
+    </div>
+
+    <p class="main-text">
+      This link will expire in <b>${expiry}</b> and can only be used once.
+    </p>
+
+    <p class="main-text">
+      If you didn’t request this, you can safely ignore this email.
+    </p>
+  `;
+
+  return buildAbleVuEmailTemplate("Password Reset Request", bodyHtml);
+}
+
+function buildAbleVuEmailTemplate(heading: string, bodyHtml: string) {
+  return `
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${brand.header}</title>
-<style>
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f5f7fa;
-    color: #333;
-    margin: 0;
-    padding: 0;
-  }
-  .wrap {
-    max-width: 600px;
-    margin: 40px auto;
-    background: #fff;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-    overflow: hidden;
-  }
-  .hdr {
-    background: ${brand.color};
-    color: #fff;
-    padding: 20px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: 700;
-  }
-  .cnt {
-    padding: 30px;
-    line-height: 1.6;
-    border-left: 6px solid ${brand.color};
-  }
-  .cnt p:first-child { margin-top: 0; }
-  .btn {
-    display: inline-block;
-    background: ${brand.color};
-    color: #fff !important;
-    text-decoration: none;
-    font-weight: 700;
-    padding: 12px 22px;
-    border-radius: 6px;
-    margin-top: 20px;
-  }
-  .ftr {
-    font-size: 13px;
-    color: #777;
-    text-align: center;
-    padding: 20px;
-    background: #fafafa;
-    border-top: 1px solid #eee;
-  }
-  a { color: ${brand.color}; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${heading}</title>
+  <style>
+    body { margin:0; padding:0; font-family: Arial, sans-serif; background:#f4f4f4; }
+    a { text-decoration:none; }
+
+    .header-container {
+      display: inline-flex;
+      align-items: center;
+      background-color: #e5e5e5;
+      padding: 15px 30px;
+      border-radius: 10px;
+    }
+
+    .logo { width:150px; margin-right:20px; }
+
+    .main-content {
+      padding: 40px 30px;
+      background: #ffffff;
+      max-width: 600px;
+      margin: 20px auto;
+      border-radius: 8px;
+    }
+
+    .main-heading {
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .main-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      display:inline-block;
+      background:#0519CE;
+      color:#fff !important;
+      padding:12px 24px;
+      border-radius:6px;
+      font-weight:bold;
+      margin:20px auto;
+    }
+
+    .footer {
+      background:#2d2d2d;
+      padding:30px;
+      text-align:center;
+      color:#aaa;
+      font-size:12px;
+    }
+  </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="hdr">${brand.header}</div>
-    <div class="cnt">
-      <p>Dear ${name},</p>
-      <p>We’ve received your request to reset your password. Please click the button below to complete the reset.</p>
-      <p style="text-align:center;">
-        <a class="btn" href="${link}">Reset My Password</a>
-      </p>
-      <p>This link is valid for a single use and expires in <b>${expiry}</b>.</p>
-      <p>If you did not initiate this request, please ignore this email. Your account will remain secure.</p>
-    </div>
-    <div class="ftr">— Admin | <a href="mailto:${brand.supportEmail}">${brand.supportEmail}</a></div>
+<center>
+
+  <!-- Header -->
+  <table cellpadding="0" cellspacing="0" border="0" style="margin:30px auto;">
+    <tr>
+      <td>
+        <div class="header-container">
+          <img src="https://ablevu-webapp.vercel.app/assets/images/logo.png" class="logo" />
+          <span style="font-size:28px; font-weight:bold;">AbleVu</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Content -->
+  <div class="main-content">
+    <div class="main-heading">${heading}</div>
+    ${bodyHtml}
   </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>123 Able Vu Street, City, Country</p>
+    <p>
+      <a href="https://ablevu-webapp.vercel.app" style="color:white;">AbleVu.com</a>
+      &nbsp;|&nbsp;
+      <a href="[PRIVACY_POLICY_URL]" style="color:white;">Privacy Policy</a>
+      &nbsp;|&nbsp;
+      <a href="[HELP_CENTER_URL]" style="color:white;">Help Center</a>
+    </p>
+    <p>This is a notification-only email. Please do not reply.</p>
+  </div>
+
+</center>
 </body>
-</html>`;
+</html>
+`;
 }
 
 export async function sendMail(to: string, subject: string, html: string) {
@@ -152,7 +198,6 @@ export async function sendResetEmail(params: {
     name: params.name,
     resetLink: params.resetLink,
     expiryText: params.expiryText ?? '1 hour',
-    brand: params.brand,
   });
 
   return sendMail(params.to, params.subject ?? 'Password Reset Request', html);
