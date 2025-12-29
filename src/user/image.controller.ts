@@ -17,6 +17,7 @@ import { Business } from 'src/entity/business.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { AccessibleCity } from 'src/entity/accessible_city.entity';
+import { BusinessReviews } from 'src/entity/business_reviews.entity';
 
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -48,6 +49,9 @@ export class ImagesController {
 
     @InjectRepository(AccessibleCity)
     private readonly cityRepo: Repository<AccessibleCity>,
+
+    @InjectRepository(BusinessReviews)
+    private readonly businessReviewsRepo: Repository<BusinessReviews>,
     
   ) {}
 
@@ -144,6 +148,11 @@ export class ImagesController {
   else if (dto.folder === 'accessible-city'){
     await this.cityRepo.update(dto.fileName,{
       picture_url: imageUrl,
+    });
+}
+  else if (dto.folder === 'business-reviews'){
+    await this.businessReviewsRepo.update(dto.fileName,{
+      image_url: imageUrl,
     });
 }
     return { ok: true, ...res, size: buffer.length };
