@@ -23,6 +23,7 @@ import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { NotificationService } from 'src/notifications/notifications.service';
 import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
+import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
 
 type ListFilters = {
   search?: string;
@@ -89,6 +90,9 @@ export class BusinessService {
 
     @InjectRepository(BusinessCustomSectionsMedia)
     private readonly customSectionsMediaRepo: Repository<BusinessCustomSectionsMedia>,
+
+    @InjectRepository(BusinessAudioTour)
+    private readonly audioTourRepo: Repository<BusinessAudioTour>,
 
     @InjectRepository(BusinessImages)
     private readonly imagesRepo: Repository<BusinessImages>,
@@ -707,6 +711,7 @@ export class BusinessService {
       linkedTypes,
       accessibilityFeatures,
       virtualTours,
+      audioTours,
       businessreviews,
       businessQuestions,
       businessPartners,
@@ -724,6 +729,7 @@ export class BusinessService {
         where: { business: { id: business.id } },
         order: { display_order: 'ASC' },
       }),
+      this.audioTourRepo.find({where: { business_id: business.id }}),
       this.businessreviews.find({ where:
          { business_id: business.id, approved: true }, }),
       this.businessquestionrepo.find({ where: { business_id: business.id } }),
@@ -770,6 +776,7 @@ export class BusinessService {
       linkedTypes,
       accessibilityFeatures,
       virtualTours,
+      audioTours,
       businessreviews: businessReviewsWithNames,
       businessQuestions: businessQuestionsWithNames,
       businessPartners,
