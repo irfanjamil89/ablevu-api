@@ -22,8 +22,7 @@ export class CreateBusinessReviewsDto{
     @IsOptional()
     active: boolean;
 
-    @IsString()
+     @IsString()
     @IsOptional()
     image_url: string;
-
 }
