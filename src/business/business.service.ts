@@ -361,6 +361,8 @@ export class BusinessService {
   // Virtual tours
   await this.virtualTourRepo.delete({ business: { id: business.id } });
 
+  await this.audioTourRepo.delete({business_id: id});
+
   // Reviews
   await this.businessreviews.delete({ business_id: id });
 
