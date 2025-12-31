@@ -9,7 +9,7 @@ import * as path from 'path';
 @Injectable()
 export class S3Service {
   private readonly bucket = process.env.S3_BUCKET!;
-  private readonly publicBase = process.env.S3_PUBLIC_BASE; // optional
+  private readonly publicBase = process.env.S3_PUBLIC_BASE?.replace(/\/+$/, ''); // remove trailing slashes
 
   constructor(private readonly s3: S3Client) {}
 

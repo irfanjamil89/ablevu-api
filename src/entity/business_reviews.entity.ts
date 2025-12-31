@@ -40,7 +40,7 @@ export class BusinessReviews{
     @UpdateDateColumn()
     modified_at: Date;
 
-    @Column()
+     @Column()
     image_url: string;
-
+    
 }

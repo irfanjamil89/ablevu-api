@@ -18,8 +18,10 @@ export class BusinessReviewsController{
           @UserSession() user : any,
           @Body() dto: CreateBusinessReviewsDto,
         ) {
-          await this.businessReviewsService.createBusinessReviews(user.id, dto);
-          return { message: 'Business Review created successfully' };
+          const createdReview = await this.businessReviewsService.createBusinessReviews(user.id, dto);
+          return { message: 'Business Review created successfully',
+            id: createdReview.id,
+           };
         }
 
     @Patch('update/:id')

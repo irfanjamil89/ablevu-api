@@ -21,7 +21,7 @@ export class EmailService {
 <center>
 
 <!-- Header -->
-<div style="background: linear-gradient(90deg, #0072ce, #00b386, #ff6600); padding:40px 0;">
+
   <table style="background:#e5e5e5; padding:15px 30px; border-radius:10px;">
     <tr>
       <td><img src="https://ablevu-webapp.vercel.app/assets/images/logo.png" width="150" /></td>
