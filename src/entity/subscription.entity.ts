@@ -42,13 +42,16 @@ export class Subscription {
   @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
   discount_amount: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  stripe_subscription_id?: string;
+
   @Index()
   @Column({ type: 'uuid' })
   user_id: string;
 
   @Index()
-    @Column({ type: 'uuid', nullable: true })
-    business_id: string | null;
+  @Column({ type: 'uuid', nullable: true })
+  business_id: string | null;
 
 
   @Column({ type: 'varchar', length: 30, default: 'pending' })
