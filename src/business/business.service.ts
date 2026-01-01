@@ -417,9 +417,14 @@ export class BusinessService {
     if (currentUser?.user_role) {
       const role = currentUser.user_role.toLowerCase();
 
-      if (role === 'business' || role === 'contributor') {
+      if (role === 'business') {
         qb.andWhere('b.owner_user_id = :ownerId', {
           ownerId: currentUser.id,
+        });
+      }
+       else if (role === 'contributor'){
+        qb.andWhere('b.creator_user_id = :ID',{
+          ID: currentUser.id,
         });
       }
       // Admin = no filter
