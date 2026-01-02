@@ -4,7 +4,7 @@ import { StripeService } from './stripe.service';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserSession } from 'src/auth/user.decorator';
-import { use } from 'passport';
+
 
 @Controller('stripe')
 export class StripeController {
@@ -31,15 +31,26 @@ export class StripeController {
   }
 
   @Post("subscription/checkout")
-  create(@Body() body: { userId: string; customerEmail: string; priceId: string }) {
-    return this.stripe.createSubscriptionCheckoutSession({
-      userId: body.userId,
-      customerEmail: body.customerEmail,
-      priceId: body.priceId,
-      successUrl: `${process.env.CLIENT_URL}/checkout/success`,
-      cancelUrl: `${process.env.CLIENT_URL}/checkout/cancel`,
-    });
-  }
+create(@Body() body: {
+  userId: string;
+  customerEmail: string;
+  priceId: string;
+  business_draft: any;
+  business_image_base64?: string;
+}) {
+  return this.stripe.createSubscriptionCheckoutSession({
+    userId: body.userId,
+    customerEmail: body.customerEmail,
+    priceId: body.priceId,
+    successUrl: `${process.env.CLIENT_URL}/subscription/success`,
+    cancelUrl: `${process.env.CLIENT_URL}/subscription/cancel`,
+    metadata: {},
+
+    businessDraftPayload: body.business_draft,
+    businessImageBase64: body.business_image_base64 || null,
+  });
+}
+
 
    
 }

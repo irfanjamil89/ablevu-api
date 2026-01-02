@@ -1,15 +1,17 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsObject } from "class-validator";
 
 export class CreateSubscriptionDto {
-  @IsUUID()
+  @IsString()
+  price_id: string;
+
+  @IsString()
+  package: string; // monthly/yearly
+
+  // ✅ draft payload from frontend
+  @IsObject()
+  businessDraftPayload: any;
+
   @IsOptional()
-  business_id: string;
-
   @IsString()
-  @IsNotEmpty()
-  price_id: string; // price_...
-
-  @IsString()
-  @IsNotEmpty()
-  package: string; // monthly/yearly label
+  businessImageBase64?: string;
 }

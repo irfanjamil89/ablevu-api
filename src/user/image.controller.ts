@@ -18,6 +18,7 @@ import { BusinessImages } from 'src/entity/business_images.entity';
 import { Partner } from 'src/entity/partner.entity';
 import { AccessibleCity } from 'src/entity/accessible_city.entity';
 import { BusinessReviews } from 'src/entity/business_reviews.entity';
+import { BusinessDraft } from 'src/entity/business_draft.entity';
 import { UploadBase64MultipleDto } from './upload-review-images.dto';
 
 
@@ -53,6 +54,9 @@ export class ImagesController {
 
     @InjectRepository(BusinessReviews)
     private readonly businessReviewsRepo: Repository<BusinessReviews>,
+
+     @InjectRepository(BusinessDraft)
+    private readonly businessDraftRepo: Repository<BusinessDraft>,
     
   ) {}
 
@@ -154,6 +158,11 @@ export class ImagesController {
   else if (dto.folder === 'business-reviews'){
     await this.businessReviewsRepo.update(dto.fileName,{
       image_url: imageUrl,
+    });
+}
+else if (dto.folder === 'business-draft'){
+    await this.businessDraftRepo.update(dto.fileName,{
+      image_base64: imageUrl,
     });
 }
     return { ok: true, ...res, size: buffer.length };

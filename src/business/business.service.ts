@@ -206,8 +206,10 @@ export class BusinessService {
       slug,
       owner: user,
       creator: user,
-      active: true,
+      active: typeof dto.active === 'boolean' ? dto.active : true,
       blocked: false,
+      business_status: dto.business_status || 'draft',
+
 
       // ✅ correct column name from Business entity
       accessible_city_id: dto.accessible_city_id ?? null,

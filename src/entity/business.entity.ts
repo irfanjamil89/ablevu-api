@@ -87,6 +87,9 @@ export class Business {
   @JoinColumn({ name: 'owner_user_id' })
   owner: User;
 
+  @Column({ name: 'owner_user_id', nullable: false })
+  owner_user_id: string;
+
   @Column()
   claimed_fee?: string;
   
