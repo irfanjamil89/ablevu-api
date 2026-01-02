@@ -89,6 +89,28 @@ export class WebhookController {
           if (!draft || draft.status !== 'pending') {
             return res.json({ received: true });
           }
+          const stripeCustomerId =
+            typeof session.customer === 'string'
+              ? session.customer
+              : session.customer?.id;
+
+          if (stripeCustomerId) {
+            const u = await this.userRepo.findOne({
+              where: { id: draft.user_id },
+              select: { id: true, customer_id: true },
+            });
+
+            if (!u?.customer_id) {
+              await this.userRepo.update(
+                { id: draft.user_id },
+                { customer_id: stripeCustomerId },
+              );
+            }
+            console.log('[Webhook] Saved customer_id:', {
+              userId: draft.user_id,
+              customer_id: stripeCustomerId,
+            });
+          }
 
           const p: any = draft.payload || {};
 
@@ -193,10 +215,11 @@ export class WebhookController {
           const subRef = session.subscription;
           const stripeSubId = typeof subRef === 'string' ? subRef : subRef?.id;
 
+          let stripeSub: any = null;
+
           if (stripeSubId) {
             try {
-              const stripeSub: any =
-                await this.stripe.retrieveSubscription(stripeSubId);
+              stripeSub = await this.stripe.retrieveSubscription(stripeSubId);
 
               startDate = stripeSub?.current_period_start
                 ? new Date(stripeSub.current_period_start * 1000)
@@ -213,7 +236,7 @@ export class WebhookController {
             }
           }
 
-          // ✅ get pending sub row (to know packageName)
+          // ✅ get pending sub row (to know packageName, priceId, amount)
           const pendingSub = subId
             ? await this.subsService.findById(subId)
             : null;
@@ -228,27 +251,62 @@ export class WebhookController {
           await this.draftRepo.update({ id: draftId }, {
             status: 'completed' as any,
             stripe_session_id: session.id,
-            stripe_subscription_id: session.subscription || null,
+            stripe_subscription_id: stripeSubId || null,
             image_base64: null,
           } as any);
 
-          // ✅ mark subscription PAID + link business + set start/end dates
+          // after pendingSub is loaded, before markStatusById(...)
+          const pkg = (pendingSub?.packageName || '').toLowerCase();
+
+          // If Stripe didn't provide period dates, fallback based on plan
+          if (!startDate || !endDate) {
+            const now = new Date();
+            startDate = startDate ?? now;
+
+            if (pkg === 'monthly') {
+              const d = new Date(startDate);
+              d.setMonth(d.getMonth() + 1);
+              endDate = endDate ?? d;
+            } else if (pkg === 'yearly') {
+              const d = new Date(startDate);
+              d.setFullYear(d.getFullYear() + 1);
+              endDate = endDate ?? d;
+            } else {
+              const d = new Date(startDate);
+              d.setDate(d.getDate() + 30);
+              endDate = endDate ?? d;
+            }
+          }
+
+          // ✅ invoice_id
+          const invoiceId =
+            (typeof stripeSub?.latest_invoice === 'string'
+              ? stripeSub.latest_invoice
+              : stripeSub?.latest_invoice?.id) ||
+            (typeof session?.invoice === 'string'
+              ? session.invoice
+              : session?.invoice?.id) ||
+            null;
+
+          // ✅ mark subscription PAID + link business + set start/end dates + entity columns
           if (subId) {
             await this.subsService.markStatusById(subId, 'paid', {
-              stripe_subscription_id: session.subscription || null,
+              stripe_subscription_id: stripeSubId || null,
+              invoice_id: invoiceId,
               success_at: new Date(),
               business_id: created.id,
               start_date: startDate ?? undefined,
               end_date: endDate ?? undefined,
               payment_reference: session.id,
+
+              // ✅ entity columns (best from pendingSub)
+              amount: pendingSub?.amount ?? '0.00',
+              packageName: pendingSub?.packageName ?? pkg,
+              priceId: pendingSub?.priceId ?? '',
+              discount_code: pendingSub?.discount_code ?? null,
+              discount_amount: pendingSub?.discount_amount ?? '0.00',
             } as any);
           }
-
-          console.log('[Webhook] Draft → Business created', {
-            draftId,
-            businessId: created.id,
-          });
-
           return res.json({ received: true });
         }
 

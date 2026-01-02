@@ -4,26 +4,43 @@ import { Coupons } from "src/entity/coupons.entity";
 import { Repository } from "typeorm";
 import { CreateCouponsDto } from "./create-coupons.dto";
 import { UpdateCouponsDto } from "./update-coupons.dto";
+import { StripeService } from "src/payment/stripe/stripe.service";
 
 @Injectable()
 export class CouponsService{
     constructor(
         @InjectRepository(Coupons)
         private readonly couponsRepo: Repository <Coupons>,
+
+        private readonly stripeService: StripeService,
     ){}
 
-    async createCoupons( userid: string, dto: CreateCouponsDto){
-        const coupon = this.couponsRepo.create({
-            code: dto.code,
-            name: dto.name,
-            validitymonths: dto.validitymonths,
-            discount: dto.discount,
-            active: dto.active ?? true,
-            created_by: userid,
-            modified_by: userid,
-        })
-        return this.couponsRepo.save(coupon);
-    }
+    async createCoupons(userid: string, dto: CreateCouponsDto) {
+  // ✅ Stripe first (taake Stripe fail ho to DB me coupon na bane)
+  const stripe = await this.stripeService.createStripePercentCouponAndPromo({
+    code: dto.code.trim(),        // e.g. SAVE10
+    name: dto.name.trim(),
+    percent: Number(dto.discount),        // ✅ percent
+    validitymonths: Number(dto.validitymonths),
+    active: dto.active ?? true,
+  });
+
+  const coupon = this.couponsRepo.create({
+    code: dto.code.trim(),
+    name: dto.name.trim(),
+    validitymonths: dto.validitymonths,
+    discount: dto.discount,
+    active: dto.active ?? true,
+    created_by: userid,
+    modified_by: userid,
+
+    stripe_coupon_id: stripe.stripe_coupon_id,
+    stripe_promo_code_id: stripe.stripe_promo_code_id,
+  });
+
+  return this.couponsRepo.save(coupon);
+}
+
 
     async updateCoupons (id: string, userid: string, dto: UpdateCouponsDto){
         const coupon = await this.couponsRepo.findOne({

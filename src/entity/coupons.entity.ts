@@ -1,34 +1,46 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
-export class Coupons{
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+export class Coupons {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    code: string;
+  @Column()
+  code: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column()
-    validitymonths: string;
-    
-    @Column()
-    discount: string;
+  @Column()
+  validitymonths: string;
 
-    @Column({ default: true })
-    active : boolean;
+  @Column()
+  discount: string;
 
-    @Column()
-    created_by: string;
+  @Column({ default: true })
+  active: boolean;
 
-    @Column()
-    modified_by: string;
+  @Column()
+  created_by: string;
 
-    @CreateDateColumn()
-    created_at: Date;
+  @Column()
+  modified_by: string;
 
-    @UpdateDateColumn()
-    modified_at: Date;
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  modified_at: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  stripe_coupon_id?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  stripe_promo_code_id?: string;
 }
