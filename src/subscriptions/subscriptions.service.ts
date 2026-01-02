@@ -23,12 +23,14 @@ export class SubscriptionsService {
     user_id: input.user_id,
     business_id: input.business_id ?? null,
     priceId: input.price_id,
-    packageName: input.package,
-    amount: (input.amount ?? 0).toFixed(2),
+    packageName: (input.package || '').toLowerCase().trim(),
+    amount: Number(input.amount ?? 0).toFixed(2),
     status: 'pending',
   });
+
   return this.subRepo.save(sub);
 }
+
 
 
   async getMine(user_id: string) {
@@ -101,5 +103,14 @@ export class SubscriptionsService {
   sub.cancel_at = new Date();
   return this.subRepo.save(sub);
 }
+
+// should return rows for the logged-in user (paid/current)
+findPaidByUser(userId: string) {
+  return this.subRepo.find({
+    where: { user_id: userId, status: 'paid' as any },
+    select: { stripe_subscription_id: true, business_id: true },
+  });
+}
+
 
 }
