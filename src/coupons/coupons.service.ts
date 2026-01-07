@@ -23,6 +23,7 @@ export class CouponsService{
     percent: Number(dto.discount),        // ✅ percent
     validitymonths: Number(dto.validitymonths),
     active: dto.active ?? true,
+    
   });
 
   const coupon = this.couponsRepo.create({

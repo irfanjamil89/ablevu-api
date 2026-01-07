@@ -11,6 +11,7 @@ import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
 import { BusinessDraft } from 'src/entity/business_draft.entity';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service'; // ✅ ADD
+import { In } from 'typeorm';
 
 @Injectable()
 export class StripeService {
@@ -92,51 +93,65 @@ export class StripeService {
     );
 
     // ✅ Use existing customer_id if present, otherwise create + save
-const fullUser = await this.userRepo.findOne({
-  where: { id: input.userId },
-  select: { id: true, email: true, customer_id: true },
-});
+    const fullUser = await this.userRepo.findOne({
+      where: { id: input.userId },
+      select: { id: true, email: true, customer_id: true },
+    });
 
-if (!fullUser?.email) throw new BadRequestException('User email not found');
+    if (!fullUser?.email) throw new BadRequestException('User email not found');
 
-let customerId = fullUser.customer_id;
+    let customerId = fullUser.customer_id;
 
-if (!customerId) {
-  const customer = await this.stripe.customers.create({
-    email: fullUser.email,
-    metadata: { userId: input.userId },
-    address: { country: 'US' },
-  });
+    if (!customerId) {
+      const customer = await this.stripe.customers.create({
+        email: fullUser.email,
+        metadata: { userId: input.userId },
+        address: { country: 'US' },
+      });
 
-  customerId = customer.id;
+      customerId = customer.id;
 
-  await this.userRepo.update(
-    { id: input.userId },
-    { customer_id: customerId },
-  );
-}
-
+      await this.userRepo.update(
+        { id: input.userId },
+        { customer_id: customerId },
+      );
+    }
 
     // ✅ 4) create stripe session ONLY (NO cart update, NO business claim here)
     let session: Stripe.Checkout.Session;
     try {
-      session = await this.stripe.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_types: ['card'],
-        customer: customerId, 
-        billing_address_collection: 'required',
-        customer_update: { address: 'auto' },
-        locale: 'en',
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: { name: `Business Claim (Batch ${input.batchId})` },
-              unit_amount: amountInCents,
-            },
-            quantity: 1,
-          },
-        ],
+      // ✅ validate allowed amounts
+      for (const r of rows) {
+        const a = Number(r.amount);
+        if (![29, 299].includes(a)) {
+          throw new BadRequestException('Invalid plan amount in cart');
+        }
+      }
+
+      const bizIds = rows.map(r => r.business_id);
+const bizList = await this.businessRepo.find({
+  where: { id: In(bizIds) },
+  select: { id: true, name: true },
+});
+const bizMap = new Map(bizList.map(b => [b.id, b.name]));
+
+session = await this.stripe.checkout.sessions.create({
+  mode: "payment",
+  payment_method_types: ["card"],
+  customer: customerId,
+  billing_address_collection: "required",
+  customer_update: { address: "auto" },
+  locale: "en",
+
+  line_items: rows.map((r) => ({
+    price_data: {
+      currency: "usd",
+      product_data: { name: `Claim: ${bizMap.get(r.business_id) || "Business"}` },
+      unit_amount: Math.round(Number(r.amount || 0) * 100),
+    },
+    quantity: 1,
+  })),
+
         success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/business-claim/cancel`,
 
@@ -191,15 +206,17 @@ if (!customerId) {
     return link.url;
   }
 
-  async startPaidContributorOnboarding(input: { userId: string; email?: string }) {
-  const acct = await this.createConnectedAccount(input.userId, input.email);
+  async startPaidContributorOnboarding(input: {
+    userId: string;
+    email?: string;
+  }) {
+    const acct = await this.createConnectedAccount(input.userId, input.email);
 
-  await this.users.setContributorOnboardingPending(input.userId, acct.id);
+    await this.users.setContributorOnboardingPending(input.userId, acct.id);
 
-  const url = await this.createOnboardingLink(acct.id);
-  return { url, accountId: acct.id };
-}
-
+    const url = await this.createOnboardingLink(acct.id);
+    return { url, accountId: acct.id };
+  }
 
   // ==========================================================
   // ✅ SUBSCRIPTION CHECKOUT + DRAFT + PENDING SUB ROW
@@ -238,28 +255,27 @@ if (!customerId) {
 
     // 1) create customer
     // ✅ Use existing customer_id if present, otherwise create + save
-const fullUser = await this.userRepo.findOne({
-  where: { id: input.userId },
-  select: { id: true, email: true, customer_id: true },
-});
+    const fullUser = await this.userRepo.findOne({
+      where: { id: input.userId },
+      select: { id: true, email: true, customer_id: true },
+    });
 
-let customerId = fullUser?.customer_id;
+    let customerId = fullUser?.customer_id;
 
-if (!customerId) {
-  const customer = await this.stripe.customers.create({
-    email: input.customerEmail, // or fullUser?.email || input.customerEmail
-    address: { country: 'US' },
-    metadata: { userId: input.userId },
-  });
+    if (!customerId) {
+      const customer = await this.stripe.customers.create({
+        email: input.customerEmail, // or fullUser?.email || input.customerEmail
+        address: { country: 'US' },
+        metadata: { userId: input.userId },
+      });
 
-  customerId = customer.id;
+      customerId = customer.id;
 
-  await this.userRepo.update(
-    { id: input.userId },
-    { customer_id: customerId },
-  );
-}
-
+      await this.userRepo.update(
+        { id: input.userId },
+        { customer_id: customerId },
+      );
+    }
 
     // 2) save draft
     const draft = await this.businessDraftRepo.save(
@@ -369,77 +385,72 @@ if (!customerId) {
     )) as Stripe.Subscription;
   }
   async listSubscriptions(customerId: string) {
-  return this.stripe.subscriptions.list({
-    customer: customerId,
-    status: "all",
-    limit: 20,
-    expand: [
-      "data.default_payment_method",   
-      "data.items.data.price"          
-    ],
-  });
-}
-
-
-async listInvoices(customerId: string) {
-  return this.stripe.invoices.list({
-    customer: customerId,
-    limit: 20,
-    expand: ["data.payment_intent.payment_method"],
-  });
-}
-
-
-async getCustomerWithDefaultPaymentMethod(customerId: string) {
-  const customer = await this.stripe.customers.retrieve(customerId, {
-    expand: ['invoice_settings.default_payment_method'],
-  });
-  return customer;
-}
-async retrieveCustomer(customerId: string) {
-  return this.stripe.customers.retrieve(customerId);
-}
-
-async retrievePaymentMethod(pmId: string) {
-  return this.stripe.paymentMethods.retrieve(pmId);
-}
-
-async createStripePercentCouponAndPromo(input: {
-  code: string;
-  name: string;
-  percent: number;
-  validitymonths?: number;
-  active: boolean;
-}) {
-  const percent = Number(input.percent);
-  if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
-    throw new Error("Invalid percent discount. Must be 1-100.");
+    return this.stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 20,
+      expand: ['data.default_payment_method', 'data.items.data.price'],
+    });
   }
 
-  // 1) Coupon
-  const coupon = await this.stripe.coupons.create({
-    name: input.name,
-    percent_off: percent,
-    duration: input.validitymonths && input.validitymonths > 0 ? "repeating" : "once",
-    duration_in_months:
-      input.validitymonths && input.validitymonths > 0 ? input.validitymonths : undefined,
-    metadata: { source: "db_coupon", code: input.code },
-  });
+  async listInvoices(customerId: string) {
+    return this.stripe.invoices.list({
+      customer: customerId,
+      limit: 20,
+      expand: ['data.payment_intent.payment_method'],
+    });
+  }
 
-  // 2) Promotion Code (NEW API SHAPE)
-  const promo = await this.stripe.promotionCodes.create({
-    promotion: {
-      type: "coupon",
-      coupon: coupon.id,
-    },
-    code: input.code,
-    active: input.active,
-    metadata: { source: "db_coupon" },
-  });
+  async getCustomerWithDefaultPaymentMethod(customerId: string) {
+    const customer = await this.stripe.customers.retrieve(customerId, {
+      expand: ['invoice_settings.default_payment_method'],
+    });
+    return customer;
+  }
+  async retrieveCustomer(customerId: string) {
+    return this.stripe.customers.retrieve(customerId);
+  }
 
-  return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
-}
+  async retrievePaymentMethod(pmId: string) {
+    return this.stripe.paymentMethods.retrieve(pmId);
+  }
 
+  async createStripePercentCouponAndPromo(input: {
+    code: string;
+    name: string;
+    percent: number;
+    validitymonths?: number;
+    active: boolean;
+  }) {
+    const percent = Number(input.percent);
+    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+      throw new Error('Invalid percent discount. Must be 1-100.');
+    }
 
+    // 1) Coupon
+    const coupon = await this.stripe.coupons.create({
+      name: input.name,
+      percent_off: percent,
+      duration:
+        input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
+      duration_in_months:
+        input.validitymonths && input.validitymonths > 0
+          ? input.validitymonths
+          : undefined,
+      metadata: { source: 'db_coupon', code: input.code },
+    });
 
+    // 2) Promotion Code (NEW API SHAPE)
+    const promo = await this.stripe.promotionCodes.create({
+      promotion: {
+        type: 'coupon',
+        coupon: coupon.id,
+      },
+      code: input.code,
+      active: input.active,
+      metadata: { source: 'db_coupon' },
+    });
+
+    return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
+  }
 }
