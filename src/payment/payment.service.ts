@@ -46,4 +46,9 @@ export class PaymentService {
   byBatch(batch_id: string) {
     return this.repo.find({ where: { batch_id }, order: { created_at: "DESC" as any } });
   }
+
+  async findById(id: string) {
+  return this.repo.findOne({ where: { id } });
+}
+
 }

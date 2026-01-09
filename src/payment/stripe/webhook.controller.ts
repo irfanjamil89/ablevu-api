@@ -311,51 +311,101 @@ export class WebhookController {
         }
 
         // ======================================================
-        // B) BUSINESS CLAIM FLOW (OLD)
-        // ======================================================
-        if (session.metadata?.purpose === 'business_claim') {
-          const { payment_id, batch_id, user_id } = session.metadata;
+// B) BUSINESS CLAIM FLOW (VALIDATED)
+// ======================================================
+if (session.metadata?.purpose === "business_claim") {
+  const { payment_id, batch_id, user_id } = session.metadata || {};
 
-          if (payment_id) await this.paymentService.markSuccess(payment_id);
+  if (!payment_id || !batch_id || !user_id) {
+    console.log("[Webhook] business_claim missing metadata");
+    return res.json({ received: true });
+  }
 
-          const rows = await this.cartRepo.find({
-            where: {
-              batch_id,
-              user_id,
-              status: In(['pending' as any, 'paid' as any]),
-            },
-          });
+  // ✅ must be paid
+  if (session.payment_status !== "paid") {
+    console.log("[Webhook] business_claim not paid yet:", session.payment_status);
+    return res.json({ received: true });
+  }
 
-          if (!rows.length) return res.json({ received: true });
+  // ✅ Stripe session retrieve (line items + currency + totals)
+  const fullSession = await (this.stripe as any).stripe.checkout.sessions.retrieve(
+    session.id,
+    { expand: ["line_items"] }
+  );
 
-          // mark cart paid (idempotent)
-          await this.cartRepo.update(
-            { batch_id, user_id, status: 'pending' as any },
-            { status: 'paid' as any },
-          );
+  const currency = String(fullSession.currency || "").toLowerCase();
+  if (currency !== "usd") {
+    console.log("[Webhook] business_claim invalid currency:", currency);
+    return res.json({ received: true });
+  }
 
-          const businessIds = [
-            ...new Set(rows.map((r) => r.business_id).filter(Boolean)),
-          ];
+  const paidTotalCents = Number(fullSession.amount_total || 0);
+  if (!paidTotalCents || paidTotalCents <= 0) {
+    console.log("[Webhook] business_claim invalid amount_total:", paidTotalCents);
+    return res.json({ received: true });
+  }
 
-          if (businessIds.length) {
-            const upd = await this.businessRepo.update(
-              { id: In(businessIds) },
-              {
-                business_status: 'claimed' as any,
-                owner_user_id: user_id,
-              } as any,
-            );
+  // ✅ payment row validate + idempotent
+  const payment = await this.paymentService.findById(payment_id); // add method
+  if (!payment) {
+    console.log("[Webhook] payment not found:", payment_id);
+    return res.json({ received: true });
+  }
 
-            console.log(
-              '[Webhook] Claim business upd affected=',
-              upd.affected,
-              businessIds,
-            );
-          }
+  if ((payment.status || "").toLowerCase() === "paid") {
+    return res.json({ received: true });
+  }
 
-          return res.json({ received: true });
-        }
+  // ✅ cart rows: ONLY pending
+  const rows = await this.cartRepo.find({
+    where: { batch_id, user_id, status: "pending" as any },
+  });
+
+  if (!rows.length) return res.json({ received: true });
+
+  // ✅ only allow 29 / 299
+  for (const r of rows) {
+    const a = Number(r.amount);
+    if (![29, 299].includes(a)) {
+      console.log("[Webhook] invalid cart amount:", a);
+      return res.json({ received: true });
+    }
+  }
+
+  const cartTotal = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const cartTotalCents = Math.round(cartTotal * 100);
+
+  if (cartTotalCents !== paidTotalCents) {
+    console.log("[Webhook] amount mismatch", {
+      cartTotalCents,
+      paidTotalCents,
+      batch_id,
+      user_id,
+    });
+    return res.json({ received: true });
+  }
+
+  // ✅ mark payment success
+  await this.paymentService.markSuccess(payment_id);
+
+  // ✅ mark cart paid
+  await this.cartRepo.update(
+    { batch_id, user_id, status: "pending" as any },
+    { status: "paid" as any }
+  );
+
+  // ✅ claim businesses
+  const businessIds = [...new Set(rows.map(r => r.business_id).filter(Boolean))];
+
+  if (businessIds.length) {
+    await this.businessRepo.update(
+      { id: In(businessIds) },
+      { business_status: "claimed" as any, owner_user_id: user_id } as any
+    );
+  }
+
+  return res.json({ received: true });
+}
       }
 
       if (event.type === 'account.updated') {
