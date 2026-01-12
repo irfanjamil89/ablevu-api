@@ -79,11 +79,7 @@ export class SyncService {
                 const businesses: any[] = data?.response?.results ?? data?.response ?? [];
 
                 for (const bubbleBusiness of businesses) {
-                    let existingBusiness = await this.businessService.findByExternalId(bubbleBusiness._id);
-                    if (existingBusiness) {
-                        console.log(`Business with external_id ${bubbleBusiness._id}, ${bubbleBusiness.businessname_text} already exists. Skipping.`);
-                        continue; // Skip to the next business
-                    }
+                    let existingBusiness = await this.businessService.findByExternalId(bubbleBusiness._id);                    
                     const business = new CreateBusinessDto();
                     business.external_id = bubbleBusiness._id;
                     business.name = bubbleBusiness.businessname_text;
@@ -140,9 +136,16 @@ export class SyncService {
                         business.business_type = [id || businessTypes.data[0].id]; // Assign a default type if none matched
                     }
 
+                    // Check if business exists through external_id - CREATE or UPDATE
+                if (existingBusiness) {
+                    console.log(`Business with external_id ${bubbleBusiness._id}, ${bubbleBusiness.businessname_text} already exists. Updating...`);
+                    await this.businessService.updateBusinessByExternalId(bubbleBusiness._id, business);
+                    console.log(`✅ Updated business: ${business.name} (external_id: ${bubbleBusiness._id})`);
+                } else {
+                    console.log('Creating new business:', business.name, business.creatorId);
                     await this.businessService.createBusiness(business.creatorId || '', business);
-
-
+                    console.log(`✅ Created business: ${business.name} (external_id: ${bubbleBusiness._id})`);
+                }
 
                 }
 

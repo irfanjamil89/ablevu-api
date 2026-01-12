@@ -351,6 +351,34 @@ export class BusinessService {
 
     return business;
   }
+
+  async updateBusinessByExternalId(external_id: string, updateData: CreateBusinessDto) {
+    try {
+        // First find the business by external_id
+        const existingBusiness = await this.businessRepo.findOne({
+            where: { external_id: external_id }
+        });
+
+        if (!existingBusiness) {
+            throw new NotFoundException(`Business with external_id ${external_id} not found`);
+        }
+
+        // Update the business
+        const updatedBusiness = await this.businessRepo.save({
+            ...existingBusiness,
+            ...updateData,
+            id: existingBusiness.id, 
+            modified_at: new Date(), 
+        });
+
+        console.log(`Successfully updated business with external_id: ${external_id}`);
+        return updatedBusiness;
+
+    } catch (error) {
+        console.error(`Error updating business with external_id ${external_id}:`, error);
+        throw error;
+    }
+}
   async deleteBusiness(id: string, userId: string) {
   const business = await this.businessRepo.findOne({ where: { id } });
   if (!business) {
