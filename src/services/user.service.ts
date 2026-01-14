@@ -189,6 +189,37 @@ async markPaidContributor(userId: string) {
 
   return this.usersRepository.save(user);
 }
+// ✅ Admin update profile
+  async updateProfileAdmin(
+    userId: string,
+    dto: {
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+    },
+  ) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) return null;
+
+    if (dto.first_name !== undefined) user.first_name = dto.first_name;
+    if (dto.last_name !== undefined) user.last_name = dto.last_name;
+    if (dto.email !== undefined) user.email = dto.email;
+
+    return await this.usersRepository.save(user);
+  }
+
+  // ✅ Admin change role
+  async changeUserRoleAdmin(
+    userId: string,
+    newRole: 'Contributor' | 'Business' | 'User',
+  ) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) return null;
+
+    user.user_role = newRole;
+    await this.usersRepository.save(user);
+    return true;
+  }
 }
 function uuidv4(): string | undefined {
   throw new Error("Function not implemented.");

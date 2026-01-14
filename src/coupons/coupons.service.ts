@@ -60,16 +60,21 @@ export class CouponsService{
         return this.couponsRepo.save(coupon);
     }
 
-    async deleteCoupons (id: string, userid: string){
-        const coupon = await this.couponsRepo.findOne({
-            where: {id},
-        });
-        if(!coupon){
-            throw new NotFoundException('Coupon Not Found')
-        }
-        coupon.modified_by=userid;
-        return await this.couponsRepo.remove(coupon);
-    }
+    async deleteCoupons(id: string, userid: string) {
+  const coupon = await this.couponsRepo.findOne({ where: { id } });
+  if (!coupon) throw new NotFoundException("Coupon Not Found");
+
+  // ✅ First Stripe cleanup
+  await this.stripeService.deleteCouponAndPromo(
+    coupon.stripe_coupon_id,
+    coupon.stripe_promo_code_id
+  );
+
+  // ✅ Then DB remove (or better: soft delete)
+  coupon.modified_by = userid;
+  return await this.couponsRepo.remove(coupon);
+}
+
 
     async listPaginated (
         page = 1,

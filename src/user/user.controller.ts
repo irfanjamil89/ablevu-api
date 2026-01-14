@@ -73,4 +73,35 @@ async findOne(@Param('id') id: string): Promise<User> {
     await this.users.updateUserRole(userId, newRole);
     return { status: 'ok', message: 'User role changed successfully' };
   }
+  // ✅ Admin: Update ANY user profile
+  @Put(':id/update-profile-admin')
+  @UseGuards(JwtAuthGuard)
+  async updateProfileAdmin(
+    @Param('id') userId: string,
+    @Body() dto: {
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+    },
+  ) {
+    const user = await this.users.updateProfileAdmin(userId, dto);
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  // ✅ Admin: Change ANY user role
+  @Patch(':id/change-role-admin')
+  @UseGuards(JwtAuthGuard)
+  async changeUserRoleAdmin(
+    @Param('id') userId: string,
+    @Body('newRole') newRole: 'Contributor' | 'Business' | 'User',
+  ) {
+    const updated = await this.users.changeUserRoleAdmin(userId, newRole);
+    if (!updated) throw new NotFoundException('User not found');
+
+    return {
+      status: 'ok',
+      message: 'User role changed successfully',
+    };
+}
 }
