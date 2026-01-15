@@ -79,11 +79,7 @@ export class SyncService {
                 const businesses: any[] = data?.response?.results ?? data?.response ?? [];
 
                 for (const bubbleBusiness of businesses) {
-                    let existingBusiness = await this.businessService.findByExternalId(bubbleBusiness._id);
-                    if (existingBusiness) {
-                        console.log(`Business with external_id ${bubbleBusiness._id}, ${bubbleBusiness.businessname_text} already exists. Skipping.`);
-                        continue; // Skip to the next business
-                    }
+                    let existingBusiness = await this.businessService.findByExternalId(bubbleBusiness._id);                    
                     const business = new CreateBusinessDto();
                     business.external_id = bubbleBusiness._id;
                     business.name = bubbleBusiness.businessname_text;
@@ -140,9 +136,16 @@ export class SyncService {
                         business.business_type = [id || businessTypes.data[0].id]; // Assign a default type if none matched
                     }
 
+                    // Check if business exists through external_id - CREATE or UPDATE
+                if (existingBusiness) {
+                    console.log(`Business with external_id ${bubbleBusiness._id}, ${bubbleBusiness.businessname_text} already exists. Updating...`);
+                    await this.businessService.updateBusinessByExternalId(bubbleBusiness._id, business);
+                    console.log(`✅ Updated business: ${business.name} (external_id: ${bubbleBusiness._id})`);
+                } else {
+                    console.log('Creating new business:', business.name, business.creatorId);
                     await this.businessService.createBusiness(business.creatorId || '', business);
-
-
+                    console.log(`✅ Created business: ${business.name} (external_id: ${bubbleBusiness._id})`);
+                }
 
                 }
 
@@ -207,20 +210,41 @@ export class SyncService {
                                 console.log(`Skipping AF to business Syncing ${bubbleBusiness._id}, ${bubbleBusiness.businessname_text} ${afExternalId} as not found`);
                                 continue;
                             }
+
+                            // Check if this accessibility feature is already linked to the business
+                        const existingLink = await this.businessAccessibilityRepo.findOne({
+                            where: {
+                                business_id: existingBusiness.id,
+                                accessible_feature_id: afType.id,
+                            }
+                        });
+
+                        if (existingLink) {
+                            // Update existing link
+                            console.log(`✅ AF already exists - Updating: ${afType.title} for business ${existingBusiness.name}`);
+                            existingLink.active = true;
+                            if (userId) {
+                                existingLink.modified_by = userId;
+                            }
+                            existingLink.modified_at = new Date();
+                            await this.businessAccessibilityRepo.save(existingLink);
+                            console.log(`✅ Updated AF link: ${afType.title}`);
+                        } else {
+                            // Create new link
+                            console.log(`Creating new AF link: ${afType.title} for business ${existingBusiness.name}`);
                             let linkedFeature = this.businessAccessibilityRepo.create({
                                 business_id: existingBusiness.id,
-                                accessible_feature_id: afType?.id,
+                                accessible_feature_id: afType.id,
                                 active: true,
                                 created_by: userId,
                                 modified_by: userId,
                             });
                             await this.businessAccessibilityRepo.save(linkedFeature);
+                            console.log(`✅ Created AF link: ${afType.title}`);
                         }
-
                     }
                 }
-
-
+            }
             }
         } catch (error) {
             console.error('❌ Error fetching from Bubble:', (error as any).response?.data || error);
@@ -268,6 +292,29 @@ export class SyncService {
 
 
                     let userId = (await this.userService.findOneByExternalId(bubbleBusiness.creator_user))?.id
+                    // Check if virtual tour already exists for this business with same link
+                const existingTour = await this.virtualRepo.findOne({
+                    where: {
+                        business: { id: existingBusiness.id },
+                        link_url: bubbleBusiness.tourlink_text,
+                    }
+                });
+
+                if (existingTour) {
+                    // Update existing virtual tour
+                    console.log(`Virtual Tour already exists - Updating: ${bubbleBusiness.title_text}`);
+                    existingTour.name = bubbleBusiness.title_text;
+                    existingTour.link_url = bubbleBusiness.tourlink_text;
+                    existingTour.active = true;
+                    if (userId) {
+                        existingTour.modified_by = userId;
+                    }
+                    existingTour.modified_at = new Date();
+                    await this.virtualRepo.save(existingTour);
+                    console.log(`Updated Virtual Tour: ${bubbleBusiness.title_text}`);
+                } else {
+                    // Create new virtual tour
+                    console.log(`Creating new Virtual Tour: ${bubbleBusiness.title_text}`);
                     const tour = this.virtualRepo.create({
                         name: bubbleBusiness.title_text,
                         display_order: 0,
@@ -277,12 +324,11 @@ export class SyncService {
                         modified_by: userId,
                         business: existingBusiness,
                     });
-
                     await this.virtualRepo.save(tour);
+                    console.log(`Created Virtual Tour: ${bubbleBusiness.title_text}`);
                 }
-
-
             }
+        }
         } catch (error) {
             console.error('❌ Error fetching from Bubble:', (error as any).response?.data || error);
             throw new HttpException('Failed to fetch Bubble data', HttpStatus.BAD_REQUEST);
@@ -314,7 +360,32 @@ export class SyncService {
                 const data = response.data as any;
                 const bublleUsers: any[] = data?.response?.results ?? data?.response ?? [];
                 for (const bubbleUser of bublleUsers) {
-                    try {
+                try {
+                    // Check if user already exists by external_id
+                    let existingUser = await this.userService.findOneByExternalId(bubbleUser._id);
+
+                    if (existingUser) {
+                        // Update existing user
+                        console.log(`User already exists - Updating: ${bubbleUser.authentication.email.email}`);
+                        existingUser.email = bubbleUser.authentication.email.email;
+                        existingUser.first_name = bubbleUser.firstname_text;
+                        existingUser.last_name = bubbleUser.lastname_text;
+                        existingUser.archived = !bubbleUser.useractive_boolean;
+                        existingUser.user_role = bubbleUser.userrole1_option_user_role0;
+                        existingUser.modified_at = new Date(bubbleUser['Modified Date']);
+                        existingUser.consent = bubbleUser.user_signed_up || false;
+                        existingUser.phone_number = bubbleUser.phone_number_text;
+                        existingUser.paid_contributor = bubbleUser.paidcontributor_boolean || false;
+                        existingUser.customer_id = bubbleUser.StripeCustomerID || null;
+                        existingUser.profile_picture_url = bubbleUser.profilepicture_image || null;
+                        existingUser.source = 'bubble';
+                        
+                        console.log('Updating user:', existingUser.email);
+                        await this.userService.save(existingUser);
+                        console.log(`Updated user: ${existingUser.email}`);
+                    } else {
+                        // Create new user
+                        console.log(`Creating new user: ${bubbleUser.authentication.email.email}`);
                         const passwordHash = await bcrypt.hash("StrongP@ssw0rd!", 12);
                         const user = new User();
                         user.external_id = bubbleUser._id;
@@ -332,18 +403,20 @@ export class SyncService {
                         user.profile_picture_url = bubbleUser.profilepicture_image || null;
                         user.password = passwordHash;
                         user.source = 'bubble';
+                        
                         console.log('Syncing user:', user.email);
                         console.log('Syncing user:', user.first_name);
                         await this.userService.save(user);
-                    }
-                    catch (error) {
-                        console.error('❌ Error syncing user from Bubble:', bubbleUser.authentication.email.email, (error as any).response?.data || error);
+                        console.log(`Created user: ${user.email}`);
                     }
                 }
-                console.log(response.data);
+                catch (error) {
+                    console.error('❌ Error syncing user from Bubble:', bubbleUser.authentication.email.email, (error as any).response?.data || error);
+                }
             }
-
+            console.log(response.data);
         }
+    }
         catch (error) {
             console.error('❌ Error fetching users from Bubble:', (error as any).response?.data || error);
             throw new HttpException('Failed to fetch Bubble user data', HttpStatus.BAD_REQUEST);
@@ -460,6 +533,10 @@ export class SyncService {
                 console.log(`${bubbleFeature.title_text}`);
 
                 let userId = (await this.userService.findOneByExternalId(bubbleFeature.creator_user))?.id || '';
+
+                // Check if accessible feature already exists by external_id
+            let existingFeature = await this.accessibleFeatureTypeService.findByExternalId(bubbleFeature._id);
+
                 const afDto = new AccessibleFeatureDto();
                 afDto.external_id = bubbleFeature._id;
                 afDto.title = bubbleFeature.title_text;
@@ -491,8 +568,18 @@ export class SyncService {
 
                     }
                 });
+                if (existingFeature) {
+                // Update existing accessible feature
+                console.log(`Accessible Feature already exists - Updating: ${bubbleFeature.title_text}`);
+                await this.accessibleFeatureTypeService.updateAccessibleFeatureByExternalId(bubbleFeature._id, userId, afDto);
+                console.log(`Updated Accessible Feature: ${bubbleFeature.title_text}`);
+            } else {
+                // Create new accessible feature
+                console.log(`Creating new Accessible Feature: ${bubbleFeature.title_text}`);
                 await this.accessibleFeatureTypeService.createAccessibleFeature(userId, afDto);
+                console.log(`Created Accessible Feature: ${bubbleFeature.title_text}`);
             }
+        }
             catch (error) {
 
                 console.error('❌ Error syncing AF from Bubble:', bubbleFeature.title_text, (error as any).response?.data || error);

@@ -36,9 +36,9 @@ export class CouponsController{
     @UseGuards(JwtAuthGuard)
     async deleteCoupons(
         @Param('id') id: string,
-        @UserSession() user: any,
+        @UserSession() userId: any,
     ){
-        await this.couponsService.deleteCoupons( id, user.id);
+        await this.couponsService.deleteCoupons( id, userId);
         return {message: "Coupon Deleted Successfully"}
     }
 

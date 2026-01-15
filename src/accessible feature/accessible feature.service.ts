@@ -20,7 +20,7 @@ export class AccessibleFeatureService {
     private accessiblefeaturebusinesstyperepo: Repository<AccessibleFeatureBusinessType>,
 
     @InjectRepository(BusinessAccessibleFeature)
-    private  businessAccessibleFeatureRepo: Repository<BusinessAccessibleFeature>
+    private  businessAccessibleFeatureRepo: Repository<BusinessAccessibleFeature>,    
   ) { }
 
   private makeSlug(name: string) {
@@ -110,6 +110,47 @@ export class AccessibleFeatureService {
       await this.accessiblefeaturebusinesstyperepo.save(linkedbusinesstype);
     }
   }
+
+async updateAccessibleFeatureByExternalId(external_id: string, userId: string, updateData: AccessibleFeatureDto) {
+    try {
+        // First find the accessible feature by external_id
+        const existingFeature = await this.accessibleFeatureRepo.findOne({
+            where: { external_id: external_id },
+            relations: ['business_type', 'accessible_feature_types']
+        });
+
+        if (!existingFeature) {
+            throw new NotFoundException(`Accessible Feature with external_id ${external_id} not found`);
+        }
+
+        // Update the accessible feature fields
+        existingFeature.title = updateData.title;
+        existingFeature.modified_by = userId || existingFeature.modified_by;
+        existingFeature.modified_at = new Date();
+        
+        // Save the updated feature
+        const updatedFeature = await this.accessibleFeatureRepo.save(existingFeature);
+
+        console.log(`✅ Successfully updated accessible feature with external_id: ${external_id}`);
+        return updatedFeature;
+
+    } catch (error) {
+        console.error(`❌ Error updating accessible feature with external_id ${external_id}:`, error);
+        throw error;
+    }
+}
+
+async findByExternalId(external_id: string) {
+    try {
+        return await this.accessibleFeatureRepo.findOne({
+            where: { external_id: external_id },
+            relations: ['business_type', 'accessible_feature_types']
+        });
+    } catch (error) {
+        console.error(`❌ Error finding accessible feature with external_id ${external_id}:`, error);
+        return null;
+    }
+}
 
   async deleteAccessibleFeature(id: string, userId: string ) {
     const accessibleFeature = await this.accessibleFeatureRepo.findOne({ where: { id } });

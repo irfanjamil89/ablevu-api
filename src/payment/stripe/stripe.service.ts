@@ -453,4 +453,29 @@ session = await this.stripe.checkout.sessions.create({
 
     return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
   }
+
+  async deleteCouponAndPromo(stripeCouponId?: string | null, stripePromoCodeId?: string | null) {
+    // 1) Promo code -> deactivate (recommended)
+    if (stripePromoCodeId) {
+      try {
+        await this.stripe.promotionCodes.update(stripePromoCodeId, { active: false });
+      } catch (e: any) {
+        // If already inactive / not found, ignore safely
+        if (e?.statusCode !== 404) throw e;
+      }
+    }
+
+    // 2) Coupon -> delete (allowed via API)
+    if (stripeCouponId) {
+      try {
+        await this.stripe.coupons.del(stripeCouponId);
+      } catch (e: any) {
+        // If coupon already deleted / not found, ignore
+        if (e?.statusCode !== 404) throw e;
+      }
+    }
+
+    return { ok: true };
+  }
 }
+
