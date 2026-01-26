@@ -9,7 +9,7 @@ permissions:
   id-token: write
 
 env:
-  PROJECT_ID: ablevu-479510
+  PROJECT_ID: ablevu-2
   REGION: us-central1
   SERVICE: ablevu-api
   REPOSITORY: app-repo
