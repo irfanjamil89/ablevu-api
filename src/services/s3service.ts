@@ -37,7 +37,7 @@ export class S3Service {
 
     return {
       key,
-      url: this.publicBase ? `${this.publicBase}/${key}` : undefined,
+      url: this.publicBase ? `/${this.publicBase}/${key}` : undefined,
       contentType: opts.contentType,
     };
   }
