@@ -74,4 +74,7 @@ export class Subscription {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
+
+  @Column()
+  external_id: string;
 }

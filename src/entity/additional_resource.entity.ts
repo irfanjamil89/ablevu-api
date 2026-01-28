@@ -29,4 +29,7 @@ export class AdditionalResource {
     @Column()
     modified_at: Date;
 
+    @Column()
+    external_id: string;
+
 }

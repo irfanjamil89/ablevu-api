@@ -38,4 +38,7 @@ export class Partner {
 
     @OneToMany(() => BusinessPartners, (bp) => bp.partner)
     businessPartners: BusinessPartners[];
+
+    @Column()
+    external_id: string;
 }

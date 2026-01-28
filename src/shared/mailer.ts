@@ -70,6 +70,49 @@ function buildResetEmailHTML(opts: {
   return buildAbleVuEmailTemplate("Password Reset Request", bodyHtml);
 }
 
+function buildV2ResetEmailHTML(opts: {
+  name?: string;
+  resetLink: string;
+  expiryText?: string;
+}) {
+  const expiry = opts.expiryText || "1 hour";
+
+  const bodyHtml = `
+    <p class="main-text">
+      We’re excited to let you know that <b>AbleVu V2 is now live</b> 🎉
+    </p>
+
+    <p class="main-text">
+      As part of this major upgrade, we’ve enhanced security and improved how accounts are managed.
+      To continue using AbleVu V2, <b>you’ll need to reset your password</b>.
+    </p>
+
+    <p class="main-text">
+      Please click the button below to set a new password and access the updated platform.
+    </p>
+
+    <div style="text-align:center;">
+      <a href="${opts.resetLink}" class="btn">Reset My Password</a>
+    </div>
+
+    <p class="main-text">
+      This reset link will expire in <b>${expiry}</b> and can only be used once.
+    </p>
+
+    <p class="main-text">
+      If you have any questions or need help, feel free to reply to this email — our team is happy to assist.
+    </p>
+
+    <p class="main-text" style="margin-top:22px;">
+      Thank you for being part of AbleVu,<br/>
+      <b>The AbleVu Team</b>
+    </p>
+  `;
+
+  return buildAbleVuEmailTemplate("AbleVu V2 is Now Live 🎉", bodyHtml);
+}
+
+
 function buildAbleVuEmailTemplate(heading: string, bodyHtml: string) {
   return `
 <!DOCTYPE html>
@@ -202,3 +245,24 @@ export async function sendResetEmail(params: {
 
   return sendMail(params.to, params.subject ?? 'Password Reset Request', html);
 }
+
+export async function sendV2ResetEmail(params: {
+  to: string;
+  name?: string; // optional, kept for consistency
+  resetLink: string;
+  expiryText?: string;
+  subject?: string;
+}) {
+  const html = buildV2ResetEmailHTML({
+    name: params.name,
+    resetLink: params.resetLink,
+    expiryText: params.expiryText ?? "1 hour",
+  });
+
+  return sendMail(
+    params.to,
+    params.subject ?? "AbleVu V2 is now live — Reset your password",
+    html
+  );
+}
+

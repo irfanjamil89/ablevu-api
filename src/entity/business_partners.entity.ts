@@ -37,4 +37,7 @@ export class BusinessPartners {
 
     @Column()
     modified_at: Date;
+
+    @Column()
+    external_id: string;
 }

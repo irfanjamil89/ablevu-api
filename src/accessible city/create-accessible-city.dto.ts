@@ -28,4 +28,7 @@ export class CreateAccessibleCityDto {
   @IsOptional()
   @IsUrl()
   pictureUrl?: string;
+
+  @IsString()
+  externalId: string;
 }

@@ -26,7 +26,66 @@ export class AccessibleCityService {
       .replace(/(^-|-$)+/g, '');
   }
 
-  async createAccessibleCity(UserId: string, dto: CreateAccessibleCityDto) {
+  // Find city by external_id
+  async findByExternalId(externalId: string): Promise<AccessibleCity | null> {
+    return await this.accessiblecityrepo.findOne({
+      where: { external_id: externalId }
+    });
+  }
+
+  // NEW METHOD: Update city by external_id
+  async updateAccessibleCityByExternalId(
+    externalId: string,
+    userId: string,
+    dto: CreateAccessibleCityDto
+  ) {
+    const city = await this.accessiblecityrepo.findOne({
+      where: { external_id: externalId }
+    });
+
+    if (!city) {
+      throw new NotFoundException('Accessible City not found with external_id: ' + externalId);
+    }
+
+    // Update city fields
+    if (dto.cityName && dto.cityName.trim() !== '') {
+      city.city_name = dto.cityName;
+      city.slug = this.makeSlug(dto.cityName);
+    }
+    if (dto.featured !== undefined) city.featured = dto.featured;
+    if (dto.latitude !== undefined) city.latitude = dto.latitude;
+    if (dto.longitude !== undefined) city.longitude = dto.longitude;
+    if (dto.displayOrder !== undefined) city.display_order = dto.displayOrder;
+    if (dto.pictureUrl !== undefined) city.picture_url = dto.pictureUrl;
+
+    city.modified_by = userId;
+    await this.accessiblecityrepo.save(city);
+
+    // Clear old business associations
+    const oldBusinesses = await this.businessRepo.find({
+      where: { accessible_city_id: city.id }
+    });
+    for (const b of oldBusinesses) {
+      b.accessible_city_id = null;
+    }
+    await this.businessRepo.save(oldBusinesses);
+
+    // Add new business associations
+    if (dto.business_Ids?.length) {
+      const businesses = await this.businessRepo.findBy({ id: In(dto.business_Ids) });
+      if (businesses.length !== dto.business_Ids.length) {
+        throw new BadRequestException('One or more business IDs are invalid');
+      }
+      for (const b of businesses) {
+        b.accessible_city_id = city.id;
+      }
+      await this.businessRepo.save(businesses);
+    }
+
+    return city;
+  }
+
+  async createAccessibleCity(UserId: string, dto: CreateAccessibleCityDto, externalId: string) {
     const user = await this.userRepo.findOne({ where: { id: UserId } });
     if (!user) throw new NotFoundException('user not found');
 
@@ -54,6 +113,7 @@ export class AccessibleCityService {
       slug,
       created_by: UserId,
       modified_by: UserId,
+      external_id: externalId,
     });
     const saved_city = await this.accessiblecityrepo.save(city);
     if (dto.business_Ids?.length) {
@@ -106,6 +166,8 @@ export class AccessibleCityService {
     }
     return accessiblecity;
   }
+
+
 
   async deleteAccessibleCity(id: string, userId: string) {
     const accessiblecity = await this.accessiblecityrepo.findOne({ where: { id } });

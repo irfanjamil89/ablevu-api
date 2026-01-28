@@ -27,4 +27,7 @@ export class BusinessRecomendations {
 
   @UpdateDateColumn()
   modified_at: Date;
+
+  @Column()
+  external_id: string;
 }

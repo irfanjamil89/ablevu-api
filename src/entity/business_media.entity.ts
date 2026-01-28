@@ -33,5 +33,8 @@ export class BusinessMedia{
     @UpdateDateColumn()
     modified_at: Date;
 
+    @Column()
+    external_id: string;
+
 
 }
