@@ -559,8 +559,8 @@ export class BusinessService {
   const qb = this.businessRepo.createQueryBuilder('b');
 
   qb.where(
-  '(b.business_status = :approved OR b.business_status = :claimed)',
-  { approved: 'approved', claimed: 'claimed' },
+  '(b.business_status = :Approved OR b.business_status = :Claimed)',
+  { Approved: 'Approved', Claimed: 'Claimed' },
 );
 
 

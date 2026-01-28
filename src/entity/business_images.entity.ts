@@ -36,4 +36,7 @@ export class BusinessImages{
     @UpdateDateColumn()
     modified_at: Date;
 
+    @Column()
+    external_id: string;
+
 }

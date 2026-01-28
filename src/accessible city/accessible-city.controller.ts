@@ -17,7 +17,7 @@ export class AccessibleCityController {
     @UserSession() user: any,
     @Body() dto: CreateAccessibleCityDto,
   ) {
-    const createdCity = await this.accessiblecityservice.createAccessibleCity(user.id, dto);
+    const createdCity = await this.accessiblecityservice.createAccessibleCity(user.id, dto, dto.externalId);
     return { message: 'Accessible City created successfully',
       id: createdCity.id, 
      };

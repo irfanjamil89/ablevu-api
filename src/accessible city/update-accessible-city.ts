@@ -30,4 +30,7 @@ export class UpdateAccessibleCityDto {
   @IsOptional()
   @IsUrl()
   pictureUrl?: string;
+
+  @IsString()
+  externalId: string;
 }

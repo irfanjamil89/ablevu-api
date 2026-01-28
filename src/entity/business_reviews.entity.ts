@@ -42,5 +42,8 @@ export class BusinessReviews{
 
      @Column()
     image_url: string;
+
+    @Column()
+    external_id: string;
     
 }

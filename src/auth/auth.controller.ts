@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Body, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Body, HttpStatus, HttpCode,Query } from '@nestjs/common';
 import { AppService } from '../app.service';
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
@@ -41,6 +41,17 @@ export class AuthController {
   async sendresetlink(@Body() body: { targetEmail: string }) {
     return this.authService.sendresetlink(body.targetEmail);
   }
+
+  @Post('admin/send-reset-all')
+sendResetPaginated(
+  @Query('page') page?: string,
+  @Query('limit') limit?: string,
+) {
+  return this.authService.sendResetToAllUsersPaginated(
+    Number(page) || 1,
+    Number(limit) || 10,
+  );
+}
 }
 
 

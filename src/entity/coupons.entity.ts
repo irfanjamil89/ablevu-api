@@ -43,4 +43,8 @@ export class Coupons {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   stripe_promo_code_id?: string;
+
+  @Column()
+  external_id: string;
+  
 }

@@ -38,4 +38,7 @@ export class AccessibleCity {
   @UpdateDateColumn()
   modified_at: Date;
 
+  @Column()
+  external_id: string;
+
 }

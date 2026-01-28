@@ -31,11 +31,20 @@ import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { BusinessModule } from 'src/business/business.module';
 import { NotificationModule } from 'src/notifications/notifications.module';
+import { AccessibleCityService } from 'src/accessible city/accessible-city.service';
+import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
+import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
+import { Partner } from 'src/entity/partner.entity';
+import { Feedback } from 'src/entity/feedback.entity';
+import { FeedbackType } from 'src/entity/feedback-type.entity';
+import { ReviewType } from 'src/entity/review_type.entity';
+import { Coupons } from 'src/entity/coupons.entity';
+import { Subscription } from 'src/entity/subscription.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages]),
+  imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages,BusinessAudioTour,BusinessCustomSectionsMedia, Partner, Feedback, FeedbackType, ReviewType, Coupons, Subscription]),
 GoogleMapsModule, BusinessModule, NotificationModule
 ],
   controllers: [SyncbubbleController],
-   providers: [SyncService,UsersService,AccessibleFeatureService,BusinessTypeService],
+   providers: [SyncService,UsersService,AccessibleFeatureService,BusinessTypeService, AccessibleCityService],
 })
 export class SyncModule {}

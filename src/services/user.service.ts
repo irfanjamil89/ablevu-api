@@ -220,6 +220,16 @@ async markPaidContributor(userId: string) {
     await this.usersRepository.save(user);
     return true;
   }
+  async findPaged(page: number, limit: number) {
+  const skip = (page - 1) * limit;
+
+  return this.usersRepository.find({
+    skip,
+    take: limit,
+    order: { id: 'ASC' }, 
+  });
+}
+
 }
 function uuidv4(): string | undefined {
   throw new Error("Function not implemented.");
