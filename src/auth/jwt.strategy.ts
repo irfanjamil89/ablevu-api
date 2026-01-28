@@ -1,29 +1,31 @@
-
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/services/user.service';
-import { User } from 'src/entity/user.entity';
-import { ConfigService } from 'src/services/config.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private authService: UsersService, private configService: ConfigService) {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
+  ) {
+    const secret = configService.get('JWT_SECRET'); // <-- adapt to your ConfigService API
+
+    if (!secret) {
+      throw new Error('JWT_SECRET is missing. Set JWT_SECRET env var or Secret Manager mapping.');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || '',
+      secretOrKey: secret,
     });
   }
 
-  async validate(payload: any) : Promise<User> {
-    console.log('JWT payload:', payload);
-    const user = await this.authService.findByUserName(payload.username);
-
-    if (!user) {
-      throw new UnauthorizedException();
-    }
+  async validate(payload: any) {
+    const user = await this.usersService.findByUserName(payload.username);
+    if (!user) throw new Error('Unauthorized'); // or UnauthorizedException
     return user;
   }
 }

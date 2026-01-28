@@ -23,6 +23,7 @@ import { AdditionalResource } from 'src/entity/additional_resource.entity';
 import { BusinessImages } from 'src/entity/business_images.entity';
 import { NotificationService } from 'src/notifications/notifications.service';
 import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
+import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
 
 type ListFilters = {
   search?: string;
@@ -89,6 +90,9 @@ export class BusinessService {
 
     @InjectRepository(BusinessCustomSectionsMedia)
     private readonly customSectionsMediaRepo: Repository<BusinessCustomSectionsMedia>,
+
+    @InjectRepository(BusinessAudioTour)
+    private readonly audioTourRepo: Repository<BusinessAudioTour>,
 
     @InjectRepository(BusinessImages)
     private readonly imagesRepo: Repository<BusinessImages>,
@@ -387,6 +391,8 @@ export class BusinessService {
   // Virtual tours
   await this.virtualTourRepo.delete({ business: { id: business.id } });
 
+  await this.audioTourRepo.delete({business_id: id});
+
   // Reviews
   await this.businessreviews.delete({ business_id: id });
 
@@ -441,9 +447,14 @@ export class BusinessService {
     if (currentUser?.user_role) {
       const role = currentUser.user_role.toLowerCase();
 
-      if (role === 'business' || role === 'contributor') {
+      if (role === 'business') {
         qb.andWhere('b.owner_user_id = :ownerId', {
           ownerId: currentUser.id,
+        });
+      }
+       else if (role === 'contributor'){
+        qb.andWhere('b.creator_user_id = :ID',{
+          ID: currentUser.id,
         });
       }
       // Admin = no filter
@@ -737,6 +748,7 @@ export class BusinessService {
       linkedTypes,
       accessibilityFeatures,
       virtualTours,
+      audioTours,
       businessreviews,
       businessQuestions,
       businessPartners,
@@ -754,6 +766,7 @@ export class BusinessService {
         where: { business: { id: business.id } },
         order: { display_order: 'ASC' },
       }),
+      this.audioTourRepo.find({where: { business_id: business.id }}),
       this.businessreviews.find({ where:
          { business_id: business.id, approved: true }, }),
       this.businessquestionrepo.find({ where: { business_id: business.id } }),
@@ -800,6 +813,7 @@ export class BusinessService {
       linkedTypes,
       accessibilityFeatures,
       virtualTours,
+      audioTours,
       businessreviews: businessReviewsWithNames,
       businessQuestions: businessQuestionsWithNames,
       businessPartners,
