@@ -184,42 +184,61 @@ export class AccessibleCityService {
     return { message: 'Accessibility City deleted successfully' }
   }
 
-  async listPaginated(
-    page = 1,
-    limit = 10,
-    opts?: { search?: string; featured?: boolean },
-  ) {
-    const qb = this.accessiblecityrepo
-      .createQueryBuilder('c')
+  async listPaginated(page = 1, limit = 10, opts?: { search?: string; featured?: boolean }) {
+  const qb = this.accessiblecityrepo.createQueryBuilder('c')
+    .leftJoin('business', 'b', 'b.accessible_city_id = c.id')
+    .select([
+      'c.id',
+      'c.city_name',
+      'c.picture_url',
+      'c.featured',
+      'c.display_order',
+      'c.slug',
+      'c.latitude',
+      'c.longitude',
+      'c.created_at',
+      'c.modified_at',
+      'c.external_id',
+    ])
+    .addSelect('COUNT(b.id)', 'businessCount');
 
-    if (opts?.search && opts.search.trim()) {
-      const search = `%${opts.search.trim().toLowerCase()}%`;
-      qb.andWhere('LOWER(c.city_name) LIKE :search', { search });
-    }
-    if (opts?.featured !== undefined) {
-      qb.andWhere('c.featured = :featured', { featured: opts.featured });
-    }
-
-    qb.orderBy('c.display_order', 'ASC')
-      .addOrderBy('c.city_name', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit);
-
-    const [items, total] = await qb.getManyAndCount();
-    for (const city of items) {
-      city['businessCount'] = await this.businessRepo.count({
-        where: { accessible_city_id: city.id }
-      });
-    }
-
-    return {
-      items,
-      total,
-      page,
-      limit,
-      pageCount: Math.ceil(total / limit),
-    };
+  if (opts?.search?.trim()) {
+    qb.andWhere('LOWER(c.city_name) LIKE :search', { search: `%${opts.search.trim().toLowerCase()}%` });
   }
+
+  if (opts?.featured !== undefined) {
+    qb.andWhere('c.featured = :featured', { featured: opts.featured });
+  }
+
+  qb.groupBy('c.id')
+    .orderBy('c.display_order', 'ASC')
+    .addOrderBy('c.city_name', 'ASC')
+    .skip((page - 1) * limit)
+    .take(limit);
+
+  const [raw, total] = await Promise.all([
+    qb.getRawAndEntities(),
+    // total count without join/group (fast + correct)
+    this.accessiblecityrepo.createQueryBuilder('c')
+      .where(qb.expressionMap.wheres.map(w => w.condition).join(' AND ') || '1=1', qb.getParameters())
+      .getCount(),
+  ]);
+
+  // merge businessCount into entities
+  const items = raw.entities.map((city, idx) => ({
+    ...city,
+    businessCount: Number(raw.raw[idx]?.businessCount || 0),
+  }));
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    pageCount: Math.ceil(total / limit),
+  };
+}
+
   async getAccessibleCity(
   id: string,
   page = 1,
