@@ -35,9 +35,11 @@ export class S3Service {
     });
     await uploader.done();
 
+    const cleanBase = this.publicBase?.replace(/\/$/, '');
+
     return {
       key,
-      url: this.publicBase ? `${this.publicBase}/${key}` : undefined,
+      url: cleanBase ? `${cleanBase}/${key}` : undefined,
       contentType: opts.contentType,
     };
   }
