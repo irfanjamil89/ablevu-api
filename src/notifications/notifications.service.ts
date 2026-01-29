@@ -66,7 +66,7 @@ export class NotificationService {
             <table class="header-container" cellpadding="0" cellspacing="0" border="0" style="margin:auto; background-color:#e5e5e5; border-radius:10px; padding:15px 30px;">
   <tr>
     <td valign="middle">
-      <img src="https://ablevu-webapp.vercel.app/assets/images/logo.png" alt="Able Vu Logo" class="logo">
+      <img src="https://ablevu.com/assets/images/logo.png" alt="Able Vu Logo" class="logo">
     </td>
     <td valign="middle" style="padding-left:20px; font-size:28px; font-weight:bold; color:black;">
       AbleVu
@@ -110,9 +110,9 @@ export class NotificationService {
                     </tr>
                     <tr>
                         <td style="text-align:center; color:#aaaaaa; font-size:12px; line-height:1.5; padding-bottom:5px;">
-                            <a href="https://ablevu-webapp.vercel.app" style="color:white; text-decoration:none; font-weight:bold;">AbleVu.com</a>
+                            <a href="https://ablevu.com" style="color:white; text-decoration:none; font-weight:bold;">AbleVu.com</a>
                             &nbsp;|&nbsp;
-                            <a href="[PRIVACY_POLICY_URL]" style="color:white; text-decoration:none; font-weight:bold;">Privacy Policy</a>
+                            <a href="https://ablevu.com/privacy-policy" style="color:white; text-decoration:none; font-weight:bold;">Privacy Policy</a>
                             &nbsp;|&nbsp;
                             <a href="[HELP_CENTER_URL]" style="color:white; text-decoration:none; font-weight:bold;">Help Center</a>
                         </td>
