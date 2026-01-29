@@ -32,11 +32,11 @@ export class AuthService {
     if (!user.email) throw new BadRequestException('User has no email configured');
 
     const token = randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + expiryMs);
+    // const expires = new Date(Date.now() + expiryMs);
 
     // these fields must exist on your User entity (see entity snippet below)
     user.resetToken = token;
-    user.resetTokenExpires = expires;
+    user.resetTokenExpires = null as any;
     await this.usersService.save(user);
 
     const link = this.makeFrontendLink(token, user.email);
@@ -141,17 +141,17 @@ debugger;
   if (!user) throw new BadRequestException('Invalid reset token');
 
   // expiry check
-  if (!user.resetTokenExpires || user.resetTokenExpires.getTime() < Date.now()) {
-    user.resetToken = null;
-    user.resetTokenExpires = null;
-    await this.usersService.save(user);
-    throw new BadRequestException('Reset token has expired');
-  } 
+  // if (!user.resetTokenExpires || user.resetTokenExpires.getTime() < Date.now()) {
+  //   user.resetToken = null;
+  //   user.resetTokenExpires = null;
+  //   await this.usersService.save(user);
+  //   throw new BadRequestException('Reset token has expired');
+  // } 
 
   // update password
   user.password = await bcrypt.hash(newPassword, 12);
-  user.resetToken = null;
-  user.resetTokenExpires = null;
+  user.resetToken = null as any;
+  user.resetTokenExpires = null as any;
   await this.usersService.save(user);
 
   return { status: 'Success', message: 'Password reset successful' };
