@@ -1,5 +1,5 @@
 // stripe.controller.ts
-import { Body, Controller, Post, Get, Req } from '@nestjs/common';
+import { Body, Controller, Post, Get, Req, BadRequestException } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { Business } from 'src/entity/business.entity';
 import { In } from 'typeorm';
+import { UserType } from 'src/user/user-type.enum';
 
 @Controller('stripe')
 export class StripeController {
@@ -44,16 +45,37 @@ export class StripeController {
     return { url: result.url };
   }
 
-  @Post("subscription/checkout")
-create(@Body() body: {
-  userId: string;
-  customerEmail: string;
-  priceId: string;
-  business_draft: any;
-  business_image_base64?: string;
-}) {
+  @Post('subscription/checkout')
+@UseGuards(JwtAuthGuard)
+create(
+  @UserSession() user: any,
+  @Body()
+  body: {
+    userId: string;
+    customerEmail: string;
+    priceId: string;
+    business_draft: any;
+    business_image_base64?: string;
+  },
+) {
+  // ✅ security: body userId trust na karo, token se lo
+  const userId = user.id;
+  const userType = user.type as UserType;
+
+  // ✅ Admin/Contributor should NEVER come here
+  if (userType === UserType.Admin || userType === UserType.Contributor) {
+    throw new BadRequestException(
+      'Admin/Contributor do not need subscription checkout',
+    );
+  }
+
+  // ✅ optional: ensure Business role only
+  if (userType !== UserType.Business) {
+    throw new BadRequestException('Invalid user type for checkout');
+  }
+
   return this.stripe.createSubscriptionCheckoutSession({
-    userId: body.userId,
+    userId,
     customerEmail: body.customerEmail,
     priceId: body.priceId,
     successUrl: `${process.env.CLIENT_URL}/subscription/success`,

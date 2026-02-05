@@ -31,6 +31,9 @@ type ListFilters = {
   city?: string;
   country?: string;
   businessTypeId?: string;
+  business_status?: string;
+  sort_by?: 'name' | 'created_at' | 'views';
+  sort_order?: 'ASC' | 'DESC';
 };
 
 type List1Filters = {
@@ -355,7 +358,7 @@ export class BusinessService {
 
     return business;
   }
-
+  
   async updateBusinessByExternalId(external_id: string, updateData: CreateBusinessDto) {
     try {
         // First find the business by external_id
@@ -431,132 +434,147 @@ export class BusinessService {
 }
 
 
-  async listPaginated(
-    page = 1,
-    limit = 10,
-    filters: ListFilters = {},
-    currentUser?: User,
-  ) {
-    const qb = this.businessRepo.createQueryBuilder('b');
+ async listPaginated(
+  page = 1,
+  limit = 10,
+  filters: ListFilters = {},
+  currentUser?: User,
+) {
+  const qb = this.businessRepo.createQueryBuilder('b');
 
-    qb.take(limit)
-      .skip((page - 1) * limit)
-      .orderBy('b.created_at', 'DESC');
+  qb.take(limit).skip((page - 1) * limit);
 
-    // 🔹 Role-based filter for Business & Contributor
-    if (currentUser?.user_role) {
-      const role = currentUser.user_role.toLowerCase();
+  // 🔹 Role-based filter for Business & Contributor
+  if (currentUser?.user_role) {
+    const role = currentUser.user_role.toLowerCase();
 
-      if (role === 'business') {
-        qb.andWhere('b.owner_user_id = :ownerId', {
-          ownerId: currentUser.id,
-        });
-      }
-       else if (role === 'contributor'){
-        qb.andWhere('b.creator_user_id = :ID',{
-          ID: currentUser.id,
-        });
-      }
-      // Admin = no filter
+    if (role === 'business') {
+      qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
+    } else if (role === 'contributor') {
+      qb.andWhere('b.creator_user_id = :ID', { ID: currentUser.id });
     }
+    // Admin = no filter
+  }
 
-    if (filters.active !== undefined) {
-      qb.andWhere('b.active = :active', { active: filters.active });
-    }
+  if (filters.active !== undefined) {
+    qb.andWhere('b.active = :active', { active: filters.active });
+  }
 
-    if (filters.city) {
-      qb.andWhere('LOWER(b.city) LIKE :city', {
-        city: `%${filters.city.toLowerCase()}%`,
-      });
-    }
+  if (filters.city) {
+    qb.andWhere('LOWER(b.city) LIKE :city', {
+      city: `%${filters.city.toLowerCase()}%`,
+    });
+  }
 
-    if (filters.country) {
-      qb.andWhere('LOWER(b.country) LIKE :country', {
-        country: `%${filters.country.toLowerCase()}%`,
-      });
-    }
+  if (filters.country) {
+    qb.andWhere('LOWER(b.country) LIKE :country', {
+      country: `%${filters.country.toLowerCase()}%`,
+    });
+  }
 
-    if (filters.search) {
-      const search = `%${filters.search.toLowerCase()}%`;
-      qb.andWhere(
-        '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
-        { search },
-      );
-    }
+  if (filters.search) {
+    const search = `%${filters.search.toLowerCase()}%`;
+    qb.andWhere(
+      '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
+      { search },
+    );
+  }
 
-    if (filters.businessTypeId) {
-      qb.andWhere(
-        `EXISTS (
+  // ✅ NEW: business_status filter (case-insensitive exact match)
+  if (filters.business_status?.trim()) {
+    qb.andWhere('LOWER(b.business_status) = :st', {
+      st: filters.business_status.trim().toLowerCase(),
+    });
+  }
+
+  if (filters.businessTypeId) {
+    qb.andWhere(
+      `EXISTS (
         SELECT 1
         FROM business_linked_type blt
         WHERE blt.business_id = b.id
         AND blt.business_type_id = :btId
       )`,
-        { btId: filters.businessTypeId },
-      );
-    }
-
-    const [items, total] = await qb.getManyAndCount();
-
-    const data = await Promise.all(
-      items.map(async (business) => {
-        const [
-          linkedTypes,
-          accessibilityFeatures,
-          virtualTours,
-          businessreviews,
-          businessQuestions,
-          businessPartners,
-          businessCustomSections,
-          businessMedia,
-          businessSchedule,
-          businessRecomendations,
-          additionalaccessibilityresources,
-          businessImages,
-        ] = await Promise.all([
-          this.linkedrepo.find({ where: { business_id: business.id } }),
-          this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
-          this.virtualTourRepo.find({
-            where: { business: { id: business.id } },
-            order: { display_order: 'ASC' },
-          }),
-          this.businessreviews.find({ where: { business_id: business.id } }),
-          this.businessquestionrepo.find({ where: { business_id: business.id } }),
-          this.businessPartnerrepo.find({ where: { business_id: business.id } }),
-          this.customSectionsrepo.find({ where: { business_id: business.id } }),
-          this.mediaRepo.find({ where: { business_id: business.id } }),
-          this.scheduleRepo.find({ where: { business: { id: business.id } } }),
-          this.recomendationRepo.find({ where: { business: { id: business.id } } }),
-          this.resourcesrepo.find({ where: { business_id: business.id } }),
-          this.imagesRepo.find({ where: { business_id: business.id } }),
-        ]);
-
-        return {
-          ...business,
-          linkedTypes,
-          accessibilityFeatures,
-          virtualTours,
-          businessreviews,
-          businessQuestions,
-          businessPartners,
-          businessCustomSections,
-          businessMedia,
-          businessSchedule,
-          businessRecomendations,
-          additionalaccessibilityresources,
-          businessImages,
-        };
-      }),
+      { btId: filters.businessTypeId },
     );
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
+
+  // ✅ NEW: Sorting (whitelist)
+  const allowedSort: Record<string, string> = {
+    name: 'b.name',
+    created_at: 'b.created_at',
+    views: 'b.views',
+  };
+
+  const sortCol = allowedSort[filters.sort_by || 'created_at'] || 'b.created_at';
+  const sortOrder =
+    (filters.sort_order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+  qb.orderBy(sortCol, sortOrder);
+
+  const [items, total] = await qb.getManyAndCount();
+
+  // (rest remains same)
+  const data = await Promise.all(
+    items.map(async (business) => {
+      const [
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+        additionalaccessibilityresources,
+        businessImages,
+      ] = await Promise.all([
+        this.linkedrepo.find({ where: { business_id: business.id } }),
+        this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
+        this.virtualTourRepo.find({
+          where: { business: { id: business.id } },
+          order: { display_order: 'ASC' },
+        }),
+        this.businessreviews.find({ where: { business_id: business.id } }),
+        this.businessquestionrepo.find({ where: { business_id: business.id } }),
+        this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+        this.customSectionsrepo.find({ where: { business_id: business.id } }),
+        this.mediaRepo.find({ where: { business_id: business.id } }),
+        this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+        this.recomendationRepo.find({ where: { business: { id: business.id } } }),
+        this.resourcesrepo.find({ where: { business_id: business.id } }),
+        this.imagesRepo.find({ where: { business_id: business.id } }),
+      ]);
+
+      return {
+        ...business,
+        linkedTypes,
+        accessibilityFeatures,
+        virtualTours,
+        businessreviews,
+        businessQuestions,
+        businessPartners,
+        businessCustomSections,
+        businessMedia,
+        businessSchedule,
+        businessRecomendations,
+        additionalaccessibilityresources,
+        businessImages,
+      };
+    }),
+  );
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 
   async list1Paginated({
   page = 1,
