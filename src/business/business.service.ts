@@ -255,7 +255,7 @@ export class BusinessService {
       await this.businessaccessibilityrepo.save(linked);
     }
     try {
-      await this.notificationService.notifyBusinessCreated(saved.name, userId, saved.id);
+      await this.notificationService.notifyBusinessCreated(saved.name, userId, saved.id, saved.address, saved.created_at);
     } catch (err) {
       console.error('Failed to notify admins:', err);
     }

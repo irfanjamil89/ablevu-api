@@ -165,7 +165,7 @@ export class NotificationService {
   }
 
 
-  async notifyBusinessCreated(businessName: string, createdBy: string, businessId: string) {
+  async notifyBusinessCreated(businessName: string, createdBy: string, businessId: string, businessAddress: any, createdAt: Date) {
 
     const shortMessage = `Business "${businessName}" has been created`;
 
@@ -185,11 +185,15 @@ export class NotificationService {
       createdBy,
       JSON.stringify({ type: 'business-created', id: businessId })
     );
+      if (!adminEmails.length) return { success: true };
 
-
-    if (adminEmails.length > 0) {
-      const heading = `New Business Created`;
-      const bodyHtml = `
+    const creator = await this.userRepo.findOne({
+      where: { id: createdBy },
+      select: ['id', 'email', 'first_name', 'last_name', 'user_role'],
+    });
+     
+      let heading = `New Business Created`;
+      let bodyHtml = `
     <div class="main-text">
       A new business <strong>${businessName}</strong> has been successfully created in the Able Vu system.
     </div>
@@ -198,16 +202,28 @@ export class NotificationService {
       Please check its details and update any necessary information to ensure smooth operation.
     </div>
   `;
-
+    
+    if (creator && creator.user_role === 'Contributor') {
+       heading= `New Business Created by Contributor`;
+       bodyHtml = `
+    <div class="main-text">
+      A new business <strong>${businessName}</strong> has been created by contributor <strong>${creator.first_name} ${creator.last_name}</strong> with the email address (${creator.email}).
+    </div>
+    <div class="main-text">
+    The business is located at ${businessAddress} and was created on ${createdAt.toLocaleString()} . This business is now available for review and management within the admin dashboard. Please verify the details and take any necessary action as required.
+    </div>
+  `;
+    }
       const emailHTML = this.buildEmail(heading, bodyHtml);
       this.createEmailNotification(
         adminEmails,
         emailHTML,
         `New Business Created: ${businessName}`,
         createdBy,
-      ).catch(err => console.error("Error sending emails:", err));
-    }
-
+      ).catch(err => {
+        console.error("Error sending emails:", err);
+      });
+    
     return { success: true };
   }
 
