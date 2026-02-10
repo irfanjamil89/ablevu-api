@@ -587,10 +587,18 @@ export class BusinessService {
 }: List1Filters) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
-  qb.where(
-  '(b.business_status = :Approved OR b.business_status = :Claimed)',
-  { Approved: 'Approved', Claimed: 'Claimed' },
+//   qb.where(
+//   '(b.business_status = :Approved OR b.business_status = :Claimed)',
+//   { Approved: 'Approved', Claimed: 'Claimed' },
+// );
+
+qb.where(
+  'LOWER(b.business_status) IN (:...statuses)',
+  {
+    statuses: ['approved', 'claimed'],
+  },
 );
+
 
 
   // 🔍 text search: name + address + city + country
