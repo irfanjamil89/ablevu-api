@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Patch, Body, HttpCode, HttpStatus, Put, Param, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UserSession } from "src/auth/user.decorator";
 import { UsersService } from 'src/services/user.service';
 import { User } from 'src/entity/user.entity';
@@ -104,4 +104,24 @@ async findOne(@Param('id') id: string): Promise<User> {
       message: 'User role changed successfully',
     };
 }
+@Patch(':id/account-status')
+@UseGuards(JwtAuthGuard)
+async updateAccountStatus(
+  @Param('id') targetUserId: string,
+  @Body() body: { status: 'Active' | 'Inactive' | 'Suspended'; reason?: string },
+  @UserSession() currentUser: any,
+) {
+
+  // ✅ ROLE CHECK HERE (No AdminGuard file needed)
+  if ((currentUser?.user_role || '').toLowerCase() !== 'admin') {
+    throw new ForbiddenException('Admin only');
+  }
+
+  return this.users.setAccountStatusAdmin(
+    targetUserId,
+    body.status as any,
+    body.reason,
+  );
+}
+
 }

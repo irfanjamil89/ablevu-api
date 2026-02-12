@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {AccountStatus, User} from 'src/entity/user.entity';
 import { UsersService } from 'src/services/user.service';
 import * as bcrypt from 'bcrypt';
 import { log } from 'console';
@@ -111,6 +112,14 @@ debugger;
 
    async login(user: any) {
     console.log(user);
+    if (user.account_status === AccountStatus.SUSPENDED) {
+    throw new ForbiddenException('Your account has been suspended.');
+  }
+
+  // 🔒 Block Inactive Users
+  if (user.account_status === AccountStatus.INACTIVE) {
+    throw new ForbiddenException('Your account is deactivated.');
+  }
     const payload = { username: user.email, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
