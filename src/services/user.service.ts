@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { first } from "rxjs";
-import { User } from "src/entity/user.entity";
+import { User, AccountStatus } from "src/entity/user.entity";
 import { UserDto } from "src/user/user.dto";
 import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt';
@@ -228,6 +228,28 @@ async markPaidContributor(userId: string) {
     take: limit,
     order: { id: 'ASC' }, 
   });
+}
+async setAccountStatusAdmin(
+  targetUserId: string,
+  status: AccountStatus,
+  reason?: string
+): Promise<User> {
+  const user = await this.usersRepository.findOne({ where: { id: targetUserId } });
+  if (!user) throw new NotFoundException("User not found");
+
+  user.account_status = status;
+
+  if (status === AccountStatus.SUSPENDED) {
+    user.suspended_at = new Date();
+    user.suspend_reason = reason?.trim() || null;
+  } else {
+    user.suspended_at = null;
+    user.suspend_reason = null;
+  }
+
+  user.modified_at = new Date();
+
+  return this.usersRepository.save(user);
 }
 
 }

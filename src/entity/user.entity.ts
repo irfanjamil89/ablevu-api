@@ -1,4 +1,9 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+export enum AccountStatus {
+  ACTIVE = "Active",
+  INACTIVE = "Inactive",
+  SUSPENDED = "Suspended",
+}
 
 @Entity()
 export class User {
@@ -63,4 +68,17 @@ export class User {
   source: string;
 //   @Column({ default: true })
 //   isActive: boolean;
+
+  @Column({
+    type: "enum",
+    enum: AccountStatus,
+    default: AccountStatus.ACTIVE,
+  })
+  account_status: AccountStatus;
+
+  @Column({ type: "timestamptz", nullable: true })
+  suspended_at?: Date | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  suspend_reason?: string | null;
 }
