@@ -1,26 +1,31 @@
-import { IsNotEmpty, IsString, IsBoolean, IsOptional } from "class-validator";
+import { IsEnum, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
 
-export class CreateCouponsDto{
+export class CreateCouponsDto {
 
-    @IsString()
-    @IsNotEmpty()
-    code: string;
+  @IsString()
+  code: string;
 
-    @IsString()
-    @IsNotEmpty()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsNotEmpty()
-    validitymonths: string;
-
-    @IsString()
-    @IsNotEmpty()
-    discount: string;
-
-    @IsBoolean()
+  @IsString()
     @IsOptional()
-    active: boolean;
+      validitymonths: string;
 
-    
+  @IsEnum(['percentage', 'fixed'])
+  discount_type: 'percentage' | 'fixed';
+
+  @IsNumber()
+  discount: number;
+
+  @IsOptional()
+  expires_at?: Date;
+
+  @IsOptional()
+  @IsNumber()
+  usage_limit?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
 }

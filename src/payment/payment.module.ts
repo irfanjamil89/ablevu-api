@@ -15,9 +15,10 @@ import { BusinessDraft } from 'src/entity/business_draft.entity';
 import { BusinessModule } from 'src/business/business.module';
 import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 import { HttpModule } from '@nestjs/axios';
+import { Coupons } from 'src/entity/coupons.entity';
 
 @Module({
- imports: [TypeOrmModule.forFeature([Payment, BusinessClaimCart,Business, Subscription,User, BusinessDraft, User]), UserModule,BusinessModule,forwardRef(() => SubscriptionsModule),HttpModule],
+ imports: [TypeOrmModule.forFeature([Payment, BusinessClaimCart,Business, Subscription,User, BusinessDraft, User, Coupons]), UserModule,BusinessModule,forwardRef(() => SubscriptionsModule),HttpModule],
       providers: [StripeService, PaymentService],   
       controllers: [StripeController, WebhookController, PaymentController ],
       exports: [StripeService, PaymentService],

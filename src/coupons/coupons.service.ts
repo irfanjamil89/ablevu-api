@@ -15,32 +15,45 @@ export class CouponsService{
         private readonly stripeService: StripeService,
     ){}
 
-    async createCoupons(userid: string, dto: CreateCouponsDto) {
-  // ✅ Stripe first (taake Stripe fail ho to DB me coupon na bane)
-  const stripe = await this.stripeService.createStripePercentCouponAndPromo({
-    code: dto.code.trim(),        // e.g. SAVE10
+ async createCoupons(userid: string, dto: CreateCouponsDto) {
+  const discountType = dto.discount_type ?? 'percentage';
+
+  const stripeInput: any = {
+    code: dto.code.trim(),
     name: dto.name.trim(),
-    percent: Number(dto.discount),        // ✅ percent
-    validitymonths: Number(dto.validitymonths),
     active: dto.active ?? true,
-    
-  });
+    discount_type: discountType,
+    validitymonths: dto.validitymonths ? Number(dto.validitymonths) : undefined,
+    expires_at: dto.expires_at,
+    usage_limit: dto.usage_limit ? Number(dto.usage_limit) : undefined,
+  };
+
+  if (discountType === 'percentage') {
+    stripeInput.percent = Number(dto.discount);          // ✅ percent
+  } else {
+    stripeInput.amount_off = Number(dto.discount);       // ✅ fixed amount
+  }
+
+  const stripe = await this.stripeService.createStripeCouponAndPromo(stripeInput);
 
   const coupon = this.couponsRepo.create({
     code: dto.code.trim(),
     name: dto.name.trim(),
-    validitymonths: dto.validitymonths,
-    discount: dto.discount,
+    discount_type: discountType,
+    discount: Number(dto.discount),
+    expires_at: dto.expires_at ? new Date(dto.expires_at) : null,
+    usage_limit: dto.usage_limit ? Number(dto.usage_limit) : null,
     active: dto.active ?? true,
     created_by: userid,
     modified_by: userid,
-
     stripe_coupon_id: stripe.stripe_coupon_id,
     stripe_promo_code_id: stripe.stripe_promo_code_id,
-  });
+  } as any);
 
   return this.couponsRepo.save(coupon);
 }
+
+
 
 
     async updateCoupons (id: string, userid: string, dto: UpdateCouponsDto){
@@ -52,8 +65,10 @@ export class CouponsService{
         }
         coupon.code = dto.code !== undefined? dto.code: coupon.code;
         coupon.name = dto.name !== undefined? dto.name: coupon.name;
-        coupon.validitymonths = dto.validitymonths !== undefined? dto.validitymonths: coupon.validitymonths;
+        coupon.discount_type = dto.discount_type !== undefined? dto.discount_type: coupon.discount_type;
         coupon.discount = dto.discount !== undefined? dto.discount: coupon.discount;
+        coupon.expires_at = dto.expires_at !== undefined? dto.expires_at: coupon.expires_at;
+        coupon.usage_limit = dto.usage_limit !== undefined? dto.usage_limit: coupon.usage_limit;
         coupon.active = dto.active !== undefined? dto.active: coupon.active;
         coupon.modified_by = userid;
 
