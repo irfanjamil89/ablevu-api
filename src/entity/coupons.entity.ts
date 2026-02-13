@@ -6,22 +6,43 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export type DiscountType = 'percentage' | 'fixed';
+
 @Entity()
 export class Coupons {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ unique: true })
   code: string;
 
   @Column()
   name: string;
 
-  @Column()
-  validitymonths: string;
+  // ✅ percentage OR fixed
+  @Column({
+    type: 'enum',
+    enum: ['percentage', 'fixed'],
+  })
+  discount_type: DiscountType;
 
-  @Column()
-  discount: string;
+  @Column({ type: 'int', default: 0 })
+validitymonths: number;
+
+  // ✅ amount (percent OR fixed value)
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  discount: number;
+
+  // ✅ expiration date
+  @Column({ type: 'timestamp', nullable: true })
+  expires_at?: Date;
+
+  // ✅ usage limit
+  @Column({ type: 'int', nullable: true })
+  usage_limit?: number;
+
+  @Column({ default: 0 })
+  used_count: number;
 
   @Column({ default: true })
   active: boolean;
@@ -44,7 +65,6 @@ export class Coupons {
   @Column({ type: 'varchar', length: 255, nullable: true })
   stripe_promo_code_id?: string;
 
-  @Column()
+  @Column({ nullable: true })
   external_id: string;
-  
 }

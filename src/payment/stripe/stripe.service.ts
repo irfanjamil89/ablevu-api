@@ -415,44 +415,136 @@ session = await this.stripe.checkout.sessions.create({
     return this.stripe.paymentMethods.retrieve(pmId);
   }
 
-  async createStripePercentCouponAndPromo(input: {
-    code: string;
-    name: string;
-    percent: number;
-    validitymonths?: number;
-    active: boolean;
-  }) {
+  // async createStripePercentCouponAndPromo(input: {
+  //   code: string;
+  //   name: string;
+  //   percent: number;
+  //   validitymonths?: number;
+  //   active: boolean;
+  // }) {
+  //   const percent = Number(input.percent);
+  //   if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+  //     throw new Error('Invalid percent discount. Must be 1-100.');
+  //   }
+
+  //   // 1) Coupon
+  //   const coupon = await this.stripe.coupons.create({
+  //     name: input.name,
+  //     percent_off: percent,
+  //     duration:
+  //       input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
+  //     duration_in_months:
+  //       input.validitymonths && input.validitymonths > 0
+  //         ? input.validitymonths
+  //         : undefined,
+  //     metadata: { source: 'db_coupon', code: input.code },
+  //   });
+
+  //   // 2) Promotion Code (NEW API SHAPE)
+  //   const promo = await this.stripe.promotionCodes.create({
+  //     promotion: {
+  //       type: 'coupon',
+  //       coupon: coupon.id,
+  //     },
+  //     code: input.code,
+  //     active: input.active,
+  //     metadata: { source: 'db_coupon' },
+  //   });
+
+  //   return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
+  // }
+
+  async createStripeCouponAndPromo(input: {
+  code: string;
+  name: string;
+  active: boolean;
+
+  // ✅ discount
+  discount_type: 'percentage' | 'fixed';
+  percent?: number; // 1..100 (for percentage)
+  amount_off?: number; // e.g. 20 (for fixed)
+  currency?: string; // e.g. 'usd' (required for fixed)
+
+  // ✅ duration (optional)
+  validitymonths?: number;
+
+  // ✅ rules
+  expires_at?: Date | string; // promo expiry
+  usage_limit?: number; // max redemptions
+}) {
+  // ---- validations ----
+  if (!input.code?.trim()) throw new Error('Coupon code is required.');
+  if (!input.name?.trim()) throw new Error('Coupon name is required.');
+
+  if (input.discount_type === 'percentage') {
     const percent = Number(input.percent);
     if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
       throw new Error('Invalid percent discount. Must be 1-100.');
     }
-
-    // 1) Coupon
-    const coupon = await this.stripe.coupons.create({
-      name: input.name,
-      percent_off: percent,
-      duration:
-        input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
-      duration_in_months:
-        input.validitymonths && input.validitymonths > 0
-          ? input.validitymonths
-          : undefined,
-      metadata: { source: 'db_coupon', code: input.code },
-    });
-
-    // 2) Promotion Code (NEW API SHAPE)
-    const promo = await this.stripe.promotionCodes.create({
-      promotion: {
-        type: 'coupon',
-        coupon: coupon.id,
-      },
-      code: input.code,
-      active: input.active,
-      metadata: { source: 'db_coupon' },
-    });
-
-    return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
+  } else {
+    const amount = Number(input.amount_off);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Invalid fixed amount. Must be > 0.');
+    }
+    if (!input.currency?.trim()) {
+      throw new Error('Currency is required for fixed discount.');
+    }
   }
+
+  const maxRedemptions =
+    input.usage_limit && Number(input.usage_limit) > 0
+      ? Number(input.usage_limit)
+      : undefined;
+
+  let expiresAtUnix: number | undefined = undefined;
+  if (input.expires_at) {
+    const d = new Date(input.expires_at);
+    if (isNaN(d.getTime())) throw new Error('Invalid expires_at date.');
+    expiresAtUnix = Math.floor(d.getTime() / 1000);
+  }
+
+  // ---- 1) Stripe Coupon ----
+  const couponParams: any = {
+    name: input.name,
+    duration:
+      input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
+    duration_in_months:
+      input.validitymonths && input.validitymonths > 0
+        ? input.validitymonths
+        : undefined,
+    metadata: { source: 'db_coupon', code: input.code },
+  };
+
+  if (input.discount_type === 'percentage') {
+    couponParams.percent_off = Number(input.percent);
+  } else {
+    // Stripe expects amount_off in smallest currency unit (cents)
+    couponParams.amount_off = Math.round(Number(input.amount_off) * 100);
+    couponParams.currency = (input.currency ?? 'usd').toLowerCase();
+  }
+
+  const coupon = await this.stripe.coupons.create(couponParams);
+
+  // ---- 2) Stripe Promotion Code ----
+  const promoParams: any = {
+    promotion: {
+      type: 'coupon',
+      coupon: coupon.id,
+    },
+    code: input.code,
+    active: input.active,
+    metadata: { source: 'db_coupon' },
+  };
+
+  // ✅ expiration + usage limits are on promo codes
+  if (expiresAtUnix) promoParams.expires_at = expiresAtUnix;
+  if (maxRedemptions) promoParams.max_redemptions = maxRedemptions;
+
+  const promo = await this.stripe.promotionCodes.create(promoParams);
+
+  return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
+}
+
 
   async deleteCouponAndPromo(stripeCouponId?: string | null, stripePromoCodeId?: string | null) {
     // 1) Promo code -> deactivate (recommended)
@@ -477,5 +569,14 @@ session = await this.stripe.checkout.sessions.create({
 
     return { ok: true };
   }
+  async retrieveCheckoutSessionWithPromo(sessionId: string) {
+  return await this.stripe.checkout.sessions.retrieve(sessionId);
+}
+async retrieveInvoiceWithPromo(invoiceId: string) {
+  return await this.stripe.invoices.retrieve(invoiceId, {
+    expand: ['discounts.promotion_code'], // ✅ safe expand
+  });
+}
+
 }
 

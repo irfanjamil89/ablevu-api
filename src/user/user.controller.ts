@@ -108,11 +108,10 @@ async findOne(@Param('id') id: string): Promise<User> {
 @UseGuards(JwtAuthGuard)
 async updateAccountStatus(
   @Param('id') targetUserId: string,
-  @Body() body: { status: 'Active' | 'Inactive' | 'Suspended'; reason?: string },
+  @Body() body: { status: 'Active' | 'Inactive' | 'Suspended' | 'Deleted'; reason?: string },
   @UserSession() currentUser: any,
 ) {
 
-  // ✅ ROLE CHECK HERE (No AdminGuard file needed)
   if ((currentUser?.user_role || '').toLowerCase() !== 'admin') {
     throw new ForbiddenException('Admin only');
   }

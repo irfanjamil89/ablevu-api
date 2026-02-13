@@ -14,6 +14,7 @@ import { BusinessService } from 'src/business/business.service';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { User } from 'src/entity/user.entity';
 import { UsersService } from 'src/services/user.service';
+import { Coupons } from 'src/entity/coupons.entity';
 
 @Controller('stripe')
 export class WebhookController {
@@ -31,6 +32,9 @@ export class WebhookController {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(Coupons)
+    private readonly couponsRepo: Repository<Coupons>,
 
     private readonly paymentService: PaymentService,
     private readonly businessService: BusinessService,
@@ -81,6 +85,10 @@ export class WebhookController {
           session?.payment_status === 'paid' ||
           session?.status === 'complete' ||
           session?.status === 'completed';
+
+          if (isPaid) {
+  await this.tryIncrementCouponUsedCountFromSession(session);
+}
 
         if (draftId && isPaid) {
           const draft = await this.draftRepo.findOne({
@@ -406,7 +414,8 @@ if (session.metadata?.purpose === "business_claim") {
 
   return res.json({ received: true });
 }
-      }
+     
+}
 
       if (event.type === 'account.updated') {
         const account = event.data.object as Stripe.Account;
@@ -455,4 +464,71 @@ if (session.metadata?.purpose === "business_claim") {
       return res.json({ received: true });
     }
   }
+  private async tryIncrementCouponUsedCountFromSession(session: any) {
+  try {
+    const stripeSubId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription?.id;
+
+    if (!stripeSubId) return;
+
+    const stripeSub = await this.stripe.retrieveSubscription(stripeSubId);
+
+    const invoiceId =
+      typeof stripeSub?.latest_invoice === 'string'
+        ? stripeSub.latest_invoice
+        : stripeSub?.latest_invoice?.id;
+
+    if (!invoiceId) return;
+
+    const invoice: any = await this.stripe.retrieveInvoiceWithPromo(invoiceId);
+
+    // discounts can be: string | Discount | DeletedDiscount
+    const firstDiscount = invoice?.discounts?.[0];
+    if (!firstDiscount) return;
+
+    // promotion_code can be: string | PromotionCode | null
+    let promoId: string | null = null;
+    let promoCode: string | null = null;
+
+    if (typeof firstDiscount !== 'string') {
+      const pc = (firstDiscount as any).promotion_code;
+
+      if (pc) {
+        if (typeof pc === 'string') {
+          promoId = pc;
+        } else {
+          promoId = pc.id ?? null;
+          promoCode = pc.code ?? null;
+        }
+      }
+    }
+
+    if (!promoId) return;
+
+    await this.couponsRepo.increment(
+      { stripe_promo_code_id: promoId },
+      'used_count',
+      1,
+    );
+
+    // ✅ Optional: auto-disable if usage_limit reached
+    const c = await this.couponsRepo.findOne({
+      where: { stripe_promo_code_id: promoId },
+    });
+
+    if (c?.usage_limit && c.used_count >= c.usage_limit) {
+      await this.couponsRepo.update({ id: c.id }, { active: false });
+    }
+
+    console.log('[Webhook] used_count++', { promoId, code: promoCode });
+  } catch (e: any) {
+    console.error('[Webhook] coupon increment failed:', e?.message || e);
+  }
+}
+
+
+
+
 }
