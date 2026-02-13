@@ -43,4 +43,7 @@ export class ListingsVerified {
   @Column()
   updated_at: Date;
 
+  @Column()
+  business_types: string;
+
 }
