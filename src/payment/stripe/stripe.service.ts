@@ -128,29 +128,31 @@ export class StripeService {
         }
       }
 
-      const bizIds = rows.map(r => r.business_id);
-const bizList = await this.businessRepo.find({
-  where: { id: In(bizIds) },
-  select: { id: true, name: true },
-});
-const bizMap = new Map(bizList.map(b => [b.id, b.name]));
+      const bizIds = rows.map((r) => r.business_id);
+      const bizList = await this.businessRepo.find({
+        where: { id: In(bizIds) },
+        select: { id: true, name: true },
+      });
+      const bizMap = new Map(bizList.map((b) => [b.id, b.name]));
 
-session = await this.stripe.checkout.sessions.create({
-  mode: "payment",
-  payment_method_types: ["card"],
-  customer: customerId,
-  billing_address_collection: "required",
-  customer_update: { address: "auto" },
-  locale: "en",
+      session = await this.stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer: customerId,
+        billing_address_collection: 'required',
+        customer_update: { address: 'auto' },
+        locale: 'en',
 
-  line_items: rows.map((r) => ({
-    price_data: {
-      currency: "usd",
-      product_data: { name: `Claim: ${bizMap.get(r.business_id) || "Business"}` },
-      unit_amount: Math.round(Number(r.amount || 0) * 100),
-    },
-    quantity: 1,
-  })),
+        line_items: rows.map((r) => ({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Claim: ${bizMap.get(r.business_id) || 'Business'}`,
+            },
+            unit_amount: Math.round(Number(r.amount || 0) * 100),
+          },
+          quantity: 1,
+        })),
 
         success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/business-claim/cancel`,
@@ -455,102 +457,102 @@ session = await this.stripe.checkout.sessions.create({
   // }
 
   async createStripeCouponAndPromo(input: {
-  code: string;
-  name: string;
-  active: boolean;
+    code: string;
+    name: string;
+    active: boolean;
 
-  // ✅ discount
-  discount_type: 'percentage' | 'fixed';
-  percent?: number; // 1..100 (for percentage)
-  amount_off?: number; // e.g. 20 (for fixed)
-  currency?: string; // e.g. 'usd' (required for fixed)
+    // ✅ discount
+    discount_type: 'percentage' | 'fixed';
+    percent?: number; // 1..100 (for percentage)
+    amount_off?: number; // e.g. 20 (for fixed)
+    currency?: string; // e.g. 'usd' (required for fixed)
 
-  // ✅ duration (optional)
-  validitymonths?: number;
+    // ✅ duration (optional)
+    validitymonths?: number;
 
-  // ✅ rules
-  expires_at?: Date | string; // promo expiry
-  usage_limit?: number; // max redemptions
-}) {
-  // ---- validations ----
-  if (!input.code?.trim()) throw new Error('Coupon code is required.');
-  if (!input.name?.trim()) throw new Error('Coupon name is required.');
+    // ✅ rules
+    expires_at?: Date | string; // promo expiry
+    usage_limit?: number; // max redemptions
+  }) {
+    // ---- validations ----
+    if (!input.code?.trim()) throw new Error('Coupon code is required.');
+    if (!input.name?.trim()) throw new Error('Coupon name is required.');
 
-  if (input.discount_type === 'percentage') {
-    const percent = Number(input.percent);
-    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
-      throw new Error('Invalid percent discount. Must be 1-100.');
+    if (input.discount_type === 'percentage') {
+      const percent = Number(input.percent);
+      if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+        throw new Error('Invalid percent discount. Must be 1-100.');
+      }
+    } else {
+      const amount = Number(input.amount_off);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error('Invalid fixed amount. Must be > 0.');
+      }
     }
-  } else {
-    const amount = Number(input.amount_off);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error('Invalid fixed amount. Must be > 0.');
+    const currency = 'usd';
+    const maxRedemptions =
+      input.usage_limit && Number(input.usage_limit) > 0
+        ? Number(input.usage_limit)
+        : undefined;
+
+    let expiresAtUnix: number | undefined = undefined;
+    if (input.expires_at) {
+      const d = new Date(input.expires_at);
+      if (isNaN(d.getTime())) throw new Error('Invalid expires_at date.');
+      expiresAtUnix = Math.floor(d.getTime() / 1000);
     }
-    if (!input.currency?.trim()) {
-      throw new Error('Currency is required for fixed discount.');
+
+    // ---- 1) Stripe Coupon ----
+    const couponParams: any = {
+      name: input.name,
+      duration:
+        input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
+      duration_in_months:
+        input.validitymonths && input.validitymonths > 0
+          ? input.validitymonths
+          : undefined,
+      metadata: { source: 'db_coupon', code: input.code },
+    };
+
+    if (input.discount_type === 'percentage') {
+      couponParams.percent_off = Number(input.percent);
+    } else {
+      couponParams.amount_off = Math.round(Number(input.amount_off) * 100);
+      couponParams.currency = currency;
     }
+
+    const coupon = await this.stripe.coupons.create(couponParams);
+
+    // ---- 2) Stripe Promotion Code ----
+    const promoParams: any = {
+      promotion: {
+        type: 'coupon',
+        coupon: coupon.id,
+      },
+      code: input.code,
+      active: input.active,
+      metadata: { source: 'db_coupon' },
+    };
+
+    // ✅ expiration + usage limits are on promo codes
+    if (expiresAtUnix) promoParams.expires_at = expiresAtUnix;
+    if (maxRedemptions) promoParams.max_redemptions = maxRedemptions;
+
+    const promo = await this.stripe.promotionCodes.create(promoParams);
+
+    return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
   }
 
-  const maxRedemptions =
-    input.usage_limit && Number(input.usage_limit) > 0
-      ? Number(input.usage_limit)
-      : undefined;
-
-  let expiresAtUnix: number | undefined = undefined;
-  if (input.expires_at) {
-    const d = new Date(input.expires_at);
-    if (isNaN(d.getTime())) throw new Error('Invalid expires_at date.');
-    expiresAtUnix = Math.floor(d.getTime() / 1000);
-  }
-
-  // ---- 1) Stripe Coupon ----
-  const couponParams: any = {
-    name: input.name,
-    duration:
-      input.validitymonths && input.validitymonths > 0 ? 'repeating' : 'once',
-    duration_in_months:
-      input.validitymonths && input.validitymonths > 0
-        ? input.validitymonths
-        : undefined,
-    metadata: { source: 'db_coupon', code: input.code },
-  };
-
-  if (input.discount_type === 'percentage') {
-    couponParams.percent_off = Number(input.percent);
-  } else {
-    // Stripe expects amount_off in smallest currency unit (cents)
-    couponParams.amount_off = Math.round(Number(input.amount_off) * 100);
-    couponParams.currency = (input.currency ?? 'usd').toLowerCase();
-  }
-
-  const coupon = await this.stripe.coupons.create(couponParams);
-
-  // ---- 2) Stripe Promotion Code ----
-  const promoParams: any = {
-    promotion: {
-      type: 'coupon',
-      coupon: coupon.id,
-    },
-    code: input.code,
-    active: input.active,
-    metadata: { source: 'db_coupon' },
-  };
-
-  // ✅ expiration + usage limits are on promo codes
-  if (expiresAtUnix) promoParams.expires_at = expiresAtUnix;
-  if (maxRedemptions) promoParams.max_redemptions = maxRedemptions;
-
-  const promo = await this.stripe.promotionCodes.create(promoParams);
-
-  return { stripe_coupon_id: coupon.id, stripe_promo_code_id: promo.id };
-}
-
-
-  async deleteCouponAndPromo(stripeCouponId?: string | null, stripePromoCodeId?: string | null) {
+  async deleteCouponAndPromo(
+    stripeCouponId?: string | null,
+    stripePromoCodeId?: string | null,
+  ) {
     // 1) Promo code -> deactivate (recommended)
     if (stripePromoCodeId) {
       try {
-        await this.stripe.promotionCodes.update(stripePromoCodeId, { active: false });
+        await this.stripe.promotionCodes.update(stripePromoCodeId, {
+          active: false,
+        });
       } catch (e: any) {
         // If already inactive / not found, ignore safely
         if (e?.statusCode !== 404) throw e;
@@ -570,13 +572,11 @@ session = await this.stripe.checkout.sessions.create({
     return { ok: true };
   }
   async retrieveCheckoutSessionWithPromo(sessionId: string) {
-  return await this.stripe.checkout.sessions.retrieve(sessionId);
+    return await this.stripe.checkout.sessions.retrieve(sessionId);
+  }
+  async retrieveInvoiceWithPromo(invoiceId: string) {
+    return await this.stripe.invoices.retrieve(invoiceId, {
+      expand: ['discounts.promotion_code'], // ✅ safe expand
+    });
+  }
 }
-async retrieveInvoiceWithPromo(invoiceId: string) {
-  return await this.stripe.invoices.retrieve(invoiceId, {
-    expand: ['discounts.promotion_code'], // ✅ safe expand
-  });
-}
-
-}
-
