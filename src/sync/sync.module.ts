@@ -40,11 +40,25 @@ import { FeedbackType } from 'src/entity/feedback-type.entity';
 import { ReviewType } from 'src/entity/review_type.entity';
 import { Coupons } from 'src/entity/coupons.entity';
 import { Subscription } from 'src/entity/subscription.entity';
+import { S3Service } from 'src/services/s3service';
+import { S3Client } from '@aws-sdk/client-s3';
 @Module({
   imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages,BusinessAudioTour,BusinessCustomSectionsMedia, Partner, Feedback, FeedbackType, ReviewType, Coupons, Subscription]),
 GoogleMapsModule, BusinessModule, NotificationModule
 ],
   controllers: [SyncbubbleController],
-   providers: [SyncService,UsersService,AccessibleFeatureService,BusinessTypeService, AccessibleCityService],
+   providers: [
+    {
+      provide: S3Client,
+      useFactory: () =>
+        new S3Client({
+          region: process.env.AWS_REGION,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          },
+        }),
+    },
+    SyncService,UsersService,AccessibleFeatureService,BusinessTypeService, AccessibleCityService,S3Service],
 })
 export class SyncModule {}
