@@ -70,7 +70,7 @@ export class UsersService {
     });
 
     if (exists) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException('User already registered. Please log in to proceed.');
     }
 
     if (!dto.consent) {
