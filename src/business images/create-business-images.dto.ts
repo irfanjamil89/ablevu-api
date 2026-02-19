@@ -25,5 +25,8 @@ export class CreateBusinessImages{
         @IsOptional()
         @IsBoolean()
         active: boolean;
-    
+
+        @IsString()
+        @IsOptional()
+        external_id: string;    
 }

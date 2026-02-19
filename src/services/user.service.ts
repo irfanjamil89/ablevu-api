@@ -1,13 +1,19 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { first } from "rxjs";
-import { User, AccountStatus } from "src/entity/user.entity";
-import { UserDto } from "src/user/user.dto";
-import { Repository } from "typeorm";
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { first } from 'rxjs';
+import { User, AccountStatus } from 'src/entity/user.entity';
+import { UserDto } from 'src/user/user.dto';
+import { Repository, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { UpdateProfileDto } from "src/user/dto/update-profile.dto";
-import { UpdatePasswordDto } from "src/user/update-password.dto";
+import { UpdateProfileDto } from 'src/user/dto/update-profile.dto';
+import { UpdatePasswordDto } from 'src/user/update-password.dto';
 import { NotificationService } from 'src/notifications/notifications.service';
+
 
 export enum UserRole {
   ADMIN = 'Admin',
@@ -22,77 +28,88 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
 
-     private readonly notificationService: NotificationService,
-  ) { }
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async findOneById(id: string): Promise<User | null> {
-  return this.usersRepository.findOne({ where: { id } });
-}
+    return this.usersRepository.findOne({ where: { id } });
+  }
 
   async findByResetToken(token: string) {
-  return this.usersRepository.findOne({ where: { resetToken: token } });
-}
+    return this.usersRepository.findOne({ where: { resetToken: token } });
+  }
 
   findAll(): Promise<User[]> {
-    return this.usersRepository.find();
-  }
+  return this.usersRepository.find({
+    where: {
+      account_status: Not(AccountStatus.DELETE),
+    },
+  });
+}
 
   findOne(id: string): Promise<User | null> {
     console.log('Finding user with id:', id);
-    return this.usersRepository.findOneBy({ id : id });
+    return this.usersRepository.findOneBy({ id: id });
   }
- findOneByExternalId(externalid: string): Promise<User | null> {
+  findOneByExternalId(externalid: string): Promise<User | null> {
     console.log('Finding user with id:', externalid);
-    return this.usersRepository.findOneBy({ external_id : externalid });
+    return this.usersRepository.findOneBy({ external_id: externalid });
   }
   async findByUserName(username: string): Promise<User | null> {
     console.log('Finding user with username:', username);
-  return this.usersRepository.findOne({ where: { email: username } });
-}
+    return this.usersRepository.findOne({ where: { email: username } });
+  }
 
- async save(user: User): Promise<User> {
-  return this.usersRepository.save(user);
-}
-
+  async save(user: User): Promise<User> {
+    return this.usersRepository.save(user);
+  }
 
   async signUp(dto: UserDto) {
-    const exists = await this.usersRepository.findOne({ where: { email: dto.emailAddress } });
-    console.log('exists', dto.emailAddress);
+    const exists = await this.usersRepository.findOne({
+      where: { email: dto.emailAddress.toLowerCase() },
+    });
+
     if (exists) {
-      throw new DOMException('Email already in use');
+      throw new ConflictException('User already registered. Please log in to proceed.');
     }
-    if (!dto.consent){
-      throw new BadRequestException("You must accept the Terms and Privacy Policy")
+
+    if (!dto.consent) {
+      throw new BadRequestException(
+        'You must accept the Terms and Privacy Policy',
+      );
     }
-    
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
-console.log(dto);
-     var userData = {
+    console.log(dto);
+    var userData = {
       email: dto.emailAddress.toLowerCase(),
-      first_name: dto.firstName.trim() || "",
-      last_name: dto.lastName.trim() || "",
-      password : passwordHash,
+      first_name: dto.firstName.trim() || '',
+      last_name: dto.lastName.trim() || '',
+      password: passwordHash,
       archived: false,
       created_at: new Date(),
       modified_at: new Date(),
       user_role: dto.userType || 'User',
       consent: dto.consent,
-    }
+    };
     console.log(userData);
     const user = this.usersRepository.create(userData);
 
-console.log(user);
+    console.log(user);
     const saved = await this.usersRepository.save(user);
     try {
       if (!saved.email || !saved.first_name) {
         console.error('No email found for user, cannot send welcome email.');
       } else {
-      await this.notificationService.sendWelcomeEmail(saved.email, saved.first_name, saved.id);
+        await this.notificationService.sendWelcomeEmail(
+          saved.email,
+          saved.first_name,
+          saved.id,
+        );
       }
     } catch (err) {
       console.error('Error sending welcome email:', err);
     }
-
 
     return {
       id: saved.id,
@@ -103,46 +120,47 @@ console.log(user);
       consent: saved.consent,
     };
   }
-  
+
   async remove(id: number): Promise<void> {
     await this.usersRepository.delete(id);
   }
 
-   async updateProfile(userId: string, dto: UpdateProfileDto) {
-  const user = await this.usersRepository.findOne({ where: { id: userId } });
-  if (!user) throw new NotFoundException('User not found');
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
-  if (dto.firstName !== undefined) {
-    user.first_name = dto.firstName.trim();
-  }
-
-  if (dto.lastName !== undefined) {
-    user.last_name = dto.lastName.trim();
-  }
-
-  if (dto.email !== undefined) {
-    const newEmail = dto.email.toLowerCase().trim();
-    if (newEmail !== user.email) {
-      const exists = await this.usersRepository.exists({ where: { email: newEmail } });
-      if (exists) throw new ConflictException('Email already in use');
-      user.email = newEmail;
+    if (dto.firstName !== undefined) {
+      user.first_name = dto.firstName.trim();
     }
-  }
 
-  if (dto.phoneNumber !== undefined) {
-    user.phone_number = dto.phoneNumber.trim();
-  }
+    if (dto.lastName !== undefined) {
+      user.last_name = dto.lastName.trim();
+    }
 
-  await this.usersRepository.save(user);
+    if (dto.email !== undefined) {
+      const newEmail = dto.email.toLowerCase().trim();
+      if (newEmail !== user.email) {
+        const exists = await this.usersRepository.exists({
+          where: { email: newEmail },
+        });
+        if (exists) throw new ConflictException('Email already in use');
+        user.email = newEmail;
+      }
+    }
 
-  return {
-    message: 'Profile updated successfully',
+    if (dto.phoneNumber !== undefined) {
+      user.phone_number = dto.phoneNumber.trim();
+    }
+
+    await this.usersRepository.save(user);
+
+    return {
+      message: 'Profile updated successfully',
       updatedUser: user,
-  };
-}
+    };
+  }
 
-  
-   async updatePassword(userId: string, dto: UpdatePasswordDto){
+  async updatePassword(userId: string, dto: UpdatePasswordDto) {
     const existingUser = await this.usersRepository.findOne({
       where: { id: userId },
     });
@@ -151,7 +169,10 @@ console.log(user);
       throw new BadRequestException('User not found');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.currentPassword, existingUser.password);
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      existingUser.password,
+    );
     if (!isPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
     }
@@ -162,34 +183,37 @@ console.log(user);
 
     await this.usersRepository.save(existingUser);
   }
-    async updateUserRole(userId: string, newRole: string){
-    const requestingUser = await this.usersRepository.findOne({where: { id: userId }});
-    if (!requestingUser) { throw new BadRequestException('user not found'); }
+  async updateUserRole(userId: string, newRole: string) {
+    const requestingUser = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
+    if (!requestingUser) {
+      throw new BadRequestException('user not found');
+    }
     if (!Object.values(UserRole).includes(newRole as UserRole)) {
       throw new BadRequestException('Invalid role');
     }
-      requestingUser.user_role = newRole;
-      await this.usersRepository.save(requestingUser);
+    requestingUser.user_role = newRole;
+    await this.usersRepository.save(requestingUser);
   }
   async setContributorOnboardingPending(userId: string, sellerId: string) {
-  const user = await this.usersRepository.findOne({ where: { id: userId } });
-  if (!user) throw new NotFoundException("User not found");
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
-  user.seller_id = sellerId;          
-  user.paid_contributor = false;      
+    user.seller_id = sellerId;
+    user.paid_contributor = false;
 
-  
-  return this.usersRepository.save(user);
-}
-async markPaidContributor(userId: string) {
-  const user = await this.usersRepository.findOne({ where: { id: userId } });
-  if (!user) throw new NotFoundException("User not found");
+    return this.usersRepository.save(user);
+  }
+  async markPaidContributor(userId: string) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
-  user.paid_contributor = true;
+    user.paid_contributor = true;
 
-  return this.usersRepository.save(user);
-}
-// ✅ Admin update profile
+    return this.usersRepository.save(user);
+  }
+  // ✅ Admin update profile
   async updateProfileAdmin(
     userId: string,
     dto: {
@@ -221,38 +245,39 @@ async markPaidContributor(userId: string) {
     return true;
   }
   async findPaged(page: number, limit: number) {
-  const skip = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-  return this.usersRepository.find({
-    skip,
-    take: limit,
-    order: { id: 'ASC' }, 
-  });
-}
-async setAccountStatusAdmin(
-  targetUserId: string,
-  status: AccountStatus,
-  reason?: string
-): Promise<User> {
-  const user = await this.usersRepository.findOne({ where: { id: targetUserId } });
-  if (!user) throw new NotFoundException("User not found");
-
-  user.account_status = status;
-
-  if (status === AccountStatus.SUSPENDED) {
-    user.suspended_at = new Date();
-    user.suspend_reason = reason?.trim() || null;
-  } else {
-    user.suspended_at = null;
-    user.suspend_reason = null;
+    return this.usersRepository.find({
+      skip,
+      take: limit,
+      order: { id: 'ASC' },
+    });
   }
+  async setAccountStatusAdmin(
+    targetUserId: string,
+    status: AccountStatus,
+    reason?: string,
+  ): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { id: targetUserId },
+    });
+    if (!user) throw new NotFoundException('User not found');
 
-  user.modified_at = new Date();
+    user.account_status = status;
 
-  return this.usersRepository.save(user);
-}
+    if (status === AccountStatus.SUSPENDED) {
+      user.suspended_at = new Date();
+      user.suspend_reason = reason?.trim() || null;
+    } else {
+      user.suspended_at = null;
+      user.suspend_reason = null;
+    }
 
+    user.modified_at = new Date();
+
+    return this.usersRepository.save(user);
+  }
 }
 function uuidv4(): string | undefined {
-  throw new Error("Function not implemented.");
+  throw new Error('Function not implemented.');
 }
