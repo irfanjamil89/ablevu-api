@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, BadRequestException, Query } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserSession } from 'src/auth/user.decorator';
 import { CreateSubscriptionDto } from './create-subscription.dto';
@@ -17,6 +17,19 @@ export class SubscriptionsController {
   my(@UserSession() user: any) {
     return this.subs.getMine(user.id);
   }
+
+  @Get('list')
+      listPaginated(
+      @Query('page') page = 1, 
+      @Query('limit') limit = 10, 
+      @Query('search') search?: string, 
+      ){
+  
+  
+      return this.subs.listPaginated(Number(page), Number(limit), {
+        search,
+      });
+    }
 
   @Post('checkout')
   @UseGuards(JwtAuthGuard)

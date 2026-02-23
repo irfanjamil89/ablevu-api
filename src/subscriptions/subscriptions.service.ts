@@ -111,6 +111,29 @@ findPaidByUser(userId: string) {
     select: { stripe_subscription_id: true, business_id: true },
   });
 }
+ async listPaginated(page = 1, limit = 10, opts?: { search?: string;  }) {
+    const qb = this.subRepo
+    .createQueryBuilder('sr')
+    .where('1=1');
 
+    if (opts?.search) {
+      qb.andWhere('sr.packageName ILIKE :search', { search: `%${opts.search}%` });
+  }
+
+    const total = await qb.getCount();
+    const data = await qb
+    .orderBy('sr.created_at', 'DESC')
+    .skip((page - 1) * limit) 
+    .take(limit)              
+    .getMany();
+
+    return {
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    data,
+  };
+}
 
 }
