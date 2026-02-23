@@ -19,6 +19,7 @@ export class SubscriptionsController {
   }
 
   @Get('list')
+  @UseGuards(JwtAuthGuard)
       listPaginated(
       @Query('page') page = 1, 
       @Query('limit') limit = 10, 
