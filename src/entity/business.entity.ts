@@ -5,6 +5,7 @@ import { BusinessSchedule } from './business_schedule.entity';
 import { BusinessRecomendations } from './business_recomendations.entity';
 import { BusinessAccessibleFeature } from './business_accessiblity_feature.entity';
 import { BusinessPartners } from './business_partners.entity';
+import { Subscription } from './subscription.entity';
 
 @Entity()
 export class Business {
@@ -122,5 +123,8 @@ accessibleFeatures: BusinessAccessibleFeature[];
 
 @OneToMany(() => BusinessPartners, (bp) => bp.business)
 partners: BusinessPartners[];
+
+@OneToMany(() => Subscription, (s) => s.business)
+subscriptions: Subscription[];
 
 }

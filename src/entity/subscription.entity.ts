@@ -5,7 +5,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Business } from './business.entity';
 
 export type SubscriptionStatus =
   | 'pending'
@@ -77,4 +80,8 @@ export class Subscription {
 
   @Column()
   external_id: string;
+
+  @ManyToOne(() => Business, (b) => b.subscriptions, { nullable: true })
+@JoinColumn({ name: 'business_id' }) 
+business?: Business;
 }
