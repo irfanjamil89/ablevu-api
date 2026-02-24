@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, BadRequestException, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, BadRequestException, Query, Param } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserSession } from 'src/auth/user.decorator';
 import { CreateSubscriptionDto } from './create-subscription.dto';
@@ -31,6 +31,13 @@ export class SubscriptionsController {
         search,
       });
     }
+
+    @Get('subscription-profile/:businessId')          
+      async getsubscriptionProfile(
+        @Param('businessId') businessId: string,
+      ) {
+        return this.subs.getsubscriptionProfile(businessId);
+      }
 
   @Post('checkout')
   @UseGuards(JwtAuthGuard)

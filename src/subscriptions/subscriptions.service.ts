@@ -3,12 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscription, SubscriptionStatus } from 'src/entity/subscription.entity';
 import { StripeService } from 'src/payment/stripe/stripe.service';
+import { Business } from 'src/entity/business.entity';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
     @InjectRepository(Subscription)
     private readonly subRepo: Repository<Subscription>,
+
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
     
   ) {}
 
@@ -111,29 +115,54 @@ findPaidByUser(userId: string) {
     select: { stripe_subscription_id: true, business_id: true },
   });
 }
- async listPaginated(page = 1, limit = 10, opts?: { search?: string;  }) {
-    const qb = this.subRepo
+ async listPaginated(page = 1, limit = 10, opts?: { search?: string }) {
+  const qb = this.subRepo
     .createQueryBuilder('sr')
+    .leftJoinAndSelect('sr.business', 'business') // ✅ bring business data
     .where('1=1');
 
-    if (opts?.search) {
-      qb.andWhere('sr.packageName ILIKE :search', { search: `%${opts.search}%` });
+  if (opts?.search?.trim()) {
+    qb.andWhere('sr.packageName ILIKE :search', { search: `%${opts.search.trim()}%` });
   }
 
-    const total = await qb.getCount();
-    const data = await qb
+  const total = await qb.getCount();
+
+  const data = await qb
     .orderBy('sr.created_at', 'DESC')
-    .skip((page - 1) * limit) 
-    .take(limit)              
+    .skip((page - 1) * limit)
+    .take(limit)
     .getMany();
 
-    return {
+  return {
+    data,
+    total,
     page,
     limit,
-    total,
     totalPages: Math.ceil(total / limit),
-    data,
   };
 }
 
+async getsubscriptionProfile(businessId: string) {
+  const sub = await this.subRepo.findOne({
+    where: { business_id: businessId },
+    relations: ['business'], 
+    select: {
+      id: true,
+      packageName: true,
+      start_date: true,
+      end_date: true,
+      status: true,
+      business: {
+        id: true,
+        name: true,       
+      },
+    },
+  });
+
+  if (!sub) {
+    throw new NotFoundException('Subscription not found for this business');
+  }
+
+  return sub;
+}
 }
