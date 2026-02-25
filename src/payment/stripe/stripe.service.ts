@@ -498,26 +498,14 @@ export class StripeService {
     let expiresAtUnix: number | undefined;
 
 if (input.expires_at) {
-  const raw = input.expires_at;
-
-  // ✅ if frontend sends date only "YYYY-MM-DD"
-  const isDateOnly =
-    typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw);
-
-  const d = new Date(raw);
+  const d = new Date(input.expires_at); // already 23:59:59 hoga
   if (isNaN(d.getTime())) throw new Error('Invalid expires_at date.');
-
-  // ✅ treat date-only as end of that day (so it stays future)
-  if (isDateOnly) {
-    d.setHours(23, 59, 59, 0);
-  }
 
   expiresAtUnix = Math.floor(d.getTime() / 1000);
 
-  // ✅ must be future
   const nowUnix = Math.floor(Date.now() / 1000);
   if (expiresAtUnix <= nowUnix) {
-    throw new Error('Expires At must be in the future (pick tomorrow or later).');
+    throw new Error('Expires At must be in the future.');
   }
 }
 

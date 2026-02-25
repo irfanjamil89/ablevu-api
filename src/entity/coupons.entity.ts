@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  AfterLoad
 } from 'typeorm';
 
 export type DiscountType = 'percentage' | 'fixed';
@@ -67,4 +68,11 @@ validitymonths: number;
 
   @Column({ nullable: true })
   external_id: string;
+
+  @AfterLoad()
+  async checkAndUpdateExpiry() {
+    if (this.expires_at && new Date(this.expires_at) < new Date() && this.active === true) {
+      this.active = false;
+    }
+}
 }
