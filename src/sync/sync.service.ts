@@ -820,7 +820,22 @@ const res = await this.s3.uploadRawBuffer({
           ` Virtual Tours: ${virtualToursObj ? virtualToursObj.name : 'None'}`,
         );
 
-        let listingsVerifiedObj = new ListingsVerified();
+        // Check if ListingsVerified already exists for this business
+        let listingsVerifiedObj = await this.listingsVerifiedRepo.findOne({
+          where: {
+            business_id: business.id,
+          },
+        });
+
+        // If not exists, create new instance
+        if (!listingsVerifiedObj) {
+          console.log(`Creating new ListingsVerified for business: ${business.name}`);
+          listingsVerifiedObj = new ListingsVerified();
+        } else {
+          console.log(`Updating existing ListingsVerified for business: ${business.name}`);
+        }
+
+        // Set/Update all fields
         listingsVerifiedObj.business_id = business.id;
         listingsVerifiedObj.address = business.address;
         listingsVerifiedObj.city = business.city;
@@ -851,10 +866,24 @@ const res = await this.s3.uploadRawBuffer({
         const afString = featureTitles.join(', ');
 
         listingsVerifiedObj.features = afString;
-        await this.listingsVerifiedRepo.create(listingsVerifiedObj);
         await this.listingsVerifiedRepo.save(listingsVerifiedObj);
 
-        let claim = new Claims();
+        // Check if Claims already exists for this business
+        let claim = await this.claimsRepo.findOne({
+          where: {
+            business_id: business.id,
+          },
+        });
+
+        // If not exists, create new instance
+        if (!claim) {
+          console.log(`Creating new Claim for business: ${business.name}`);
+          claim = new Claims();
+        } else {
+          console.log(`Updating existing Claim for business: ${business.name}`);
+        }
+
+        // Set/Update all fields
         claim.business_id = business.id;
         claim.listing_id = business.external_id || '';
         claim.status = business.business_status;
@@ -867,7 +896,6 @@ const res = await this.s3.uploadRawBuffer({
         claim.requested_on = business.created_at;
         claim.created_at = business.created_at;
         claim.updated_at = business.modified_at;
-        await this.claimsRepo.create(claim);
         await this.claimsRepo.save(claim);
       } else {
         console.log(
@@ -876,6 +904,7 @@ const res = await this.s3.uploadRawBuffer({
       }
     }
   }
+  
   fuzzyMatch(categoryOption: string, typeName: string): boolean {
     const normalize = (str: string) =>
       str

@@ -18,20 +18,27 @@ export class CouponsService{
  async createCoupons(userid: string, dto: CreateCouponsDto) {
   const discountType = dto.discount_type ?? 'percentage';
 
+  // ✅ expires_at ko us din ki aakhri second set karo
+  let expiresAt: Date | null = null;
+  if (dto.expires_at) {
+    expiresAt = new Date(dto.expires_at);
+    expiresAt.setHours(23, 59, 59, 999); // ✅ 24 Feb → 24 Feb 23:59:59
+  }
+
   const stripeInput: any = {
     code: dto.code.trim(),
     name: dto.name.trim(),
     active: dto.active ?? true,
     discount_type: discountType,
     validitymonths: dto.validitymonths ? Number(dto.validitymonths) : undefined,
-    expires_at: dto.expires_at,
+    expires_at: expiresAt, // ✅ 23:59:59 wali date Stripe ko bheji
     usage_limit: dto.usage_limit ? Number(dto.usage_limit) : undefined,
   };
 
   if (discountType === 'percentage') {
-    stripeInput.percent = Number(dto.discount);          // ✅ percent
+    stripeInput.percent = Number(dto.discount);
   } else {
-    stripeInput.amount_off = Number(dto.discount);       // ✅ fixed amount
+    stripeInput.amount_off = Number(dto.discount);
   }
 
   const stripe = await this.stripeService.createStripeCouponAndPromo(stripeInput);
@@ -41,7 +48,7 @@ export class CouponsService{
     name: dto.name.trim(),
     discount_type: discountType,
     discount: Number(dto.discount),
-    expires_at: dto.expires_at ? new Date(dto.expires_at) : null,
+    expires_at: expiresAt, // ✅ Same 23:59:59 DB mein bhi save hoga
     usage_limit: dto.usage_limit ? Number(dto.usage_limit) : null,
     active: dto.active ?? true,
     created_by: userid,
@@ -85,46 +92,46 @@ export class CouponsService{
     coupon.stripe_promo_code_id
   );
 
-  // ✅ Then DB remove (or better: soft delete)
   coupon.modified_by = userid;
   return await this.couponsRepo.remove(coupon);
 }
 
 
-    async listPaginated (
-        page = 1,
-        limit = 10,
-        filters:{ active?: boolean | undefined}
-    ){
-        const qb = this.couponsRepo.createQueryBuilder('c');
+    async getCouponsProfile(id: string) {
+  const coupon = await this.couponsRepo.findOne({ where: { id } });
+  if (!coupon) throw new NotFoundException('Coupon Not Found');
 
-        if(filters.active !== undefined){
-            qb.andWhere('c.active = :active', {active: filters.active})
-        }
+  if (coupon.expires_at && new Date(coupon.expires_at) < new Date() && coupon.active === true) {
+    coupon.active = false;
+    await this.couponsRepo.save(coupon);
+  }
 
-        qb
-        .take(limit)
-        .skip((page - 1) * limit);
+  return coupon;
+}
 
-        const [items, total] =await qb.getManyAndCount();
+async listPaginated(page = 1, limit = 10, filters: { active?: boolean }) {
+  const qb = this.couponsRepo.createQueryBuilder('c');
 
-        return{
-            data: items,
-            total,
-            page,
-            limit,
-            totalPage: Math.ceil(total / limit),
-        };
+  if (filters.active !== undefined) {
+    qb.andWhere('c.active = :active', { active: filters.active });
+  }
+
+  qb.take(limit).skip((page - 1) * limit);
+  const [items, total] = await qb.getManyAndCount();
+
+  for (const coupon of items) {
+    if (coupon.expires_at && new Date(coupon.expires_at) < new Date() && coupon.active === true) {
+      coupon.active = false;
+      await this.couponsRepo.save(coupon);
     }
+  }
 
-    async getCouponsProfile(id: string){
-        const coupon = await this.couponsRepo.findOne({
-            where: {id},
-        });
-        if(!coupon){
-            throw new NotFoundException('Coupon Not Found');
-        }
-        return coupon;
-    }
-
+  return {
+    data: items,
+    total,
+    page,
+    limit,
+    totalPage: Math.ceil(total / limit),
+  };
+}
 }
