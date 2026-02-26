@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import {AccountStatus, User} from 'src/entity/user.entity';
 import { UsersService } from 'src/services/user.service';
 import * as bcrypt from 'bcrypt';
@@ -99,15 +99,17 @@ export class AuthService {
 
   public async validateUser(username: string, pass: string): Promise<any> {
     const user = await this.usersService.findByUserName(username);
+    if (!user || !user.password) {
+    throw new UnauthorizedException('Username or Password is incorrect.');
+  }
     const saltOrRounds = 12;
 const valid = await bcrypt.compare(pass, user?.password);;
 console.log(valid)
 debugger;
-    if (valid) {
-
-      return user;
+    if (!valid) {
+      throw new UnauthorizedException('Username or Password is incorrect.');
     }
-    return null;
+    return user;
   }
 
    async login(user: any) {
