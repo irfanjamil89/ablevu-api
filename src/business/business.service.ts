@@ -739,6 +739,29 @@ qb.where(
     };
   }
 
+  async list2Paginated({
+  page = 1,
+  limit = 10,
+}: List1Filters) {
+  const qb = this.businessRepo.createQueryBuilder('b');
+
+  qb
+    .orderBy('b.created_at', 'DESC')
+    .take(limit)
+    .skip((page - 1) * limit);
+
+  // ✅ get data + total count
+  const [data, total] = await qb.getManyAndCount();
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
   async updateBusinessStatus(id: string, dto: any, userId: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
     if (!business) {
