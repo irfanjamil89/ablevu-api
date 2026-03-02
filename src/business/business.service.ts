@@ -275,6 +275,25 @@ export class BusinessService {
       business.slug = this.makeSlug(dto.name);
     }
 
+    // ✅ 1) owner_email -> user lookup -> owner_user_id set
+  if (dto.owner_email) {
+    const email = dto.owner_email.trim().toLowerCase();
+
+    const user = await this.userRepo.findOne({
+      where: { email },
+      select: ['id', 'email'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User not found with email: ${email}`);
+    }
+
+    business.owner_user_id = user.id;
+  }
+
+  // ✅ 2) never assign owner_email into business table
+  const { owner_email, ...safeDto } = dto as any;
+
     Object.assign(business, dto);
 
     const hasAddress =
@@ -451,7 +470,7 @@ export class BusinessService {
     if (role === 'business') {
       qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
     } else if (role === 'contributor') {
-      qb.andWhere('b.creator_user_id = :ID', { ID: currentUser.id });
+      qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
     }
     // Admin = no filter
   }
