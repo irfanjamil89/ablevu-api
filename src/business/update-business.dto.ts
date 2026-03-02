@@ -101,4 +101,16 @@ export class UpdateBusinessDto {
   @IsOptional()
   @IsString()
   promo_code?: string;
+
+  @IsOptional()
+  @IsString()
+  creatorId?: string;
+
+  @IsOptional()
+  @IsEmail()
+  owner_email?: string; 
+  
+  @IsOptional()
+  @IsString()
+  owner_user_id?: string;
 }

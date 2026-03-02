@@ -120,6 +120,18 @@ async list1Paginated(
   });
 }
 
+@Get('list2')
+@UseGuards(JwtAuthGuard)
+async list2Paginated(
+  @Query('page') page: string = '1',
+  @Query('limit') limit: string = '10',  
+) {
+  return this.businessService.list2Paginated({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,    
+  });
+}
+
 @Patch('status/:id')
 @UseGuards(JwtAuthGuard)
 async updateBusinessStatus(

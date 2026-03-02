@@ -58,6 +58,20 @@ export class AccessibleCityController {
       featured: f,
     });
   }
+
+  @Get('list1')
+list1(
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+  @Query('search') search?: string,
+) {
+  return this.accessiblecityservice.list1Paginated(
+    Number(page),
+    Number(limit),
+    { search },
+  );
+}
+
   @Get('accessible-city/:id')
   async getAccessibleCity(
     @Param('id') Id: string) {
