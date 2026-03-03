@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from "typeorm";
+import { Business } from "./business.entity";
 export enum AccountStatus {
   ACTIVE = "Active",
   INACTIVE = "Inactive",
@@ -20,8 +21,8 @@ export class User {
   @Column()
   password?: string;
 
-  @Column()
-  public email?: string;
+  @Column({ nullable: false })
+  email?: string;
 
   @Column()
   phone_number?: string;
@@ -82,4 +83,7 @@ export class User {
 
   @Column({ type: "varchar", length: 255, nullable: true })
   suspend_reason?: string | null;
+
+  @OneToMany(() => Business, (b) => b.owner)
+  businesses: Business[];
 }
