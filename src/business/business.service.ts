@@ -796,9 +796,19 @@ qb.where(
 });
   }
   async getBusinessProfile(id: string, currentUser?: any) {
-    const business = await this.businessRepo.findOne({ where: { id },
-    relations: ['owner']
-    });
+    const business = await this.businessRepo
+  .createQueryBuilder('b')
+  .leftJoinAndSelect('b.owner', 'o')
+  .where('b.id = :id', { id })
+  .select([
+    'b',
+    'o.id',
+    'o.first_name',
+    'o.last_name',
+    'o.email',
+    'o.profile_picture_url',
+  ])
+  .getOne();
 
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -891,7 +901,10 @@ qb.where(
       businessSchedule,
       businessRecomendations,
       additionalaccessibilityresources,
-      businessImages
+      businessImages,
+      owner: {        
+        email: business.owner.email,        
+      },
     };
   }
 

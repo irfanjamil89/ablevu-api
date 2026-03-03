@@ -64,63 +64,111 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async signUp(dto: UserDto) {
-    const exists = await this.usersRepository.findOne({
-      where: { email: dto.emailAddress.toLowerCase() },
-    });
+async signUp(dto: UserDto) {
+  const email = dto.emailAddress.toLowerCase().trim();
 
-    if (exists) {
-      throw new ConflictException('User already registered. Please log in to proceed.');
-    }
+  const exists = await this.usersRepository.findOne({
+    where: { email },
+  });
 
-    if (!dto.consent) {
-      throw new BadRequestException(
-        'You must accept the Terms and Privacy Policy',
-      );
-    }
+  if (!dto.consent) {
+    throw new BadRequestException('You must accept the Terms and Privacy Policy');
+  }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
-    console.log(dto);
-    var userData = {
-      email: dto.emailAddress.toLowerCase(),
-      first_name: dto.firstName.trim() || '',
-      last_name: dto.lastName.trim() || '',
-      password: passwordHash,
-      archived: false,
-      created_at: new Date(),
-      modified_at: new Date(),
-      user_role: dto.userType || 'User',
-      consent: dto.consent,
-    };
-    console.log(userData);
-    const user = this.usersRepository.create(userData);
+  const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    console.log(user);
-    const saved = await this.usersRepository.save(user);
+  // ✅ If user exists but is NOT deleted -> block signup
+  if (exists && exists.account_status !== AccountStatus.DELETE) {
+    throw new ConflictException('User already registered. Please log in to proceed.');
+  }
+
+  // ✅ If user exists and is deleted -> reactivate it
+  if (exists && exists.account_status === AccountStatus.DELETE) {
+    exists.first_name = dto.firstName?.trim() || '';
+    exists.last_name = dto.lastName?.trim() || '';
+    exists.password = passwordHash;
+    exists.archived = false;
+    exists.consent = dto.consent;
+    exists.user_role = dto.userType || 'User';
+    exists.modified_at = new Date();
+
+    // important: clear suspension fields if any
+    exists.account_status = AccountStatus.ACTIVE;
+    exists.suspended_at = null;
+    exists.suspend_reason = null;
+
+    // optional: reset password token fields
+    exists.resetToken = null;
+    exists.resetTokenExpires = null;
+
+    const saved = await this.usersRepository.save(exists);
+
+    // welcome email (optional)
     try {
-      if (!saved.email || !saved.first_name) {
-        console.error('No email found for user, cannot send welcome email.');
-      } else {
-        await this.notificationService.sendWelcomeEmail(
-          saved.email,
-          saved.first_name,
-          saved.id,
-        );
-      }
-    } catch (err) {
-      console.error('Error sending welcome email:', err);
-    }
+  if (!saved.email || !saved.first_name) {
+    console.error('No email found for user, cannot send welcome email.');
+  } else {
+    await this.notificationService.sendWelcomeEmail(
+      saved.email,
+      saved.first_name,
+      saved.id,
+    );
+  }
+} catch (err) {
+  console.error('Error sending welcome email:', err);
+}
 
     return {
       id: saved.id,
       email: saved.email,
       firstName: saved.first_name,
       lastName: saved.last_name,
-      createdAt: saved.created_at,
+      createdAt: saved.created_at, // same old created_at rahega
       consent: saved.consent,
+      reactivated: true,
     };
   }
 
+  // ✅ Otherwise: create a brand new user
+  const user = this.usersRepository.create({
+    email,
+    first_name: dto.firstName?.trim() || '',
+    last_name: dto.lastName?.trim() || '',
+    password: passwordHash,
+    archived: false,
+    created_at: new Date(),
+    modified_at: new Date(),
+    user_role: dto.userType || 'User',
+    consent: dto.consent,
+    account_status: AccountStatus.ACTIVE,
+  });
+
+  const saved = await this.usersRepository.save(user);
+
+  try {
+  if (!saved.email || !saved.first_name) {
+    console.error('No email found for user, cannot send welcome email.');
+  } else {
+    await this.notificationService.sendWelcomeEmail(
+      saved.email,
+      saved.first_name,
+      saved.id,
+    );
+  }
+} catch (err) {
+  console.error('Error sending welcome email:', err);
+}
+
+  return {
+    id: saved.id,
+    email: saved.email,
+    firstName: saved.first_name,
+    lastName: saved.last_name,
+    createdAt: saved.created_at,
+    consent: saved.consent,
+    reactivated: false,
+  };
+}
   async remove(id: number): Promise<void> {
     await this.usersRepository.delete(id);
   }
