@@ -461,7 +461,10 @@ export class BusinessService {
 ) {
   const qb = this.businessRepo.createQueryBuilder('b');
 
-  qb.take(limit).skip((page - 1) * limit);
+qb.leftJoin('b.owner', 'u')
+  .addSelect('u.last_login_at', 'owner_last_login_at');
+
+qb.take(limit).skip((page - 1) * limit);
 
   // 🔹 Role-based filter for Business & Contributor
   if (currentUser?.user_role) {
@@ -531,11 +534,13 @@ export class BusinessService {
 
   qb.orderBy(sortCol, sortOrder);
 
-  const [items, total] = await qb.getManyAndCount();
+  const { entities: items, raw } = await qb.getRawAndEntities();
+  const total = await qb.getCount();
 
   // (rest remains same)
   const data = await Promise.all(
-    items.map(async (business) => {
+    items.map(async (business, idx) => {
+    const owner_last_login_at = raw?.[idx]?.owner_last_login_at ?? null;
       const [
         linkedTypes,
         accessibilityFeatures,
@@ -569,6 +574,7 @@ export class BusinessService {
 
       return {
         ...business,
+        owner_last_login_at,
         linkedTypes,
         accessibilityFeatures,
         virtualTours,
@@ -903,7 +909,7 @@ qb.where(
       additionalaccessibilityresources,
       businessImages,
       owner: {        
-        email: business.owner.email,        
+        email: business.owner.email,
       },
     };
   }

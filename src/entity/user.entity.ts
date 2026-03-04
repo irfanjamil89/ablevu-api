@@ -86,4 +86,7 @@ export class User {
 
   @OneToMany(() => Business, (b) => b.owner)
   businesses: Business[];
+
+  @Column({ type: "timestamptz", nullable: true })
+  last_login_at?: Date | null;
 }

@@ -125,6 +125,7 @@ debugger;
   if (user.account_status === AccountStatus.DELETE) {
     throw new ForbiddenException('Your account has been deleted.');
   }
+  await this.usersService.updateLastLogin(user.id);
     const payload = { username: user.email, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
