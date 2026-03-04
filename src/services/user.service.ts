@@ -325,6 +325,10 @@ async signUp(dto: UserDto) {
 
     return this.usersRepository.save(user);
   }
+
+  async updateLastLogin(userId: string) {
+  await this.usersRepository.update({ id: userId }, { last_login_at: new Date() });
+}
 }
 function uuidv4(): string | undefined {
   throw new Error('Function not implemented.');
