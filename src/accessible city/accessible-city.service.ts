@@ -26,14 +26,12 @@ export class AccessibleCityService {
       .replace(/(^-|-$)+/g, '');
   }
 
-  // Find city by external_id
   async findByExternalId(externalId: string): Promise<AccessibleCity | null> {
     return await this.accessiblecityrepo.findOne({
       where: { external_id: externalId }
     });
   }
 
-  // NEW METHOD: Update city by external_id
   async updateAccessibleCityByExternalId(
     externalId: string,
     userId: string,
@@ -47,7 +45,6 @@ export class AccessibleCityService {
       throw new NotFoundException('Accessible City not found with external_id: ' + externalId);
     }
 
-    // Update city fields
     if (dto.cityName && dto.cityName.trim() !== '') {
       city.city_name = dto.cityName;
       city.slug = this.makeSlug(dto.cityName);
@@ -61,7 +58,6 @@ export class AccessibleCityService {
     city.modified_by = userId;
     await this.accessiblecityrepo.save(city);
 
-    // Clear old business associations
     const oldBusinesses = await this.businessRepo.find({
       where: { accessible_city_id: city.id }
     });
@@ -70,7 +66,6 @@ export class AccessibleCityService {
     }
     await this.businessRepo.save(oldBusinesses);
 
-    // Add new business associations
     if (dto.business_Ids?.length) {
       const businesses = await this.businessRepo.findBy({ id: In(dto.business_Ids) });
       if (businesses.length !== dto.business_Ids.length) {
@@ -220,9 +215,6 @@ export class AccessibleCityService {
 
   return accessiblecity;
 }
-
-
-
   async deleteAccessibleCity(id: string, userId: string) {
     const accessiblecity = await this.accessiblecityrepo.findOne({ where: { id } });
     if (!accessiblecity) {
@@ -376,7 +368,7 @@ async list1Paginated(page = 1, limit = 10, opts?: { search?: string }) {
 
   const [businesses, totalBusinesses] = await this.businessRepo.findAndCount({
     where: { accessible_city_id: id,
-      business_status: 'Claimed',
+       business_status: In(['claimed', 'Claimed']),
      },
     order: { created_at: 'DESC' as any }, 
   });
