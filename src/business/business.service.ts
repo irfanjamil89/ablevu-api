@@ -24,6 +24,8 @@ import { BusinessImages } from 'src/entity/business_images.entity';
 import { NotificationService } from 'src/notifications/notifications.service';
 import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections-media.entity';
 import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
+import * as bcrypt from 'bcrypt';
+import { QueryFailedError } from 'typeorm';
 
 type ListFilters = {
   search?: string;
@@ -137,8 +139,6 @@ export class BusinessService {
   async createBusiness(userId: string, dto: CreateBusinessDto) {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-
-    // ⭐ Required fields only (Option A)
     if (!dto.name?.trim()) {
       throw new BadRequestException('Business name is required');
     }
@@ -151,8 +151,6 @@ export class BusinessService {
     if (!dto.address?.trim()) {
       throw new BadRequestException('Business address (formatted) is required');
     }
-
-    // ⭐ Accessible City (optional)
     let accessibleCity: AccessibleCity | null = null;
     if (dto.accessible_city_id) {
       accessibleCity = await this.accessibleCityRepo.findOne({
@@ -168,8 +166,6 @@ export class BusinessService {
     let latitude = dto.latitude;
     let longitude = dto.longitude;
     let place_id = dto.place_id;
-
-    // Address parts (will be auto-filled by geocoder)
     let address = dto.address;
     let city = dto.city;
     let state = dto.state;
@@ -201,9 +197,22 @@ export class BusinessService {
         console.error('Geocoding failed:', e);
       }
     }
+let finalAccessibleCityId: string | null = dto.accessible_city_id ?? null;
 
-    // ───────────────────────────────────────────────
+if (!finalAccessibleCityId) {
+  const cityName = (city || '').trim();
 
+  if (cityName) {
+    const foundCity = await this.accessibleCityRepo
+      .createQueryBuilder('c')
+      .where('LOWER(c.city_name) = LOWER(:cityName)', { cityName })
+      .getOne();
+
+    if (foundCity) {
+      finalAccessibleCityId = foundCity.id;
+    }
+  }
+}
     const business = this.businessRepo.create({
       ...dto,
       slug,
@@ -212,12 +221,7 @@ export class BusinessService {
       active: typeof dto.active === 'boolean' ? dto.active : true,
       blocked: false,
       business_status: dto.business_status || 'draft',
-
-
-      // ✅ correct column name from Business entity
-      accessible_city_id: dto.accessible_city_id ?? null,
-
-      // overwrite auto-filled fields
+      accessible_city_id: finalAccessibleCityId,
       address,
       city,
       state,
@@ -230,7 +234,6 @@ export class BusinessService {
 
     const saved = await this.businessRepo.save(business);
 
-    // ⭐ Business Types
     if (dto.business_type?.length) {
       const linked = dto.business_type.map((typeId) =>
         this.linkedrepo.create({
@@ -244,7 +247,6 @@ export class BusinessService {
       await this.linkedrepo.save(linked);
     }
 
-    // ⭐ Accessible Features
     if (dto.accessible_feature_id?.length) {
       const linked = dto.accessible_feature_id.map((featureId) =>
         this.businessaccessibilityrepo.create({
@@ -266,35 +268,43 @@ export class BusinessService {
     return saved;
   }
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
-    const business = await this.businessRepo.findOne({ where: { id } });
-    if (!business) {
-      throw new NotFoundException('Business not found');
-    }
-    if (dto.name && dto.name.trim() !== '') {
-      business.name = dto.name.trim();
-      business.slug = this.makeSlug(dto.name);
-    }
+  const business = await this.businessRepo.findOne({ where: { id } });
+  if (!business) throw new NotFoundException('Business not found');
+  if (dto.name && dto.name.trim() !== '') {
+    business.name = dto.name.trim();
+    business.slug = this.makeSlug(dto.name);
+  }
 
-    // ✅ 1) owner_email -> user lookup -> owner_user_id set
   if (dto.owner_email) {
     const email = dto.owner_email.trim().toLowerCase();
 
-    const user = await this.userRepo.findOne({
-      where: { email },
-      select: ['id', 'email'],
-    });
+    let owner = await this.userRepo.findOne({ where: { email } });
 
-    if (!user) {
-      throw new NotFoundException(`User not found with email: ${email}`);
+    if (!owner) {
+      try {
+        const hashed = await bcrypt.hash('12345678', 10);
+
+        owner = await this.userRepo.save(
+          this.userRepo.create({
+            email,
+            password: hashed,          
+            user_role: 'Business',
+            archived: false,
+            paid_contributor: false,
+          }),
+        );
+      } catch (e) {        
+        if (e instanceof QueryFailedError) {
+          owner = await this.userRepo.findOne({ where: { email } });
+        }
+        if (!owner) throw e;
+      }
     }
 
-    business.owner_user_id = user.id;
+    business.owner_user_id = owner.id;
   }
-
-  // ✅ 2) never assign owner_email into business table
   const { owner_email, ...safeDto } = dto as any;
-
-    Object.assign(business, dto);
+  Object.assign(business, safeDto);
 
     const hasAddress =
       typeof business.address === 'string' && business.address.trim() !== '';
@@ -332,11 +342,7 @@ export class BusinessService {
         console.error('Geocoding failed during update but continuing:', e);
       }
     }
-    // ──────── END GOOGLE MAPS ────────
-
     await this.businessRepo.save(business);
-
-
     const relationActive =
       typeof dto.active === 'boolean'
         ? dto.active
@@ -358,8 +364,6 @@ export class BusinessService {
       );
       await this.linkedrepo.save(linkedEntries);
     }
-
-    // 🔹 Update Accessible Features (agar body mein bheje gaye hon)
     if (dto.accessible_feature_id && dto.accessible_feature_id.length > 0) {
       await this.businessaccessibilityrepo.delete({ business_id: id });
 
@@ -379,17 +383,14 @@ export class BusinessService {
   }
   
   async updateBusinessByExternalId(external_id: string, updateData: CreateBusinessDto) {
-    try {
-        // First find the business by external_id
+    try {        
         const existingBusiness = await this.businessRepo.findOne({
             where: { external_id: external_id }
         });
 
         if (!existingBusiness) {
             throw new NotFoundException(`Business with external_id ${external_id} not found`);
-        }
-
-        // Update the business
+        }    
         const updatedBusiness = await this.businessRepo.save({
             ...existingBusiness,
             ...updateData,
@@ -410,45 +411,32 @@ export class BusinessService {
   if (!business) {
     throw new NotFoundException('Business not found');
   }
-  // Virtual tours
   await this.virtualTourRepo.delete({ business: { id: business.id } });
 
   await this.audioTourRepo.delete({business_id: id});
 
-  // Reviews
   await this.businessreviews.delete({ business_id: id });
 
-  // Questions
   await this.businessquestionrepo.delete({ business_id: id });
 
-  // Partners
   await this.businessPartnerrepo.delete({ business_id: id });
 
-  // Custom sections
   await this.customSectionsrepo.delete({ business_id: id });
 
-  // Media
   await this.mediaRepo.delete({ business_id: id });
 
-  // Schedules
   await this.scheduleRepo.delete({ business: { id: business.id } });
 
-  // Linked business types
   await this.linkedrepo.delete({ business_id: id });
 
-  // Accessible features
   await this.businessaccessibilityrepo.delete({ business_id: id });
 
-  // Recommendations
   await this.recomendationRepo.delete({ business: { id: business.id } });
 
-  // Additional resources
   await this.resourcesrepo.delete({ business_id: id });
 
-  // Business images
   await this.imagesRepo.delete({ business_id: id });
 
-  // 🔚 Last mein business khud delete karo
   await this.businessRepo.remove(business);
 }
 
@@ -466,7 +454,6 @@ qb.leftJoin('b.owner', 'u')
 
 qb.take(limit).skip((page - 1) * limit);
 
-  // 🔹 Role-based filter for Business & Contributor
   if (currentUser?.user_role) {
     const role = currentUser.user_role.toLowerCase();
 
@@ -475,7 +462,6 @@ qb.take(limit).skip((page - 1) * limit);
     } else if (role === 'contributor') {
       qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
     }
-    // Admin = no filter
   }
 
   if (filters.active !== undefined) {
@@ -502,7 +488,6 @@ qb.take(limit).skip((page - 1) * limit);
     );
   }
 
-  // ✅ NEW: business_status filter (case-insensitive exact match)
   if (filters.business_status?.trim()) {
     qb.andWhere('LOWER(b.business_status) = :st', {
       st: filters.business_status.trim().toLowerCase(),
@@ -521,7 +506,6 @@ qb.take(limit).skip((page - 1) * limit);
     );
   }
 
-  // ✅ NEW: Sorting (whitelist)
   const allowedSort: Record<string, string> = {
     name: 'b.name',
     created_at: 'b.created_at',
@@ -537,7 +521,6 @@ qb.take(limit).skip((page - 1) * limit);
   const { entities: items, raw } = await qb.getRawAndEntities();
   const total = await qb.getCount();
 
-  // (rest remains same)
   const data = await Promise.all(
     items.map(async (business, idx) => {
     const owner_last_login_at = raw?.[idx]?.owner_last_login_at ?? null;
@@ -611,12 +594,6 @@ qb.take(limit).skip((page - 1) * limit);
   country,
 }: List1Filters) {
   const qb = this.businessRepo.createQueryBuilder('b');
-
-//   qb.where(
-//   '(b.business_status = :Approved OR b.business_status = :Claimed)',
-//   { Approved: 'Approved', Claimed: 'Claimed' },
-// );
-
 qb.where(
   'LOWER(b.business_status) IN (:...statuses)',
   {
@@ -624,9 +601,6 @@ qb.where(
   },
 );
 
-
-
-  // 🔍 text search: name + address + city + country
   if (search && search.trim()) {
     const s = `%${search.trim().toLowerCase()}%`;
     qb.andWhere(
@@ -639,21 +613,17 @@ qb.where(
       );
     }
 
-    // 🌆 City filter (exact match, case-insensitive)
     if (city && city.trim()) {
       qb.andWhere('LOWER(b.city) = :city', {
         city: city.trim().toLowerCase(),
       });
     }
 
-    // 🌍 Country filter
     if (country && country.trim()) {
       qb.andWhere('LOWER(b.country) = :country', {
         country: country.trim().toLowerCase(),
       });
     }
-
-    // 🏷 Category / Business Type filter (comma separated IDs)
     if (businessTypeIds && businessTypeIds.trim()) {
       const btIds = businessTypeIds
         .split(',')
@@ -671,8 +641,6 @@ qb.where(
         );
       }
     }
-
-    // ♿ Accessible Feature filter (comma separated accessible_feature_id)
     if (featureIds && featureIds.trim()) {
       const afIds = featureIds
         .split(',')
@@ -697,8 +665,6 @@ qb.where(
       .orderBy('b.created_at', 'DESC');
 
     const [items, total] = await qb.getManyAndCount();
-
-    // 🔁 same enrichment jaisa tum pehle kar rahe thay
     const data = await Promise.all(
       items.map(async (business) => {
         const [
@@ -774,8 +740,6 @@ qb.where(
     .orderBy('b.created_at', 'DESC')
     .take(limit)
     .skip((page - 1) * limit);
-
-  // ✅ get data + total count
   const [data, total] = await qb.getManyAndCount();
 
   return {
