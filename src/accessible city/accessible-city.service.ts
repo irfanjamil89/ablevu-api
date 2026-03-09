@@ -304,7 +304,7 @@ async list1Paginated(page = 1, limit = 10, opts?: { search?: string }) {
     .leftJoin(
       'business',
       'b',
-      `LOWER(TRIM(b.city)) = LOWER(TRIM(c.city_name))`, 
+      'b.accessible_city_id = c.id',
     )
     .select([
       'c.id',
