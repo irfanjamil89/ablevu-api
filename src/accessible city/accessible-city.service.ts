@@ -240,7 +240,7 @@ export class AccessibleCityService {
     .leftJoin(
       'business',
       'b',
-      `LOWER(TRIM(b.city)) = LOWER(TRIM(c.city_name))`, 
+      'b.accessible_city_id = c.id',
     )
     .select([
       'c.id',
@@ -273,7 +273,6 @@ export class AccessibleCityService {
     .skip((page - 1) * limit)
     .take(limit);
 
-  // ✅ total count (same filters, no join/group)
   const whereSql =
     qb.expressionMap.wheres.map((w) => w.condition).join(' AND ') || '1=1';
 
