@@ -154,8 +154,8 @@ export class WebhookController {
               latitude: p.latitude,
               longitude: p.longitude,
               logo_url: p.logo_url,
-              business_status: 'draft',
-              active: false,
+              business_status: 'claimed',
+              active: true,
               views: 0,
             },
           );
@@ -321,100 +321,139 @@ export class WebhookController {
         // ======================================================
 // B) BUSINESS CLAIM FLOW (VALIDATED)
 // ======================================================
-if (session.metadata?.purpose === "business_claim") {
+if (session.metadata?.purpose === 'business_claim') {
   const { payment_id, batch_id, user_id } = session.metadata || {};
 
-  if (!payment_id || !batch_id || !user_id) {
-    console.log("[Webhook] business_claim missing metadata");
-    return res.json({ received: true });
-  }
+  if (!payment_id || !batch_id || !user_id) return res.json({ received: true });
+  if (session.payment_status !== 'paid') return res.json({ received: true });
 
-  // ✅ must be paid
-  if (session.payment_status !== "paid") {
-    console.log("[Webhook] business_claim not paid yet:", session.payment_status);
-    return res.json({ received: true });
-  }
+  const payment = await this.paymentService.findById(payment_id);
+  if (!payment) return res.json({ received: true });
+  if ((payment.status || '').toLowerCase() === 'paid') return res.json({ received: true });
 
-  // ✅ Stripe session retrieve (line items + currency + totals)
-  const fullSession = await (this.stripe as any).stripe.checkout.sessions.retrieve(
-    session.id,
-    { expand: ["line_items"] }
-  );
-
-  const currency = String(fullSession.currency || "").toLowerCase();
-  if (currency !== "usd") {
-    console.log("[Webhook] business_claim invalid currency:", currency);
-    return res.json({ received: true });
-  }
-
-  const paidTotalCents = Number(fullSession.amount_total || 0);
-  if (!paidTotalCents || paidTotalCents <= 0) {
-    console.log("[Webhook] business_claim invalid amount_total:", paidTotalCents);
-    return res.json({ received: true });
-  }
-
-  // ✅ payment row validate + idempotent
-  const payment = await this.paymentService.findById(payment_id); // add method
-  if (!payment) {
-    console.log("[Webhook] payment not found:", payment_id);
-    return res.json({ received: true });
-  }
-
-  if ((payment.status || "").toLowerCase() === "paid") {
-    return res.json({ received: true });
-  }
-
-  // ✅ cart rows: ONLY pending
   const rows = await this.cartRepo.find({
-    where: { batch_id, user_id, status: "pending" as any },
+    where: { batch_id, user_id, status: 'pending' as any },
   });
-
   if (!rows.length) return res.json({ received: true });
 
-  // ✅ only allow 29 / 299
-  for (const r of rows) {
-    const a = Number(r.amount);
-    if (![29, 299].includes(a)) {
-      console.log("[Webhook] invalid cart amount:", a);
-      return res.json({ received: true });
+  // ✅ Stripe subscription retrieve
+  const stripeSubRef = session.subscription;
+  const stripeSubId = typeof stripeSubRef === 'string' ? stripeSubRef : stripeSubRef?.id;
+
+  let stripeSub: any = null;
+  let stripeStartDate: Date | null = null;
+  let stripeEndDate: Date | null = null;
+
+  if (stripeSubId) {
+    try {
+      stripeSub = await this.stripe.retrieveSubscription(stripeSubId);
+      stripeStartDate = stripeSub?.current_period_start
+        ? new Date(stripeSub.current_period_start * 1000)
+        : null;
+      stripeEndDate = stripeSub?.current_period_end
+        ? new Date(stripeSub.current_period_end * 1000)
+        : null;
+    } catch (e: any) {
+      console.error('[Webhook] claim sub retrieve failed:', e?.message);
     }
   }
 
-  const cartTotal = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const cartTotalCents = Math.round(cartTotal * 100);
+  const invoiceId =
+    (typeof stripeSub?.latest_invoice === 'string'
+      ? stripeSub.latest_invoice
+      : stripeSub?.latest_invoice?.id) || null;
 
-  if (cartTotalCents !== paidTotalCents) {
-    console.log("[Webhook] amount mismatch", {
-      cartTotalCents,
-      paidTotalCents,
-      batch_id,
-      user_id,
-    });
-    return res.json({ received: true });
-  }
+  // ✅ pending_sub_ids parse
+  let pendingSubIds: Record<string, string> = {};
+  try {
+    pendingSubIds = JSON.parse(session.metadata?.pending_sub_ids || '{}');
+  } catch {}
 
-  // ✅ mark payment success
+  // ✅ Mark payment success
   await this.paymentService.markSuccess(payment_id);
 
-  // ✅ mark cart paid
+  // ✅ Mark cart paid
   await this.cartRepo.update(
-    { batch_id, user_id, status: "pending" as any },
-    { status: "paid" as any }
+    { batch_id, user_id, status: 'pending' as any },
+    { status: 'paid' as any }
   );
 
-  // ✅ claim businesses
-  const businessIds = [...new Set(rows.map(r => r.business_id).filter(Boolean))];
+  // ✅ Per-business: claim + subscription
+  const now = new Date();
 
-  if (businessIds.length) {
+  for (const row of rows) {
+    if (!row.business_id) continue;
+
+    const amount = Number(row.amount);
+    const planType: 'monthly' | 'yearly' = amount === 299 ? 'yearly' : 'monthly';
+
+    // Fallback dates agar Stripe ne nahi diya
+    const startDate = stripeStartDate ?? now;
+    const endDate = stripeEndDate ?? (() => {
+      const d = new Date(startDate);
+      planType === 'yearly'
+        ? d.setFullYear(d.getFullYear() + 1)
+        : d.setMonth(d.getMonth() + 1);
+      return d;
+    })();
+
+    // ✅ Business claimed
     await this.businessRepo.update(
-      { id: In(businessIds) },
-      { business_status: "claimed" as any, owner_user_id: user_id } as any
+      { id: row.business_id },
+      {
+        business_status: 'claimed' as any,
+        owner_user_id: user_id,
+        subscription: planType,
+        active: true,
+      } as any
     );
+
+    // ✅ DB subscription paid mark
+    const dbSubId = pendingSubIds[row.business_id];
+    if (dbSubId) {
+      try {
+        await this.subsService.markStatusById(dbSubId, 'paid', {
+          stripe_subscription_id: stripeSubId || null,
+          invoice_id: invoiceId,
+          success_at: now,
+          start_date: startDate,
+          end_date: endDate,
+          payment_reference: session.id,
+          amount: String(amount),
+          packageName: planType,
+          discount_amount: '0.00',
+        } as any);
+      } catch (e: any) {
+        console.error('[Webhook] sub mark paid failed:', row.business_id, e?.message);
+      }
+    }
+
+    console.log('[Webhook] claimed:', {
+      business_id: row.business_id,
+      planType,
+      stripeSubId,
+      startDate,
+      endDate,
+    });
+  }
+
+  // ✅ Stripe metadata update (once, after loop)
+  if (stripeSubId) {
+    try {
+      await (this.stripe as any).stripe.subscriptions.update(stripeSubId, {
+        metadata: {
+          user_id,
+          batch_id,
+          business_ids: rows.map(r => r.business_id).filter(Boolean).join(','),
+        },
+      });
+    } catch (e: any) {
+      console.error('[Webhook] Stripe metadata update failed:', e?.message);
+    }
   }
 
   return res.json({ received: true });
 }
-     
 }
 
       if (event.type === 'account.updated') {
