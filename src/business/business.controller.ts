@@ -15,16 +15,12 @@ export class BusinessController {
 @UseGuards(JwtAuthGuard)
 async createBusiness(@UserSession() user: any, @Body() dto: CreateBusinessDto) {
   const userRole =
-    (user?.user_role || user?.type || user?.role || user?.userType || user?.user_type) as UserType;
-
-  // ✅ only Admin/Contributor can create directly
+    (user?.user_role || user?.type || user?.role || user?.userType || user?.user_type) as UserType;    
   if (userRole === UserType.Admin || userRole === UserType.Contributor) {
-
-    // ✅ FORCE status based on role (ignore what frontend sends)
     const fixedDto: any = {
       ...dto,
       business_status: userRole === UserType.Contributor ? 'Pending Review' : 'draft',
-      active: userRole === UserType.Admin, // optional: admin can be active true
+      active: userRole === UserType.Admin,
     };
 
     const createdBusiness = await this.businessService.createBusiness(user.id, fixedDto);
@@ -37,11 +33,28 @@ async createBusiness(@UserSession() user: any, @Body() dto: CreateBusinessDto) {
     };
   }
 
+  // ✅ Business user — webhook already verified subscription, just force 'claimed'
+  if (userRole === UserType.Business) {
+    const fixedDto: any = {
+      ...dto,
+      business_status: 'claimed',
+      active: true,
+    };
+    const createdBusiness = await this.businessService.createBusiness(user.id, fixedDto);
+
+    return {
+      message: 'Business created successfully',
+      id: createdBusiness.id,
+      bypassedSubscription: false,
+      userRole,
+      business_status: 'claimed',
+    };
+  }
+
   throw new ForbiddenException(
     'Business users must purchase subscription via checkout before creating a business',
   );
 }
-
 
 
 @Patch('update/:id')

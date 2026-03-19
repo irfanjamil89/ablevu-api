@@ -38,145 +38,116 @@ export class StripeService {
   ) {}
 
   async createCheckoutSessionFromBatch(input: {
-    userId: string;
-    batchId: string;
-  }) {
-    if (!input.batchId) throw new BadRequestException('batch_id is required');
+  userId: string;
+  batchId: string;
+}) {
+  if (!input.batchId) throw new BadRequestException('batch_id is required');
 
-    // 1) cart rows (pending) fetch
-    const rows = await this.cartRepo.find({
-      where: {
-        user_id: input.userId,
-        batch_id: input.batchId,
-        status: 'pending' as any,
-      },
-      order: { created_at: 'DESC' as any },
-    });
-
-    if (!rows.length) {
-      throw new BadRequestException(
-        'No pending cart items found for this batch',
-      );
-    }
-
-    // 2) total calculate
-    const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    if (total <= 0) throw new BadRequestException('Invalid total amount');
-
-    // 3) create payment row (pending)
-    const savedPayment = await this.paymentService.createPending({
+  const rows = await this.cartRepo.find({
+    where: {
       user_id: input.userId,
       batch_id: input.batchId,
-      amount: total,
-    });
+      status: 'pending' as any,
+    },
+    order: { created_at: 'DESC' as any },
+  });
 
-    const amountInCents = Math.round(total * 100);
+  if (!rows.length) throw new BadRequestException('No pending cart items found');
 
-    const user = await this.userRepo.findOne({
-      where: { id: input.userId },
-      select: { email: true },
-    });
-
-    if (!user?.email) {
-      throw new BadRequestException('User email not found');
+  // ✅ Validate amounts
+  for (const r of rows) {
+    const a = Number(r.amount);
+    if (![29, 299].includes(a)) {
+      throw new BadRequestException('Invalid plan amount in cart');
     }
-
-    console.log(
-      '[StripeCheckout] user:',
-      input.userId,
-      'batch:',
-      input.batchId,
-      'rows:',
-      rows.length,
-      'total:',
-      total,
-    );
-
-    // ✅ Use existing customer_id if present, otherwise create + save
-    const fullUser = await this.userRepo.findOne({
-      where: { id: input.userId },
-      select: { id: true, email: true, customer_id: true },
-    });
-
-    if (!fullUser?.email) throw new BadRequestException('User email not found');
-
-    let customerId = fullUser.customer_id;
-
-    if (!customerId) {
-      const customer = await this.stripe.customers.create({
-        email: fullUser.email,
-        metadata: { userId: input.userId },
-        address: { country: 'US' },
-      });
-
-      customerId = customer.id;
-
-      await this.userRepo.update(
-        { id: input.userId },
-        { customer_id: customerId },
-      );
-    }
-
-    // ✅ 4) create stripe session ONLY (NO cart update, NO business claim here)
-    let session: Stripe.Checkout.Session;
-    try {
-      // ✅ validate allowed amounts
-      for (const r of rows) {
-        const a = Number(r.amount);
-        if (![29, 299].includes(a)) {
-          throw new BadRequestException('Invalid plan amount in cart');
-        }
-      }
-
-      const bizIds = rows.map((r) => r.business_id);
-      const bizList = await this.businessRepo.find({
-        where: { id: In(bizIds) },
-        select: { id: true, name: true },
-      });
-      const bizMap = new Map(bizList.map((b) => [b.id, b.name]));
-
-      session = await this.stripe.checkout.sessions.create({
-        mode: 'payment',
-        payment_method_types: ['card'],
-        customer: customerId,
-        billing_address_collection: 'required',
-        customer_update: { address: 'auto' },
-        locale: 'en',
-
-        line_items: rows.map((r) => ({
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Claim: ${bizMap.get(r.business_id) || 'Business'}`,
-            },
-            unit_amount: Math.round(Number(r.amount || 0) * 100),
-          },
-          quantity: 1,
-        })),
-
-        success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/business-claim/cancel`,
-
-        metadata: {
-          purpose: 'business_claim',
-          batch_id: input.batchId,
-          user_id: input.userId,
-          payment_id: savedPayment.id,
-        },
-      });
-    } catch (err: any) {
-      console.error(
-        '[StripeCheckout] Stripe session create failed:',
-        err?.message || err,
-      );
-      throw new BadRequestException(
-        err?.message || 'Stripe session create failed',
-      );
-    }
-
-    // ✅ Return only stripe url (claim will happen in webhook)
-    return { url: session.url, id: session.id, payment_id: savedPayment.id };
   }
+
+  const MONTHLY_PRICE_ID = process.env.STRIPE_PRICE_MONTHLY!;
+const YEARLY_PRICE_ID  = process.env.STRIPE_PRICE_YEARLY!;
+
+  const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+
+  const savedPayment = await this.paymentService.createPending({
+    user_id: input.userId,
+    batch_id: input.batchId,
+    amount: total,
+  });
+
+  // ✅ Customer resolve
+  const fullUser = await this.userRepo.findOne({
+    where: { id: input.userId },
+    select: { id: true, email: true, customer_id: true },
+  });
+  if (!fullUser?.email) throw new BadRequestException('User email not found');
+
+  let customerId = fullUser.customer_id;
+  if (!customerId) {
+    const customer = await this.stripe.customers.create({
+      email: fullUser.email,
+      metadata: { userId: input.userId },
+      address: { country: 'US' },
+    });
+    customerId = customer.id;
+    await this.userRepo.update({ id: input.userId }, { customer_id: customerId });
+  }
+
+  // ✅ Business names fetch
+  const bizIds = rows.map(r => r.business_id).filter(Boolean);
+  const bizList = await this.businessRepo.find({
+    where: { id: In(bizIds) },
+    select: { id: true, name: true },
+  });
+  const bizMap = new Map(bizList.map(b => [b.id, b.name]));
+
+  // ✅ Per-business: pending sub rows + line items
+  const pendingSubIds: Record<string, string> = {};
+
+  for (const row of rows) {
+    if (!row.business_id) continue;
+
+    const amount = Number(row.amount);
+    const planType: 'monthly' | 'yearly' = amount === 299 ? 'yearly' : 'monthly';
+    const priceId = amount === 299 ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+
+    const pendingSub = await this.subsService.createPending({
+      user_id: input.userId,
+      business_id: row.business_id,
+      price_id: priceId,
+      package: planType,
+      amount,
+    });
+
+    pendingSubIds[row.business_id] = pendingSub.id;
+  }
+
+  // ✅ Stripe session — mode: subscription, har business alag line item
+  const session = await this.stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    billing_address_collection: 'required',
+    customer_update: { address: 'auto' },
+    locale: 'en',
+    allow_promotion_codes: true,
+
+    line_items: rows.map(r => ({
+      price: Number(r.amount) === 299 ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID,
+      quantity: 1,
+    })),
+
+    success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.CLIENT_URL}/business-claim/cancel`,
+
+    metadata: {
+      purpose: 'business_claim',
+      batch_id: input.batchId,
+      user_id: input.userId,
+      payment_id: savedPayment.id,
+      pending_sub_ids: JSON.stringify(pendingSubIds), // { "biz_id": "sub_id" }
+    },
+  });
+
+  return { url: session.url, id: session.id, payment_id: savedPayment.id };
+}
 
   constructEvent(rawBody: Buffer, signature: string) {
     return this.stripe.webhooks.constructEvent(

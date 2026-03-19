@@ -597,7 +597,7 @@ qb.take(limit).skip((page - 1) * limit);
 qb.where(
   'LOWER(b.business_status) IN (:...statuses)',
   {
-    statuses: ['approved', 'claimed'],
+    statuses: ['approved', 'claimed', 'submitted'],
   },
 );
 
