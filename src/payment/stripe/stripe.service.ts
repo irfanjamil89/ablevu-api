@@ -157,16 +157,22 @@ const YEARLY_PRICE_ID  = process.env.STRIPE_PRICE_YEARLY!;
     );
   }
 
-  async createConnectedAccount(userId: string, email?: string) {
-    const account = await this.stripe.accounts.create({
-      type: 'express',
-      country: 'US',
-      email,
-      metadata: { userId },
-    });
-
-    return account;
-  }
+  async createConnectedAccount(userId: string, email?: string) {  
+  const account = await this.stripe.accounts.create({
+    type: 'express',
+    country: 'US',
+    email,
+    business_type: 'individual',
+    individual: {
+      email: email,     
+    },
+    capabilities: {
+      transfers: { requested: true },
+    },
+    metadata: { userId },
+  });
+  return account;
+}
 
   async createOnboardingLink(accountId: string) {
     const link = await this.stripe.accountLinks.create({
