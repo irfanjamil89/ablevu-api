@@ -42,9 +42,11 @@ import { Coupons } from 'src/entity/coupons.entity';
 import { Subscription } from 'src/entity/subscription.entity';
 import { S3Service } from 'src/services/s3service';
 import { S3Client } from '@aws-sdk/client-s3';
+import { forwardRef } from '@nestjs/common';
+import { AccessibleFeatureModule } from 'src/accessible feature/accessible feature.module';
 @Module({
   imports: [TypeOrmModule.forFeature([BusinessType,AccessibleFeatureBusinessType,AccessibleFeatureLinkedType,AccessibleFeature,AccessibleFeatureType,Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule,BusinessRecomendations,AdditionalResource,BusinessAccessibleFeature,ListingsVerified,Claims, BusinessImages,BusinessAudioTour,BusinessCustomSectionsMedia, Partner, Feedback, FeedbackType, ReviewType, Coupons, Subscription]),
-GoogleMapsModule, BusinessModule, NotificationModule
+GoogleMapsModule, forwardRef(() => BusinessModule),forwardRef(() => AccessibleFeatureModule), NotificationModule
 ],
   controllers: [SyncbubbleController],
    providers: [
@@ -60,5 +62,6 @@ GoogleMapsModule, BusinessModule, NotificationModule
         }),
     },
     SyncService,UsersService,AccessibleFeatureService,BusinessTypeService, AccessibleCityService,S3Service],
+    exports: [SyncService],
 })
 export class SyncModule {}

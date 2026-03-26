@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Business } from 'src/entity/business.entity';
@@ -26,6 +31,7 @@ import { BusinessCustomSectionsMedia } from 'src/entity/business-custom-sections
 import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
 import * as bcrypt from 'bcrypt';
 import { QueryFailedError } from 'typeorm';
+import { SyncService } from 'src/sync/sync.service';
 
 type ListFilters = {
   search?: string;
@@ -51,6 +57,7 @@ type List1Filters = {
 @Injectable()
 export class BusinessService {
   constructor(
+    private readonly syncService: SyncService,
     @InjectRepository(Business)
     private readonly businessRepo: Repository<Business>,
 
@@ -105,8 +112,7 @@ export class BusinessService {
     private readonly googleMapsService: GoogleMapsService,
 
     private readonly notificationService: NotificationService,
-
-  ) { }
+  ) {}
 
   private mapGeocodeResultToBusinessFields(result: any) {
     const getComponent = (type: string): string | undefined => {
@@ -129,11 +135,13 @@ export class BusinessService {
   }
 
   private makeSlug(name: string, external_id?: string) {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '') + (external_id ? `-${external_id}` : '');
+    return (
+      name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '') + (external_id ? `-${external_id}` : '')
+    );
   }
 
   async createBusiness(userId: string, dto: CreateBusinessDto) {
@@ -197,22 +205,22 @@ export class BusinessService {
         console.error('Geocoding failed:', e);
       }
     }
-let finalAccessibleCityId: string | null = dto.accessible_city_id ?? null;
+    let finalAccessibleCityId: string | null = dto.accessible_city_id ?? null;
 
-if (!finalAccessibleCityId) {
-  const cityName = (city || '').trim();
+    if (!finalAccessibleCityId) {
+      const cityName = (city || '').trim();
 
-  if (cityName) {
-    const foundCity = await this.accessibleCityRepo
-      .createQueryBuilder('c')
-      .where('LOWER(c.city_name) = LOWER(:cityName)', { cityName })
-      .getOne();
+      if (cityName) {
+        const foundCity = await this.accessibleCityRepo
+          .createQueryBuilder('c')
+          .where('LOWER(c.city_name) = LOWER(:cityName)', { cityName })
+          .getOne();
 
-    if (foundCity) {
-      finalAccessibleCityId = foundCity.id;
+        if (foundCity) {
+          finalAccessibleCityId = foundCity.id;
+        }
+      }
     }
-  }
-}
     const business = this.businessRepo.create({
       ...dto,
       slug,
@@ -268,43 +276,43 @@ if (!finalAccessibleCityId) {
     return saved;
   }
   async updateBusiness(id: string, userId: string, dto: UpdateBusinessDto) {
-  const business = await this.businessRepo.findOne({ where: { id } });
-  if (!business) throw new NotFoundException('Business not found');
-  if (dto.name && dto.name.trim() !== '') {
-    business.name = dto.name.trim();
-    business.slug = this.makeSlug(dto.name);
-  }
-
-  if (dto.owner_email) {
-    const email = dto.owner_email.trim().toLowerCase();
-
-    let owner = await this.userRepo.findOne({ where: { email } });
-
-    if (!owner) {
-      try {
-        const hashed = await bcrypt.hash('12345678', 10);
-
-        owner = await this.userRepo.save(
-          this.userRepo.create({
-            email,
-            password: hashed,          
-            user_role: 'Business',
-            archived: false,
-            paid_contributor: false,
-          }),
-        );
-      } catch (e) {        
-        if (e instanceof QueryFailedError) {
-          owner = await this.userRepo.findOne({ where: { email } });
-        }
-        if (!owner) throw e;
-      }
+    const business = await this.businessRepo.findOne({ where: { id } });
+    if (!business) throw new NotFoundException('Business not found');
+    if (dto.name && dto.name.trim() !== '') {
+      business.name = dto.name.trim();
+      business.slug = this.makeSlug(dto.name);
     }
 
-    business.owner_user_id = owner.id;
-  }
-  const { owner_email, ...safeDto } = dto as any;
-  Object.assign(business, safeDto);
+    if (dto.owner_email) {
+      const email = dto.owner_email.trim().toLowerCase();
+
+      let owner = await this.userRepo.findOne({ where: { email } });
+
+      if (!owner) {
+        try {
+          const hashed = await bcrypt.hash('12345678', 10);
+
+          owner = await this.userRepo.save(
+            this.userRepo.create({
+              email,
+              password: hashed,
+              user_role: 'Business',
+              archived: false,
+              paid_contributor: false,
+            }),
+          );
+        } catch (e) {
+          if (e instanceof QueryFailedError) {
+            owner = await this.userRepo.findOne({ where: { email } });
+          }
+          if (!owner) throw e;
+        }
+      }
+
+      business.owner_user_id = owner.id;
+    }
+    const { owner_email, ...safeDto } = dto as any;
+    Object.assign(business, safeDto);
 
     const hasAddress =
       typeof business.address === 'string' && business.address.trim() !== '';
@@ -378,233 +386,251 @@ if (!finalAccessibleCityId) {
       );
       await this.businessaccessibilityrepo.save(linkedFeature);
     }
+setImmediate(async () => {
+    await this.syncService.syncSingleBusiness(id);
+  });
 
-    return business;
-  }
-  
-  async updateBusinessByExternalId(external_id: string, updateData: CreateBusinessDto) {
-    try {        
-        const existingBusiness = await this.businessRepo.findOne({
-            where: { external_id: external_id }
-        });
+  return business;
+}
 
-        if (!existingBusiness) {
-            throw new NotFoundException(`Business with external_id ${external_id} not found`);
-        }    
-        const updatedBusiness = await this.businessRepo.save({
-            ...existingBusiness,
-            ...updateData,
-            id: existingBusiness.id, 
-            modified_at: new Date(), 
-        });
+  async updateBusinessByExternalId(
+    external_id: string,
+    updateData: CreateBusinessDto,
+  ) {
+    try {
+      const existingBusiness = await this.businessRepo.findOne({
+        where: { external_id: external_id },
+      });
 
-        console.log(`Successfully updated business with external_id: ${external_id}`);
-        return updatedBusiness;
+      if (!existingBusiness) {
+        throw new NotFoundException(
+          `Business with external_id ${external_id} not found`,
+        );
+      }
+      const updatedBusiness = await this.businessRepo.save({
+        ...existingBusiness,
+        ...updateData,
+        id: existingBusiness.id,
+        modified_at: new Date(),
+      });
 
+      console.log(
+        `Successfully updated business with external_id: ${external_id}`,
+      );
+      return updatedBusiness;
     } catch (error) {
-        console.error(`Error updating business with external_id ${external_id}:`, error);
-        throw error;
+      console.error(
+        `Error updating business with external_id ${external_id}:`,
+        error,
+      );
+      throw error;
     }
-}
+  }
   async deleteBusiness(id: string, userId: string) {
-  const business = await this.businessRepo.findOne({ where: { id } });
-  if (!business) {
-    throw new NotFoundException('Business not found');
-  }
-  await this.virtualTourRepo.delete({ business: { id: business.id } });
-
-  await this.audioTourRepo.delete({business_id: id});
-
-  await this.businessreviews.delete({ business_id: id });
-
-  await this.businessquestionrepo.delete({ business_id: id });
-
-  await this.businessPartnerrepo.delete({ business_id: id });
-
-  await this.customSectionsrepo.delete({ business_id: id });
-
-  await this.mediaRepo.delete({ business_id: id });
-
-  await this.scheduleRepo.delete({ business: { id: business.id } });
-
-  await this.linkedrepo.delete({ business_id: id });
-
-  await this.businessaccessibilityrepo.delete({ business_id: id });
-
-  await this.recomendationRepo.delete({ business: { id: business.id } });
-
-  await this.resourcesrepo.delete({ business_id: id });
-
-  await this.imagesRepo.delete({ business_id: id });
-
-  await this.businessRepo.remove(business);
-}
-
-
- async listPaginated(
-  page = 1,
-  limit = 10,
-  filters: ListFilters = {},
-  currentUser?: User,
-) {
-  const qb = this.businessRepo.createQueryBuilder('b');
-
-qb.leftJoin('b.owner', 'u')
-  .addSelect('u.last_login_at', 'owner_last_login_at');
-
-qb.take(limit).skip((page - 1) * limit);
-
-  if (currentUser?.user_role) {
-    const role = currentUser.user_role.toLowerCase();
-
-    if (role === 'business') {
-      qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
-    } else if (role === 'contributor') {
-      qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
+    const business = await this.businessRepo.findOne({ where: { id } });
+    if (!business) {
+      throw new NotFoundException('Business not found');
     }
+    await this.virtualTourRepo.delete({ business: { id: business.id } });
+
+    await this.audioTourRepo.delete({ business_id: id });
+
+    await this.businessreviews.delete({ business_id: id });
+
+    await this.businessquestionrepo.delete({ business_id: id });
+
+    await this.businessPartnerrepo.delete({ business_id: id });
+
+    await this.customSectionsrepo.delete({ business_id: id });
+
+    await this.mediaRepo.delete({ business_id: id });
+
+    await this.scheduleRepo.delete({ business: { id: business.id } });
+
+    await this.linkedrepo.delete({ business_id: id });
+
+    await this.businessaccessibilityrepo.delete({ business_id: id });
+
+    await this.recomendationRepo.delete({ business: { id: business.id } });
+
+    await this.resourcesrepo.delete({ business_id: id });
+
+    await this.imagesRepo.delete({ business_id: id });
+
+    await this.businessRepo.remove(business);
   }
 
-  if (filters.active !== undefined) {
-    qb.andWhere('b.active = :active', { active: filters.active });
-  }
+  async listPaginated(
+    page = 1,
+    limit = 10,
+    filters: ListFilters = {},
+    currentUser?: User,
+  ) {
+    const qb = this.businessRepo.createQueryBuilder('b');
 
-  if (filters.city) {
-    qb.andWhere('LOWER(b.city) LIKE :city', {
-      city: `%${filters.city.toLowerCase()}%`,
-    });
-  }
-
-  if (filters.country) {
-    qb.andWhere('LOWER(b.country) LIKE :country', {
-      country: `%${filters.country.toLowerCase()}%`,
-    });
-  }
-
-  if (filters.search) {
-    const search = `%${filters.search.toLowerCase()}%`;
-    qb.andWhere(
-      '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
-      { search },
+    qb.leftJoin('b.owner', 'u').addSelect(
+      'u.last_login_at',
+      'owner_last_login_at',
     );
-  }
 
-  if (filters.business_status?.trim()) {
-    qb.andWhere('LOWER(b.business_status) = :st', {
-      st: filters.business_status.trim().toLowerCase(),
-    });
-  }
+    qb.take(limit).skip((page - 1) * limit);
 
-  if (filters.businessTypeId) {
-    qb.andWhere(
-      `EXISTS (
+    if (currentUser?.user_role) {
+      const role = currentUser.user_role.toLowerCase();
+
+      if (role === 'business') {
+        qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
+      } else if (role === 'contributor') {
+        qb.andWhere('b.owner_user_id = :ownerId', { ownerId: currentUser.id });
+      }
+    }
+
+    if (filters.active !== undefined) {
+      qb.andWhere('b.active = :active', { active: filters.active });
+    }
+
+    if (filters.city) {
+      qb.andWhere('LOWER(b.city) LIKE :city', {
+        city: `%${filters.city.toLowerCase()}%`,
+      });
+    }
+
+    if (filters.country) {
+      qb.andWhere('LOWER(b.country) LIKE :country', {
+        country: `%${filters.country.toLowerCase()}%`,
+      });
+    }
+
+    if (filters.search) {
+      const search = `%${filters.search.toLowerCase()}%`;
+      qb.andWhere(
+        '(LOWER(b.name) LIKE :search OR LOWER(b.address) LIKE :search OR LOWER(b.city) LIKE :search OR LOWER(b.country) LIKE :search)',
+        { search },
+      );
+    }
+
+    if (filters.business_status?.trim()) {
+      qb.andWhere('LOWER(b.business_status) = :st', {
+        st: filters.business_status.trim().toLowerCase(),
+      });
+    }
+
+    if (filters.businessTypeId) {
+      qb.andWhere(
+        `EXISTS (
         SELECT 1
         FROM business_linked_type blt
         WHERE blt.business_id = b.id
         AND blt.business_type_id = :btId
       )`,
-      { btId: filters.businessTypeId },
+        { btId: filters.businessTypeId },
+      );
+    }
+
+    const allowedSort: Record<string, string> = {
+      name: 'b.name',
+      created_at: 'b.created_at',
+      views: 'b.views',
+    };
+
+    const sortCol =
+      allowedSort[filters.sort_by || 'created_at'] || 'b.created_at';
+    const sortOrder =
+      (filters.sort_order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    qb.orderBy(sortCol, sortOrder);
+
+    const { entities: items, raw } = await qb.getRawAndEntities();
+    const total = await qb.getCount();
+
+    const data = await Promise.all(
+      items.map(async (business, idx) => {
+        const owner_last_login_at = raw?.[idx]?.owner_last_login_at ?? null;
+        const [
+          linkedTypes,
+          accessibilityFeatures,
+          virtualTours,
+          businessreviews,
+          businessQuestions,
+          businessPartners,
+          businessCustomSections,
+          businessMedia,
+          businessSchedule,
+          businessRecomendations,
+          additionalaccessibilityresources,
+          businessImages,
+        ] = await Promise.all([
+          this.linkedrepo.find({ where: { business_id: business.id } }),
+          this.businessaccessibilityrepo.find({
+            where: { business_id: business.id },
+          }),
+          this.virtualTourRepo.find({
+            where: { business: { id: business.id } },
+            order: { display_order: 'ASC' },
+          }),
+          this.businessreviews.find({ where: { business_id: business.id } }),
+          this.businessquestionrepo.find({
+            where: { business_id: business.id },
+          }),
+          this.businessPartnerrepo.find({
+            where: { business_id: business.id },
+          }),
+          this.customSectionsrepo.find({ where: { business_id: business.id } }),
+          this.mediaRepo.find({ where: { business_id: business.id } }),
+          this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+          this.recomendationRepo.find({
+            where: { business: { id: business.id } },
+          }),
+          this.resourcesrepo.find({ where: { business_id: business.id } }),
+          this.imagesRepo.find({ where: { business_id: business.id } }),
+        ]);
+
+        return {
+          ...business,
+          owner_last_login_at,
+          linkedTypes,
+          accessibilityFeatures,
+          virtualTours,
+          businessreviews,
+          businessQuestions,
+          businessPartners,
+          businessCustomSections,
+          businessMedia,
+          businessSchedule,
+          businessRecomendations,
+          additionalaccessibilityresources,
+          businessImages,
+        };
+      }),
     );
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  const allowedSort: Record<string, string> = {
-    name: 'b.name',
-    created_at: 'b.created_at',
-    views: 'b.views',
-  };
-
-  const sortCol = allowedSort[filters.sort_by || 'created_at'] || 'b.created_at';
-  const sortOrder =
-    (filters.sort_order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-  qb.orderBy(sortCol, sortOrder);
-
-  const { entities: items, raw } = await qb.getRawAndEntities();
-  const total = await qb.getCount();
-
-  const data = await Promise.all(
-    items.map(async (business, idx) => {
-    const owner_last_login_at = raw?.[idx]?.owner_last_login_at ?? null;
-      const [
-        linkedTypes,
-        accessibilityFeatures,
-        virtualTours,
-        businessreviews,
-        businessQuestions,
-        businessPartners,
-        businessCustomSections,
-        businessMedia,
-        businessSchedule,
-        businessRecomendations,
-        additionalaccessibilityresources,
-        businessImages,
-      ] = await Promise.all([
-        this.linkedrepo.find({ where: { business_id: business.id } }),
-        this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
-        this.virtualTourRepo.find({
-          where: { business: { id: business.id } },
-          order: { display_order: 'ASC' },
-        }),
-        this.businessreviews.find({ where: { business_id: business.id } }),
-        this.businessquestionrepo.find({ where: { business_id: business.id } }),
-        this.businessPartnerrepo.find({ where: { business_id: business.id } }),
-        this.customSectionsrepo.find({ where: { business_id: business.id } }),
-        this.mediaRepo.find({ where: { business_id: business.id } }),
-        this.scheduleRepo.find({ where: { business: { id: business.id } } }),
-        this.recomendationRepo.find({ where: { business: { id: business.id } } }),
-        this.resourcesrepo.find({ where: { business_id: business.id } }),
-        this.imagesRepo.find({ where: { business_id: business.id } }),
-      ]);
-
-      return {
-        ...business,
-        owner_last_login_at,
-        linkedTypes,
-        accessibilityFeatures,
-        virtualTours,
-        businessreviews,
-        businessQuestions,
-        businessPartners,
-        businessCustomSections,
-        businessMedia,
-        businessSchedule,
-        businessRecomendations,
-        additionalaccessibilityresources,
-        businessImages,
-      };
-    }),
-  );
-
-  return {
-    data,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
-
-
   async list1Paginated({
-  page = 1,
-  limit = 10,
-  search,
-  businessTypeIds,
-  featureIds,
-  city,
-  country,
-}: List1Filters) {
-  const qb = this.businessRepo.createQueryBuilder('b');
-qb.where(
-  'LOWER(b.business_status) IN (:...statuses)',
-  {
-    statuses: ['approved', 'claimed', 'submitted'],
-  },
-);
+    page = 1,
+    limit = 10,
+    search,
+    businessTypeIds,
+    featureIds,
+    city,
+    country,
+  }: List1Filters) {
+    const qb = this.businessRepo.createQueryBuilder('b');
+    qb.where('LOWER(b.business_status) IN (:...statuses)', {
+      statuses: ['approved', 'claimed', 'submitted'],
+    });
 
-  if (search && search.trim()) {
-    const s = `%${search.trim().toLowerCase()}%`;
-    qb.andWhere(
-      `(LOWER(b.name) LIKE :s
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      qb.andWhere(
+        `(LOWER(b.name) LIKE :s
          OR LOWER(b.address) LIKE :s
          OR LOWER(b.city) LIKE :s
          OR LOWER(b.state) LIKE :s
@@ -659,8 +685,7 @@ qb.where(
       }
     }
 
-    qb
-      .take(limit)
+    qb.take(limit)
       .skip((page - 1) * limit)
       .orderBy('b.created_at', 'DESC');
 
@@ -681,27 +706,27 @@ qb.where(
           // additionalaccessibilityresources,
           // businessImages,
         ] = await Promise.all([
-        //   this.linkedrepo.find({ where: { business_id: business.id } }),
-        //   this.businessaccessibilityrepo.find({
-        //     where: { business_id: business.id },
-        //     relations: ['accessible_feature'], // agar relation banaya ho to
-        //   }),
-        //   this.virtualTourRepo.find({
-        //     where: { business: { id: business.id } },
-        //     order: { display_order: 'ASC' },
-        //   }),
-        //   this.businessreviews.find({ where: { business_id: business.id } }),
-        //   this.businessquestionrepo.find({ where: { business_id: business.id } }),
-        //   this.businessPartnerrepo.find({ where: { business_id: business.id } }),
-        //   this.customSectionsrepo.find({ where: { business_id: business.id } }),
-        //   this.mediaRepo.find({ where: { business_id: business.id } }),
-        //   this.scheduleRepo.find({ where: { business: { id: business.id } } }),
-        //   this.recomendationRepo.find({
-        //     where: { business: { id: business.id } },
-        //   }),
-        //   this.resourcesrepo.find({ where: { business_id: business.id } }),
-        //   this.imagesRepo.find({ where: { business_id: business.id } }),
-         ]);
+          //   this.linkedrepo.find({ where: { business_id: business.id } }),
+          //   this.businessaccessibilityrepo.find({
+          //     where: { business_id: business.id },
+          //     relations: ['accessible_feature'], // agar relation banaya ho to
+          //   }),
+          //   this.virtualTourRepo.find({
+          //     where: { business: { id: business.id } },
+          //     order: { display_order: 'ASC' },
+          //   }),
+          //   this.businessreviews.find({ where: { business_id: business.id } }),
+          //   this.businessquestionrepo.find({ where: { business_id: business.id } }),
+          //   this.businessPartnerrepo.find({ where: { business_id: business.id } }),
+          //   this.customSectionsrepo.find({ where: { business_id: business.id } }),
+          //   this.mediaRepo.find({ where: { business_id: business.id } }),
+          //   this.scheduleRepo.find({ where: { business: { id: business.id } } }),
+          //   this.recomendationRepo.find({
+          //     where: { business: { id: business.id } },
+          //   }),
+          //   this.resourcesrepo.find({ where: { business_id: business.id } }),
+          //   this.imagesRepo.find({ where: { business_id: business.id } }),
+        ]);
 
         return {
           ...business,
@@ -730,26 +755,22 @@ qb.where(
     };
   }
 
-  async list2Paginated({
-  page = 1,
-  limit = 10,
-}: List1Filters) {
-  const qb = this.businessRepo.createQueryBuilder('b');
+  async list2Paginated({ page = 1, limit = 10 }: List1Filters) {
+    const qb = this.businessRepo.createQueryBuilder('b');
 
-  qb
-    .orderBy('b.created_at', 'DESC')
-    .take(limit)
-    .skip((page - 1) * limit);
-  const [data, total] = await qb.getManyAndCount();
+    qb.orderBy('b.created_at', 'DESC')
+      .take(limit)
+      .skip((page - 1) * limit);
+    const [data, total] = await qb.getManyAndCount();
 
-  return {
-    data,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
   async updateBusinessStatus(id: string, dto: any, userId: string) {
     const business = await this.businessRepo.findOne({ where: { id } });
@@ -759,39 +780,38 @@ qb.where(
     business.business_status = dto.business_status;
     await this.businessRepo.save(business);
     this.notificationService.notifyBusinessStatusUpdated({
-    businessId: business.id,
-    businessName: business.name,
-    triggeredBy: userId,
-    newStatus: dto.business_status
-});
+      businessId: business.id,
+      businessName: business.name,
+      triggeredBy: userId,
+      newStatus: dto.business_status,
+    });
   }
   async getBusinessProfile(id: string, currentUser?: any) {
     const business = await this.businessRepo
-  .createQueryBuilder('b')
-  .leftJoinAndSelect('b.owner', 'o')
-  .where('b.id = :id', { id })
-  .select([
-    'b',
-    'o.id',
-    'o.first_name',
-    'o.last_name',
-    'o.email',
-    'o.profile_picture_url',
-  ])
-  .getOne();
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.owner', 'o')
+      .where('b.id = :id', { id })
+      .select([
+        'b',
+        'o.id',
+        'o.first_name',
+        'o.last_name',
+        'o.email',
+        'o.profile_picture_url',
+      ])
+      .getOne();
 
     if (!business) {
       throw new NotFoundException('Business not found');
     }
-    
+
     await this.businessRepo.increment({ id }, 'views', 1);
 
-  const businessWithUpdatedViews = {
-    ...business,
-    views: (business.views ?? 0) + 1,
+    const businessWithUpdatedViews = {
+      ...business,
+      views: (business.views ?? 0) + 1,
+    };
 
-  }; 
-    
     const [
       linkedTypes,
       accessibilityFeatures,
@@ -809,18 +829,23 @@ qb.where(
       businessImages,
     ] = await Promise.all([
       this.linkedrepo.find({ where: { business_id: business.id } }),
-      this.businessaccessibilityrepo.find({ where: { business_id: business.id } }),
+      this.businessaccessibilityrepo.find({
+        where: { business_id: business.id },
+      }),
       this.virtualTourRepo.find({
         where: { business: { id: business.id } },
         order: { display_order: 'ASC' },
       }),
-      this.audioTourRepo.find({where: { business_id: business.id }}),
-      this.businessreviews.find({ where:
-         { business_id: business.id, approved: true }, }),
+      this.audioTourRepo.find({ where: { business_id: business.id } }),
+      this.businessreviews.find({
+        where: { business_id: business.id, approved: true },
+      }),
       this.businessquestionrepo.find({ where: { business_id: business.id } }),
       this.businessPartnerrepo.find({ where: { business_id: business.id } }),
       this.customSectionsrepo.find({ where: { business_id: business.id } }),
-      this.customSectionsMediaRepo.find({ where: { business_id: business.id } }),
+      this.customSectionsMediaRepo.find({
+        where: { business_id: business.id },
+      }),
       this.mediaRepo.find({ where: { business_id: business.id } }),
       this.scheduleRepo.find({ where: { business: { id: business.id } } }),
       this.recomendationRepo.find({ where: { business: { id: business.id } } }),
@@ -828,33 +853,35 @@ qb.where(
       this.imagesRepo.find({ where: { business_id: business.id } }),
     ]);
     const businessQuestionsWithNames = await Promise.all(
-  businessQuestions.map(async (q) => {
-    let createdByName: string | null = null;
-    if (q.show_name) {
-      const user = await this.userRepo.findOne({
-        where: { id: q.created_by },
-        select: ['first_name', 'last_name'],
-      });
-      if (user) {
-        createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-      }
-    }
-    return { ...q, created_by_name: createdByName };
-  }),
-);
-   const businessReviewsWithNames = await Promise.all(
-  businessreviews.map(async (r) => {
-    let createdByName: string | null = null;
-    const user = await this.userRepo.findOne({
-      where: { id: r.created_by },
-      select: ['first_name', 'last_name'],
-    });
-    if (user) {
-      createdByName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    }
-    return { ...r, created_by_name: createdByName };
-  })
-);
+      businessQuestions.map(async (q) => {
+        let createdByName: string | null = null;
+        if (q.show_name) {
+          const user = await this.userRepo.findOne({
+            where: { id: q.created_by },
+            select: ['first_name', 'last_name'],
+          });
+          if (user) {
+            createdByName =
+              `${user.first_name || ''} ${user.last_name || ''}`.trim();
+          }
+        }
+        return { ...q, created_by_name: createdByName };
+      }),
+    );
+    const businessReviewsWithNames = await Promise.all(
+      businessreviews.map(async (r) => {
+        let createdByName: string | null = null;
+        const user = await this.userRepo.findOne({
+          where: { id: r.created_by },
+          select: ['first_name', 'last_name'],
+        });
+        if (user) {
+          createdByName =
+            `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        }
+        return { ...r, created_by_name: createdByName };
+      }),
+    );
 
     return {
       ...business,
@@ -872,10 +899,17 @@ qb.where(
       businessRecomendations,
       additionalaccessibilityresources,
       businessImages,
-      owner: {        
+      owner: {
         email: business.owner.email,
       },
     };
+  }
+
+  async findById(id: string): Promise<Business | null> {
+    return this.businessRepo.findOne({
+      where: { id },
+      relations: ['owner'],
+    });
   }
 
   async findByExternalId(externalId: string): Promise<Business | null> {

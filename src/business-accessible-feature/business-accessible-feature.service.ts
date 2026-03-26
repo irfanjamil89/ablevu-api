@@ -1,16 +1,19 @@
 // business-accessible-feature.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { BusinessAccessibleFeature } from 'src/entity/business_accessiblity_feature.entity';
 import { CreateBusinessAccessibleFeatureDto } from './create-business-accessible-feature.dto';
 import { UpdateBusinessAccessibleFeatureDto } from './update-business-accessible-feature.dto';
+import { SyncService } from 'src/sync/sync.service';
 
 @Injectable()
 export class BusinessAccessibleFeatureService {
   constructor(
     @InjectRepository(BusinessAccessibleFeature)
     private readonly repo: Repository<BusinessAccessibleFeature>,
+    @Inject(forwardRef(() => SyncService)) 
+    private readonly syncService: SyncService,
   ) {}
 
   async create(userId: string, dto: CreateBusinessAccessibleFeatureDto) {
@@ -85,6 +88,9 @@ export class BusinessAccessibleFeatureService {
 
     await this.repo.save(featureEntries);
   }
+  setImmediate(async () => {
+    await this.syncService.syncSingleBusiness(row.business_id);
+  });
 
   return row;
 }

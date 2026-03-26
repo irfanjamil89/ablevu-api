@@ -21,12 +21,21 @@ import { AdditionalResource } from "src/entity/additional_resource.entity";
 import { BusinessImages } from "src/entity/business_images.entity";
 import { NotificationModule } from "src/notifications/notifications.module";
 import { BusinessAudioTour } from 'src/entity/business_audio_tour.entity';
+import { BusinessSubscriber } from "./business.subscriber";
+import { UserModule } from "src/user/user.module";
+import { SyncModule } from "src/sync/sync.module";
+import { forwardRef } from "@nestjs/common";
+import { BusinessAccessibilitySubscriber } from "./business-accessibility.subscriber";
+import { BusinessLinkedTypeSubscriber } from "./business-linked-type.subscriber";
+import { BusinessVirtualTourSubscriber } from "./business-virtual-tour.subscriber";
 
 @Module({
     imports: [TypeOrmModule.forFeature([Business, User, BusinessLinkedType, BusinessAccessibleFeature, BusinessVirtualTour, BusinessAudioTour, BusinessReviews, BusinessQuestions, BusinessPartners, BusinessCustomSections, BusinessMedia, AccessibleCity, BusinessSchedule, BusinessRecomendations, AdditionalResource, BusinessImages, BusinessCustomSectionsMedia]),
-GoogleMapsModule, NotificationModule
+GoogleMapsModule, NotificationModule, UserModule, forwardRef(() => SyncModule),
 ],
-    providers: [BusinessService],
+    providers: [BusinessService, BusinessSubscriber,BusinessAccessibilitySubscriber,  
+    BusinessLinkedTypeSubscriber,     
+    BusinessVirtualTourSubscriber,],
     controllers: [BusinessController],
     exports: [BusinessService],
 })
