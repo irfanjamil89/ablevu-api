@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 // Install with:
 // npm install axios
 // npm install --save-dev @types/axios
+import { In } from 'typeorm';
 import axios from 'axios';
 import sharp from 'sharp';
 import { fileTypeFromBuffer } from 'file-type';
@@ -47,11 +48,14 @@ import { Subscription } from 'src/entity/subscription.entity';
 import { S3Service } from 'src/services/s3service';
 import heicConvert from 'heic-convert';
 import { Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { forwardRef } from '@nestjs/common';
 
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
   constructor(
+    @Inject(forwardRef(() => BusinessService))
     private readonly businessService: BusinessService,
     private readonly userService: UsersService,
     private readonly businessTypeService: BusinessTypeService,
@@ -104,6 +108,8 @@ export class SyncService {
     private couponsRepo: Repository<Coupons>,
     @InjectRepository(Subscription)
     private subscriptionsRepo: Repository<Subscription>,
+    @InjectRepository(BusinessType)
+    private businessTypeRepo: Repository<BusinessType>,
   ) {}
   private looksLikeS3(url: string) {
     const u = (url || '').toLowerCase();
@@ -137,62 +143,67 @@ export class SyncService {
   }
 
   private async downloadToBuffer(url: string): Promise<Buffer> {
-  const finalUrl = this.normalizeUrl(url);
+    const finalUrl = this.normalizeUrl(url);
 
-  const res = await fetch(finalUrl, { method: 'GET', redirect: 'follow' });
-  if (!res.ok) throw new Error(`Download failed (${res.status}) ${finalUrl}`);
+    const res = await fetch(finalUrl, { method: 'GET', redirect: 'follow' });
+    if (!res.ok) throw new Error(`Download failed (${res.status}) ${finalUrl}`);
 
-  const ab = await res.arrayBuffer();
-  const buf = Buffer.from(ab);
+    const ab = await res.arrayBuffer();
+    const buf = Buffer.from(ab);
 
-  if (!buf.length) throw new Error(`Empty download buffer ${finalUrl}`);
+    if (!buf.length) throw new Error(`Empty download buffer ${finalUrl}`);
 
-  return buf; // ✅ don't reject octet-stream
-}
-
-
- 
-
-private async normalizeImage(buffer: Buffer, sourceUrl?: string) {
-  const head = buffer.slice(0, 32).toString('utf8');
-
-  let ft = await fileTypeFromBuffer(buffer);
-  let mime = ft?.mime;
-  let ext = ft?.ext;
-
-  const urlLooksHeic = !!sourceUrl && /\.(heic|heif)$/i.test(sourceUrl.split('?')[0]);
-  const bytesLookHeic = head.includes('ftypheic') || head.includes('ftypheif') || head.includes('heic');
-
-  const isHeic = mime === 'image/heic' || mime === 'image/heif' || urlLooksHeic || bytesLookHeic;
-
-  if (isHeic) {
-    this.logger.log(`HEIC detected -> converting using heic-convert`);
-
-    const out = await heicConvert({
-      buffer,
-      format: 'JPEG',
-      quality: 0.9,
-    });
-
-    const jpgBuffer = Buffer.isBuffer(out) ? out : Buffer.from(out);
-
-    // validate output (optional but helpful)
-    const outType = await fileTypeFromBuffer(jpgBuffer);
-    if (!outType || outType.mime !== 'image/jpeg') {
-      throw new Error(`HEIC convert produced invalid output: ${outType?.mime || 'unknown'}`);
-    }
-
-    return { buffer: jpgBuffer, mime: 'image/jpeg', ext: 'jpg' };
+    return buf; // ✅ don't reject octet-stream
   }
 
-  // Non-HEIC: must be detectable
-  if (!mime) throw new Error('Unable to detect image type');
-  if (!ext) ext = 'jpg';
+  private async normalizeImage(buffer: Buffer, sourceUrl?: string) {
+    const head = buffer.slice(0, 32).toString('utf8');
 
-  return { buffer, mime, ext };
-}
+    let ft = await fileTypeFromBuffer(buffer);
+    let mime = ft?.mime;
+    let ext = ft?.ext;
 
+    const urlLooksHeic =
+      !!sourceUrl && /\.(heic|heif)$/i.test(sourceUrl.split('?')[0]);
+    const bytesLookHeic =
+      head.includes('ftypheic') ||
+      head.includes('ftypheif') ||
+      head.includes('heic');
 
+    const isHeic =
+      mime === 'image/heic' ||
+      mime === 'image/heif' ||
+      urlLooksHeic ||
+      bytesLookHeic;
+
+    if (isHeic) {
+      this.logger.log(`HEIC detected -> converting using heic-convert`);
+
+      const out = await heicConvert({
+        buffer,
+        format: 'JPEG',
+        quality: 0.9,
+      });
+
+      const jpgBuffer = Buffer.isBuffer(out) ? out : Buffer.from(out);
+
+      // validate output (optional but helpful)
+      const outType = await fileTypeFromBuffer(jpgBuffer);
+      if (!outType || outType.mime !== 'image/jpeg') {
+        throw new Error(
+          `HEIC convert produced invalid output: ${outType?.mime || 'unknown'}`,
+        );
+      }
+
+      return { buffer: jpgBuffer, mime: 'image/jpeg', ext: 'jpg' };
+    }
+
+    // Non-HEIC: must be detectable
+    if (!mime) throw new Error('Unable to detect image type');
+    if (!ext) ext = 'jpg';
+
+    return { buffer, mime, ext };
+  }
 
   /**
    * Bubble URL -> S3 URL
@@ -214,15 +225,15 @@ private async normalizeImage(buffer: Buffer, sourceUrl?: string) {
     if (this.looksLikeS3(bubbleUrl)) return bubbleUrl;
 
     const raw = await this.downloadToBuffer(bubbleUrl);
-const normalized = await this.normalizeImage(raw, bubbleUrl);
+    const normalized = await this.normalizeImage(raw, bubbleUrl);
 
-const res = await this.s3.uploadRawBuffer({
-  buffer: normalized.buffer,
-  contentType: normalized.mime,
-  folder: `business-images/${businessId}`,
-  extension: normalized.ext,
-  fileName: externalImageId || randomUUID(),
-});
+    const res = await this.s3.uploadRawBuffer({
+      buffer: normalized.buffer,
+      contentType: normalized.mime,
+      folder: `business-images/${businessId}`,
+      extension: normalized.ext,
+      fileName: externalImageId || randomUUID(),
+    });
 
     if (!res?.url) throw new Error(`S3 returned empty url (key=${res?.key})`);
 
@@ -800,111 +811,138 @@ const res = await this.s3.uploadRawBuffer({
   }
 
   async SyncAIChatbotDb() {
-    const accessiblityfeatures =
-      await this.accessibleFeatureTypeService.getPaginatedList(1, 1000);
+  const accessiblityfeatures =
+    await this.accessibleFeatureTypeService.getPaginatedList(1, 1000);
 
-    const businesses = await this.businessService.listPaginated(1, 1000);
-    for (const business of businesses.data) {
-      if (
-        business.business_status?.toLowerCase() ==
-          'Approved'.toLocaleLowerCase() ||
-        business.business_status?.toLowerCase() == 'Claimed'.toLocaleLowerCase()
-      ) {
-        console.log(`Business: ${business.name}`);
-        const virtualToursObj = await this.virtualRepo.findOne({
-          where: {
-            business: { id: business.id },
-          },
-        });
+  const businesses = await this.businessService.listPaginated(1, 1000);
+  for (const business of businesses.data) {
+    if (
+      business.business_status?.toLowerCase() ==
+        'Approved'.toLocaleLowerCase() ||
+      business.business_status?.toLowerCase() == 'Claimed'.toLocaleLowerCase()
+    ) {
+      console.log(`Business: ${business.name}`);
+      const virtualToursObj = await this.virtualRepo.findOne({
+        where: {
+          business: { id: business.id },
+        },
+      });
+      console.log(
+        ` Virtual Tours: ${virtualToursObj ? virtualToursObj.name : 'None'}`,
+      );
+
+      // Check if ListingsVerified already exists for this business
+      let listingsVerifiedObj = await this.listingsVerifiedRepo.findOne({
+        where: {
+          business_id: business.id,
+        },
+      });
+
+      // If not exists, create new instance
+      if (!listingsVerifiedObj) {
         console.log(
-          ` Virtual Tours: ${virtualToursObj ? virtualToursObj.name : 'None'}`,
+          `Creating new ListingsVerified for business: ${business.name}`,
         );
-
-        // Check if ListingsVerified already exists for this business
-        let listingsVerifiedObj = await this.listingsVerifiedRepo.findOne({
-          where: {
-            business_id: business.id,
-          },
-        });
-
-        // If not exists, create new instance
-        if (!listingsVerifiedObj) {
-          console.log(`Creating new ListingsVerified for business: ${business.name}`);
-          listingsVerifiedObj = new ListingsVerified();
-        } else {
-          console.log(`Updating existing ListingsVerified for business: ${business.name}`);
-        }
-
-        // Set/Update all fields
-        listingsVerifiedObj.business_id = business.id;
-        listingsVerifiedObj.address = business.address;
-        listingsVerifiedObj.city = business.city;
-        listingsVerifiedObj.city_state = business.state;
-        listingsVerifiedObj.name = business.name;
-        listingsVerifiedObj.listing_id = business.external_id;
-        listingsVerifiedObj.last_verified = business.modified_at;
-        listingsVerifiedObj.created_at = business.created_at;
-        listingsVerifiedObj.updated_at = business.modified_at;
-        listingsVerifiedObj.virtual_tour_url = virtualToursObj?.link_url;
-        listingsVerifiedObj.profile_url = `https://ablevu.com/business-profile/${business.external_id}`;
-        listingsVerifiedObj.suggest_edit_url = `https://ablevu.com/business-profile/${business.external_id}`;
-
-        const af = await this.businessAccessibilityRepo.find({
-          where: {
-            business_id: business.id,
-          },
-        });
-        const featureTitles = af
-          .map((baf) =>
-            accessiblityfeatures.items.find(
-              (af) => af.id === baf.accessible_feature_id,
-            ),
-          )
-          .filter((ft) => ft) // remove nulls
-          .map((ft) => ft?.title); // extract titles
-
-        const afString = featureTitles.join(', ');
-
-        listingsVerifiedObj.features = afString;
-        await this.listingsVerifiedRepo.save(listingsVerifiedObj);
-
-        // Check if Claims already exists for this business
-        let claim = await this.claimsRepo.findOne({
-          where: {
-            business_id: business.id,
-          },
-        });
-
-        // If not exists, create new instance
-        if (!claim) {
-          console.log(`Creating new Claim for business: ${business.name}`);
-          claim = new Claims();
-        } else {
-          console.log(`Updating existing Claim for business: ${business.name}`);
-        }
-
-        // Set/Update all fields
-        claim.business_id = business.id;
-        claim.listing_id = business.external_id || '';
-        claim.status = business.business_status;
-        claim.listing_name = business.name;
-        claim.owner_name =
-          business.owner?.first_name + ' ' + business.owner?.last_name;
-        claim.owner_email = business.owner?.email || '';
-        claim.phone = business.phone_number || '';
-        claim.source = 'AI Chatbot DB Sync';
-        claim.requested_on = business.created_at;
-        claim.created_at = business.created_at;
-        claim.updated_at = business.modified_at;
-        await this.claimsRepo.save(claim);
+        listingsVerifiedObj = new ListingsVerified();
       } else {
         console.log(
-          `Skipping Business: ${business.name} with status ${business.business_status}`,
+          `Updating existing ListingsVerified for business: ${business.name}`,
         );
       }
+
+      // Set/Update all fields
+      listingsVerifiedObj.business_id = business.id;
+      listingsVerifiedObj.address = business.address;
+      listingsVerifiedObj.city = business.city;
+      listingsVerifiedObj.city_state = business.state;
+      listingsVerifiedObj.name = business.name;
+      listingsVerifiedObj.listing_id = business.external_id;
+      listingsVerifiedObj.last_verified = business.modified_at;
+      listingsVerifiedObj.created_at = business.created_at;
+      listingsVerifiedObj.updated_at = business.modified_at;
+      listingsVerifiedObj.virtual_tour_url = virtualToursObj?.link_url;
+      listingsVerifiedObj.profile_url = `https://ablevu.com/business-profile/${business.external_id}`;
+      listingsVerifiedObj.suggest_edit_url = `https://ablevu.com/business-profile/${business.external_id}`;
+
+      // ✅ Business Types via junction table
+      const linkedTypes = await this.linkedrepo.find({
+        where: {
+          business_id: business.id,
+          active: true,
+        },
+      });
+
+      if (linkedTypes.length > 0) {
+        const businessTypeIds = linkedTypes.map((lt) => lt.business_type_id);
+        const businessTypes = await this.businessTypeRepo.find({
+          where: { id: In(businessTypeIds) },
+        });
+        listingsVerifiedObj.business_types = businessTypes
+          .map((bt) => bt.name)
+          .filter((name) => name)
+          .join(' / ');
+        console.log(`Business Types: ${listingsVerifiedObj.business_types}`);
+      } else {
+        listingsVerifiedObj.business_types = '';
+        console.log(`Business Types: None`);
+      }
+
+      // Accessibility Features
+      const af = await this.businessAccessibilityRepo.find({
+        where: {
+          business_id: business.id,
+        },
+      });
+      const featureTitles = af
+        .map((baf) =>
+          accessiblityfeatures.items.find(
+            (af) => af.id === baf.accessible_feature_id,
+          ),
+        )
+        .filter((ft) => ft)
+        .map((ft) => ft?.title);
+
+      const afString = featureTitles.join(', ');
+      listingsVerifiedObj.features = afString;
+      await this.listingsVerifiedRepo.save(listingsVerifiedObj);
+
+      // Check if Claims already exists for this business
+      let claim = await this.claimsRepo.findOne({
+        where: {
+          business_id: business.id,
+        },
+      });
+
+      // If not exists, create new instance
+      if (!claim) {
+        console.log(`Creating new Claim for business: ${business.name}`);
+        claim = new Claims();
+      } else {
+        console.log(`Updating existing Claim for business: ${business.name}`);
+      }
+
+      // Set/Update all fields
+      claim.business_id = business.id;
+      claim.listing_id = business.external_id || '';
+      claim.status = business.business_status;
+      claim.listing_name = business.name;
+      claim.owner_name =
+        business.owner?.first_name + ' ' + business.owner?.last_name;
+      claim.owner_email = business.owner?.email || '';
+      claim.phone = business.phone_number || '';
+      claim.source = 'AI Chatbot DB Sync';
+      claim.requested_on = business.created_at;
+      claim.created_at = business.created_at;
+      claim.updated_at = business.modified_at;
+      await this.claimsRepo.save(claim);
+    } else {
+      console.log(
+        `Skipping Business: ${business.name} with status ${business.business_status}`,
+      );
     }
   }
-  
+}
+
   fuzzyMatch(categoryOption: string, typeName: string): boolean {
     const normalize = (str: string) =>
       str
@@ -926,6 +964,102 @@ const res = await this.s3.uploadRawBuffer({
       typeTokens.some((t) => t.includes(opt) || opt.includes(t)),
     );
   }
+
+  // sync.service.ts
+  async syncSingleBusiness(businessId: string) {
+  const business = await this.businessService.findById(businessId);
+  if (!business) return;
+
+  const accessiblityfeatures =
+    await this.accessibleFeatureTypeService.getPaginatedList(1, 1000);
+
+  let listingsVerifiedObj = await this.listingsVerifiedRepo.findOne({
+    where: { business_id: business.id },
+  });
+
+  if (!listingsVerifiedObj) {
+    listingsVerifiedObj = new ListingsVerified();
+  }
+
+  const virtualToursObj = await this.virtualRepo.findOne({
+    where: { business: { id: business.id } },
+  });
+
+  listingsVerifiedObj.business_id = business.id;
+  listingsVerifiedObj.address = business.address;
+  listingsVerifiedObj.city = business.city;
+  listingsVerifiedObj.city_state = business.state;
+  listingsVerifiedObj.name = business.name;
+  listingsVerifiedObj.listing_id = business.external_id;
+  listingsVerifiedObj.last_verified = business.modified_at;
+  listingsVerifiedObj.created_at = business.created_at;
+  listingsVerifiedObj.updated_at = business.modified_at;
+  listingsVerifiedObj.virtual_tour_url = virtualToursObj?.link_url;
+  listingsVerifiedObj.profile_url = `https://ablevu.com/business-profile/${business.external_id}`;
+  listingsVerifiedObj.suggest_edit_url = `https://ablevu.com/business-profile/${business.external_id}`;
+
+  const linkedTypes = await this.linkedrepo.find({
+    where: {
+      business_id: business.id,
+      active: true,
+    },
+  });
+
+  if (linkedTypes.length > 0) {
+    const businessTypeIds = linkedTypes.map((lt) => lt.business_type_id);
+    const businessTypes = await this.businessTypeRepo.find({
+      where: { id: In(businessTypeIds) },
+    });
+    listingsVerifiedObj.business_types = businessTypes
+      .map((bt) => bt.name)
+      .filter((name) => name)
+      .join(' / ');    
+  } else {
+    listingsVerifiedObj.business_types = '';    
+  }
+
+  // Accessibility Features
+  const af = await this.businessAccessibilityRepo.find({
+    where: { business_id: business.id },
+  });
+
+  const featureTitles = af
+    .map((baf) =>
+      accessiblityfeatures.items.find(
+        (item) => item.id === baf.accessible_feature_id,
+      ),
+    )
+    .filter((ft) => ft)
+    .map((ft) => ft?.title);
+
+  listingsVerifiedObj.features = featureTitles.join(', ');
+  await this.listingsVerifiedRepo.save(listingsVerifiedObj);
+
+  // Claims
+  let claim = await this.claimsRepo.findOne({
+    where: { business_id: business.id },
+  });
+
+  if (!claim) {
+    claim = new Claims();
+  }
+
+  claim.business_id = business.id;
+  claim.listing_id = business.external_id || '';
+  claim.status = business.business_status;
+  claim.listing_name = business.name;
+  claim.owner_name =
+    business.owner?.first_name + ' ' + business.owner?.last_name;
+  claim.owner_email = business.owner?.email || '';
+  claim.phone = business.phone_number || '';
+  claim.source = 'AI Chatbot DB Sync';
+  claim.requested_on = business.created_at;
+  claim.created_at = business.created_at;
+  claim.updated_at = business.modified_at;
+  await this.claimsRepo.save(claim);
+
+  console.log(`✅ Synced business: ${business.name}`);
+}
 
   async syncAF() {
     console.log(`Syncing AF`);
