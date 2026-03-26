@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
 import { BusinessVirtualTour } from './business_virtual_tours.entity';
 import { BusinessSchedule } from './business_schedule.entity';
@@ -103,7 +103,7 @@ export class Business {
   @Column({ type: 'uuid', nullable: true })
   accessible_city_id: string | null;
 
-  @Column()
+  @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
   @Column()
